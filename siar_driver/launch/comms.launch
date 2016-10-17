@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<launch>
+  
+  <arg name="nvip_monitor" default="false" />
+  <arg name="serial_port" default="/dev/serial/by-id/usb-Prolific_Technology_Inc._USB-Serial_Controller_D-if00-port0"/>
+  <arg name="baud" default="115200"/>
+
+  <!-- Launch nVIP2400 RSSI monitoring if enabled -->
+  <node pkg="rssi_get" type="get_rssi_nvip_2400.py" name="rssi_get_node" if="$(arg nvip_monitor)"/>
+  <!-- Launch serial and udp comms  -->
+  <include file="$(find udp_bridge)/launch/udp_server.launch"/>
+  <include file="$(find serialbridge)/launch/serial_comms.launch"/>
+  <!-- Launch web videoserver -->
+ <node pkg="web_video_server" type="web_video_server" name="videoserver_node" output="screen"/>
+ 
+ <!-- Splitter nodes -->
+ <include file="$(find frame_dropper)/launch/splitter_comms.launch"/>
+</launch>

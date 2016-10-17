@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<package>
+  <name>siar_packages</name>
+  <version>0.0.0</version>
+  <description>The siar_packages package.
+    Contains development made in the frame of the SIAR project
+    This project belongs to the Echord++ initiative inside the Urban Challenge for Sewer Inspection and Monitoring.
+    </description>
+  
+  <maintainer email="dalete@upo.es">David Alejo</maintainer>
+
+
+  <license>BSD</license>
+
+ <author email="daletei@upo.es">David Alejo Teissiere</author>
+  <author email="noeperez@upo.es"> Noe Perez Higueras </author>
+  <author email="iperde@upo.es">Ignacio Pérez de Hurtado</author>
+  <author email="rramvig@upo.es">Rafael Ramón Vigo</author>
+  <author email="fcaballero@us.es">Fernando Caballero Benítez</author>
+  <author email="lmercab@upo.es">Luis Merino Cabañas</author>
+  <author email="cmarques@idmind.pt">Carlos Alberto Fernandes da Silva Marques</author>
+  
+  
+  <buildtool_depend>catkin</buildtool_depend>
+
+
+  <!-- The export tag contains other, unspecified, tags -->
+  <export>
+    <!-- Other tools can request additional information be placed here -->
+    <metapackage/>
+
+  </export>
+</package>

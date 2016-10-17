@@ -1,0 +1,47 @@
+<?xml version="1.0"?>
+<launch>
+
+<node pkg="rosbag" type="record" name="rosbag_raposa" args="record -o /home/siar/siar /tf /odom /odom_ticks /arduimu_v3/imu /cmd_vel /cmd_arm 
+        /front/depth_registered/camera_info 
+        /front/depth_registered/image_raw/compressedDepth
+/front/depth_registered/image_raw/compressedDepth/parameter_descriptions
+/front/depth_registered/image_raw/compressedDepth/parameter_updates
+/front/depth_registered/image_raw/compressed/parameter_updates /front/rgb/camera_info /front/rgb/image_raw/compressed /front/rgb/image_raw/compressed/parameter_descriptions /front/rgb/image_raw/compressed/parameter_updates 
+        /back/depth_registered/camera_info  
+        /back/depth_registered/image_raw/compressedDepth
+/back/depth_registered/image_raw/compressedDepth/parameter_descriptions
+/back/depth_registered/image_raw/compressedDepth/parameter_updates /back/rgb/camera_info /back/rgb/image_raw/compressed /back/rgb/image_raw/compressed/parameter_descriptions /back/rgb/image_raw/compressed/parameter_updates
+        
+        /right/depth_registered/image_raw/compressedDepth
+        /right/depth_registered/camera_info  
+/right/depth_registered/image_raw/compressedDepth/parameter_descriptions
+/right/depth_registered/image_raw/compressedDepth/parameter_updates 
+        /right/rgb/camera_info /right/rgb/image_raw/compressed 
+        /right/rgb/image_raw/compressed/parameter_descriptions 
+        /right/rgb/image_raw/compressed/parameter_updates 
+        
+        /left/depth_registered/camera_info  
+        /left/depth_registered/image_raw/compressedDepth
+/left/depth_registered/image_raw/compressedDepth/parameter_descriptions
+/left/depth_registered/image_raw/compressedDepth/parameter_updates 
+        /left/rgb/camera_info /left/rgb/image_raw/compressed 
+        /left/rgb/image_raw/compressed/parameter_descriptions 
+        /left/rgb/image_raw/compressed/parameter_updates 
+      
+      /up/depth_registered/camera_info  
+        /up/depth_registered/image_raw/compressedDepth
+/up/depth_registered/image_raw/compressedDepth/parameter_descriptions
+/up/depth_registered/image_raw/compressedDepth/parameter_updates 
+        /up/rgb/camera_info /up/rgb/image_raw/compressed 
+        /up/rgb/image_raw/compressed/parameter_descriptions 
+        /up/rgb/image_raw/compressed/parameter_updates 
+      
+      
+        /scan360
+        /rssi_nvip_2400
+        /elec_battery_status
+        /motor_battery_status
+        " />   
+        
+</launch>
+

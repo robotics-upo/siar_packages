@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<package>
+  <name>frame_dropper</name>
+  <version>0.0.0</version>
+  <description>The frame_dropper package. 
+    Contains two utilities: "frame_dropper" and "image_splitter" 
+    They can be used for replicating image flows and multiplexing them.
+    This can be useful for transmitting images over a network with low latency.</description>
+
+   <maintainer email="dalete@upo.es">David Alejo</maintainer>
+
+
+  <license>BSD</license>
+
+
+  <author email="daletei@upo.es">David Alejo Teissiere</author>
+  <author email="fcaballero@us.es">Fernando Caballero Benítez</author>
+ 
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>cv_bridge</build_depend>
+  <build_depend>image_transport</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <run_depend>cv_bridge</run_depend>
+  <run_depend>image_transport</run_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>std_msgs</run_depend>
+
+
+  <!-- The export tag contains other, unspecified, tags -->
+  <export>
+    <!-- Other tools can request additional information be placed here -->
+
+  </export>
+</package>

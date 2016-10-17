@@ -1,0 +1,43 @@
+<?xml version="1.0"?>
+<package>
+  <name>udp_bridge</name>
+  <version>0.1.0</version>
+  <description>The udp_bridge package. This SIAR package can be used to transmit images and other data over a UDP bridge linking
+               the robot and the base station. This can be useful for teleoperating real-time 
+  </description>
+
+  <maintainer email="daletei@upo.es">David Alejo Teissière</maintainer>
+
+  <license>BSD</license>
+
+
+  <author email="daletei@upo.es">David Alejo Teissiere</author>
+  <author email="noeperez@upo.es"> Noe Perez Higueras </author>
+  <author email="iperde@upo.es">Ignacio Pérez de Hurtado</author>
+  <author email="rramvig@upo.es">Rafael Ramón Vigo</author>
+  <author email="fcaballero@us.es">Fernando Caballero Benítez</author>
+  <author email="lmercab@upo.es">Luis Merino Cabañas</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>dynamic_reconfigure</build_depend>
+  <build_depend>image_transport</build_depend>
+  <build_depend>nav_msgs</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>siar_driver</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>rssi_get</build_depend>
+  <build_depend>tf</build_depend>
+  <run_depend>dynamic_reconfigure</run_depend>
+  <run_depend>image_transport</run_depend>
+  <run_depend>nav_msgs</run_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>rospy</run_depend>
+  <run_depend>sensor_msgs</run_depend>
+  <run_depend>siar_driver</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>tf</run_depend>
+  <run_depend>rssi_get</run_depend>
+
+</package>

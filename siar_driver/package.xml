@@ -1,0 +1,51 @@
+<?xml version="1.0"?>
+<package>
+  <name>siar_driver</name>
+  <version>0.0.0</version>
+  <description>The siar_driver package</description>
+
+  <maintainer email="dalete@upo.es">David Alejo</maintainer>
+
+
+  <license>BSD</license>
+
+
+  <author email="daletei@upo.es">David Alejo Teissière</author>
+  <author email="noeperez@upo.es"> Noé Perez Higueras </author>
+  <author email="iperde@upo.es">Ignacio Pérez de Hurtado</author>
+  <author email="rramvig@upo.es">Rafael Ramón Vigo</author>
+  <author email="fcaballero@us.es">Fernando Caballero Benítez</author>
+  <author email="lmercab@upo.es">Luis Merino Cabañas</author>
+  <author email="cmarques@idmind.pt">Carlos Alberto Fernandes da Silva Marques</author>
+
+
+  <buildtool_depend>catkin</buildtool_depend>
+  v<build_depend>roscpp</build_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>arduimu_v3</build_depend>
+  <build_depend>kdl_parser</build_depend>
+  <build_depend>message_generation</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>nav_msgs</build_depend>
+  <build_depend>robot_state_publisher</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>tf</build_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>rospy</run_depend>
+  <run_depend>arduimu_v3</run_depend>
+  <run_depend>kdl_parser</run_depend>
+  <run_depend>message_generation</run_depend>
+  <run_depend>message_runtime</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>nav_msgs</run_depend>
+  <run_depend>robot_state_publisher</run_depend>
+  <run_depend>sensor_msgs</run_depend>
+  <run_depend>tf</run_depend>
+
+
+  <!-- The export tag contains other, unspecified, tags -->
+  <export>
+    <!-- Other tools can request additional information be placed here -->
+
+  </export>
+</package>
