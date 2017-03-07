@@ -22,7 +22,7 @@ under license http://creativecommons.org/licenses/by/3.0/
   
 * Computer to be located on the platform running Ubuntu Linux 14.04 and ROS Indigo. It has to be connected via USB to the SIAR control board.
 
-* An ArduIMU v3 IMU device. Note that this package depends on the package arduimu_v3, which can be retrieved in: https://github.com/robotics-upo/arduimu_v3.git.
+* An ArduIMU v3 IMU device. Note that this package depends on the package arduimu_v3.
 
 * (*Optional*): A wireless joystick or gamepad with at least 8 buttons and 1 axis compatible with ROS . The system has been tested with the *Logitech Wireless F710* gamepad. 
 
