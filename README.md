@@ -2,7 +2,7 @@
 
 This metapackage compiles developments that have been made for the SIAR project, which belongs to the Echord++ FP7 European project in the Urban Robotics Challenge "Sewer Inspection".
 
-It is composed by the following pacakges:
+It is composed by the following packages:
 
 * *frame_dropper* Contains two utilities: "frame_dropper" and "image_splitter" for replicating image flow that could be used for transmitting images over the network.
 * *rssi_get* Contains a utility for publishing the perceived RSSI of nVIP2400 equipments

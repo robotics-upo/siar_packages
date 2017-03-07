@@ -1,0 +1,22 @@
+<!--
+-->
+<launch>
+
+  # Bag filename
+  <arg name="bag_file" />
+  <arg name="start" default="950"/>
+  <arg name="camera" default="/up"/>
+  
+  # Use simulation time fro TFs
+  <param name="use_sim_time" value="true" />
+
+  # Bag file
+  <node name="bag_player" type="play" pkg="rosbag" args="$(arg bag_file) --clock -s $(arg start)" />
+  
+  # Uncompress depth
+  <node name="republish_depth" type="republish" pkg="image_transport" args="compressedDepth in:=$(arg camera)/depth_registered/image_raw raw out:=$(arg camera)/depth_registered/image_raw"/>
+  
+  # Launch plane detector
+  <node name="cnn_laber" type="cnn_detector.py" pkg="manhole_detector" output="screen" args="$(arg camera) $(find manhole_detector)/test/model.10-0.9861-0.9578.hdf5" />
+  
+</launch>

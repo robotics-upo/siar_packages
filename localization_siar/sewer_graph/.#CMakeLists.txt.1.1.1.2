@@ -1,0 +1,48 @@
+project(UAVFlightPlan)
+cmake_minimum_required(VERSION 2.6)
+
+SET(CMAKE_BUILD_TYPE Debug)
+
+
+# set(CMAKE_CXX_FLAGS  -lxml++-2.6 -lxml2 -lglibmm-2.4 -lgobject-2.0 -lsigc-2.0 -lglib-2.0)
+
+SET(LIBS functions kmlbase kmldom kmlengine kmlconvenience xml++-2.6 sparser)
+
+find_package(Boost REQUIRED)
+#find_package(libkml REQUIRED)
+# This was found by using the command functions kmlbase kmldom kmlengine kmlconvenience xml++-1.0
+#and pasting the resulting -I options
+include_directories(src /usr/include/glibmm-2.4 /usr/lib/x86_64-linux-gnu/glibmm-2.4/include /usr/include/sigc++-2.0 /usr/lib/x86_64-linux-gnu/sigc++-2.0/include /usr/include/glib-2.0 /usr/lib/x86_64-linux-gnu/glib-2.0/include /usr/include/libxml2 /usr/include/libxml++-2.6 /usr/lib/libxml++-2.6/include)
+
+add_subdirectory(src)
+
+add_library(UAVFlightPlan SHARED 
+	    ${FP_HEADERS} ${FP_SOURCE}
+)
+
+install( TARGETS UAVFlightPlan DESTINATION lib/ PERMISSIONS OWNER_READ GROUP_READ WORLD_READ OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE )
+
+# UAV Navigation file to KML file utility (David)
+ add_executable(test_earth_location src/exec/test_earth_location.cpp )
+ target_link_libraries(test_earth_location UAVFlightPlan ${LIBS})
+
+# UAV Navigation file to KML file utility (David)
+ add_executable(uav2kml src/exec/uav2kml.cpp )
+ target_link_libraries(uav2kml UAVFlightPlan ${LIBS})
+
+# UAV Navigation file to KML file utility (David)
+ add_executable(fp2kml src/exec/fp2kml.cpp )
+ target_link_libraries(fp2kml UAVFlightPlan ${LIBS})
+
+# Creates obstacles (David)
+ add_executable(create_obstacles src/exec/create_obstacles.cpp )
+ target_link_libraries(create_obstacles UAVFlightPlan ${LIBS})
+
+# Translates a log into constant sample time log (David)
+ add_executable(uavs_sample src/exec/uavs_sample.cpp )
+ target_link_libraries(uavs_sample UAVFlightPlan ${LIBS})
+
+# Cuts a log (David)
+ add_executable(cut src/exec/cut.cpp )
+ target_link_libraries(cut UAVFlightPlan ${LIBS})
+

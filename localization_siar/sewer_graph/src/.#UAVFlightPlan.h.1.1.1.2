@@ -1,0 +1,89 @@
+/*
+    <This class contains a UAV Navigation flight plan.>
+    Copyright (C) <year>  <name of author>
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+*/
+
+#ifndef UAVFLIGHTPLAN_H
+#define UAVFLIGHTPLAN_H
+
+#include "UAVWaypoint.h"
+#include <list>
+#include <string>
+
+namespace UAVFlightPlan {
+
+class UAVFlightPlan:public std::list<UAVWaypoint>
+{
+  public:
+		//! @brief Default Constructor
+    UAVFlightPlan();
+    
+    //! @brief Constructor from a usual flight plan data
+    UAVFlightPlan(const std::vector< functions::Point3D >& fp, const EarthLocation& e);
+		
+    //! @brief Constructor from XML file
+    //! @param s Input filename
+    UAVFlightPlan(const std::string &s);
+    
+    //! @brief Loads a flight plan described in UAV Navigation XML format
+    //! @param s Input filename
+    bool loadXMLFile(const std::string &s);
+    
+    //! @brief Represents the information of the class in a string
+    //! @return A string with the content
+    std::string toString() const;
+ 
+    //! @brief Exports the information to a KML file
+    //! @param f Filename
+    //! @retval true The file has been exported successfully
+    //! @retval false Errors while exporting the file
+    bool exportToKMLFile(const std::string &f, int begin = 0, int end = -1) const;
+		
+		void getVectors(std::vector<double> &lat_, std::vector<double> &lon_) const;
+		
+    std::vector<functions::Point3D> toRelativeFlightPlan(EarthLocation &center) const;
+    
+    //! @brief Uses toQGCString to write a file with the UAVFlightPlan info
+    //! @param filename The name of the file
+    //! @retval true success
+    //! @retval false success
+    bool toQGCFile(const std::string &filename) const;
+    
+    
+    //! @brief Uses toQGCString to write a file with the UAVFlightPlan info
+    //! @param filename The name of the file
+    //! @retval true success
+    //! @retval false error
+    bool fromQGCFile(const std::string &filename);
+    
+    //! @brief Translates the info into a QGC string with the format of a QGC File
+    //! @return The string with the QGC file info
+    std::string toQGCString() const;
+    
+  protected:
+    static std::string wp_id;
+    static std::string parent_id;
+    static std::string qgc_id;
+		
+		void init();
+};
+
+}
+
+#endif // UAVFLIGHTPLAN_H
+

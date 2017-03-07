@@ -1,0 +1,278 @@
+/*
+    <one line to give the program's name and a brief idea of what it does.>
+    Copyright (C) <year>  <name of author>
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+
+*/
+
+#include "UAVFlightPlan.h"
+#include <libxml++/libxml++.h>
+#include <exception>
+#include <iostream>
+#include <kml/base/file.h>
+#include <kml/dom.h>
+#include <kml/engine.h>
+#include <kml/convenience/convenience.h>
+
+#include <functions/functions.h>
+
+
+using namespace std;
+
+using kmldom::CoordinatesPtr;
+using kmldom::KmlFactory;
+using kmldom::PointPtr;
+using kmldom::PlacemarkPtr;
+using kmldom::KmlPtr;
+using kmlengine::KmlFile;
+using kmlengine::KmlFilePtr;
+
+namespace UAVFlightPlan {
+  std::string UAVFlightPlan::wp_id = "dtFP"; // XML id of each waypoint
+  std::string UAVFlightPlan::parent_id = "DocumentElement"; // XML id of the flight plan
+  std::string UAVFlightPlan::qgc_id = "QGC WPL 120";
+  
+  UAVFlightPlan::UAVFlightPlan() {
+		init();
+	}
+  
+  UAVFlightPlan::UAVFlightPlan(const string &s) {
+    loadXMLFile(s);
+  }
+  
+  bool UAVFlightPlan::loadXMLFile(const string &s) {
+    clear();
+    bool ret_val = true;
+    
+    try {
+      xmlpp::DomParser parser;
+      //parser.set_validate();
+      parser.set_substitute_entities(false);
+      parser.parse_file(s);
+      if(parser)
+      {
+	//Walk the tree:
+	const xmlpp::Node* pNode = parser.get_document()->get_root_node(); //deleted by DomParser.
+	
+	xmlpp::Node::NodeList n_list(pNode->get_children());
+	
+	xmlpp::Node::NodeList::iterator it;
+	UAVWaypoint curr_wp;
+	
+	for (it = n_list.begin(); it != n_list.end() && ret_val; it++) {
+	  
+	  
+	  
+	  if ( (*it)->get_name() == wp_id ) {
+	    // First step: Document class
+	    // Now we will search the waypoints (its name will be equal to wp_id
+	    ret_val = curr_wp.fromXMLNode(*it);
+	    if (ret_val) {
+	      push_back(curr_wp);
+	    } else {
+	      cout << "UAVFlightPlan::loadXMLFile --> Error in one waypoint element.\n";
+	    }
+	  }
+	}
+	
+	
+      }
+    } catch(const std::exception& ex) {
+      ret_val = false;
+      std::cout << "UAVFlightPlan::loadXMLFile --> Exception caught: " << ex.what() << std::endl;
+    }
+    
+    return ret_val;
+  }
+  
+  std::string UAVFlightPlan::toString() const {
+    ostringstream os;
+    
+    os << "Flight plan content: " << endl;
+    
+    const_iterator it;
+    for (it = begin(); it != end(); it++) {
+      os << it->toString() << endl;
+      
+    }
+    
+    return os.str();
+  }
+  
+  bool UAVFlightPlan::exportToKMLFile(const std::string &f, int begin_, int end_) const {
+    bool ret_val = true;
+    
+    if (end_ < 0 || end_ > size()) {
+      end_ = size(); 
+    }
+  
+    if (begin_ < 0 || begin_ > size()) {
+      begin_ = 0;
+    }
+    
+    const_iterator it = begin();
+    
+    // Advance to the first waypoint to save
+    int i = 0;
+    for (; i < begin_; i++, it++);
+
+    KmlFactory* factory = KmlFactory::GetFactory();
+    
+    
+		kmldom::DocumentPtr doc = factory->CreateDocument();
+		
+    for (int j = 1; i < end_ && it != end(); j++,i++, it++) {
+			ostringstream name_;
+			name_ << "Waypoint " << j;
+			
+			PlacemarkPtr place = kmlconvenience::CreatePointPlacemark(name_.str(), it->getLatitude(), it->getLongitude());
+			doc->add_feature(place);
+    }
+    
+    
+    
+    // Finally create the kml
+    KmlPtr kml = factory->CreateKml();
+    kml->set_feature(doc);
+    
+    // Then the file
+    KmlFilePtr kmlfile = KmlFile::CreateFromImport(kml);
+    if (!kmlfile) {
+      cerr << "error: could not create kml file" << endl;
+      return false;
+    }
+    
+    // And write it
+    std::string kml_data;
+    kmlfile->SerializeToString(&kml_data);
+    if (!kmlbase::File::WriteStringToFile(kml_data, f.c_str())) {
+      cerr << "error: write of " << f << " failed" << endl;
+      ret_val = false;
+    }
+    
+    return ret_val;
+  }
+  
+  void UAVFlightPlan::init() {
+		
+	}
+	
+	void UAVFlightPlan::getVectors(vector<double> &lat_, vector<double> &lon_) const
+	{
+		lat_.clear();
+		lon_.clear();
+		
+		const_iterator it = begin();
+		for ( ; it != end(); it++) {
+			lat_.push_back(it->getLatitude());
+			lon_.push_back(it->getLongitude());
+		}
+	}
+	
+
+UAVFlightPlan::UAVFlightPlan::UAVFlightPlan(const vector< functions::Point3D >& fp, const EarthLocation& e)
+{
+  for (unsigned int i = 0; i < fp.size(); i++) {
+      EarthLocation p(e);
+      p.shift(fp.at(i).x, fp.at(i).y, fp.at(i).z);
+      
+      UAVWaypoint w(p.getLatitude(), p.getLongitude(), p.getAltitude());
+      w.setID(i);
+      w.setActive(i == 1 || fp.size() == 1); // Make active allways the second waypoint or the first if it is the only one
+      
+      push_back(w);
+    } 
+}
+
+vector< functions::Point3D > UAVFlightPlan::toRelativeFlightPlan(EarthLocation& center) const
+{
+  vector<functions::Point3D> ret;
+  
+  const_iterator it = begin();
+  for (;it != end(); it++) {
+    EarthLocation curr;
+    curr.setAltitude(it->getAltitude());
+    curr.setLatitude(it->getLatitude());
+    curr.setLongitude(it->getLongitude());
+    functions::Point3D x(curr.toRelative(center));
+    ret.push_back(x);
+  }
+  
+  return ret;
+}
+
+bool UAVFlightPlan::toQGCFile(const string& filename) const
+  {
+    return functions::writeStringToFile(filename, toQGCString());
+  }
+
+string UAVFlightPlan::toQGCString() const
+{
+   ostringstream os;
+   UAVFlightPlan::const_iterator it = begin();
+    
+    os << "QGC WPL 120" << endl;
+    
+    for (;it != end(); it++) {
+      //        it->setID(cont);
+       os << it->toQGroundControl() << endl;
+    }
+    
+    return os.str();
+}
+
+  
+bool UAVFlightPlan::fromQGCFile(const string& filename)
+{
+  ifstream file;
+  bool ret = true;
+  
+  clear();
+  
+  try {
+    file.open(filename.c_str());
+    if (file.is_open()) {
+      char buffer[32768];
+      int cont = 0;
+      bool end = false;
+      while (file.getline(buffer, 32678) && !end) {
+	string s(buffer);
+	if (cont == 0) {
+	  cout << s.substr(0, s.size() - 1) << "."<< endl; 
+	  if (s.substr(0, qgc_id.size()) != qgc_id) {
+	    end = true;
+	    ret = false;
+	  }
+	} else {
+	  UAVWaypoint w;
+	  end = !w.fromQGroundControl(s);
+	  if (!end) {
+	    push_back(w);
+	  }
+	}
+	cont++;
+      }
+    } else {
+      ret = false;
+    }
+  } catch (exception &e) {
+    ret = false;
+  }
+  
+  return ret;
+}
+
+}
