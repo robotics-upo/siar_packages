@@ -5,7 +5,10 @@ This metapackage contains most of the development for localization of the SIAR p
 This localization system is presented in the paper "RGBD-based Robot Localization in Sewer Networks" of D. Alejo, F. Caballero and L. Merino that
 has been submitted to 2017 IEEE/RSJ International Conference on Intelligent Robots and Systems.
 
-The bags for
+The bags for reproducing the presented experiments can be found in:
+
+- *Experiment 1*: http://robotics.upo.es/~daletei/SIAR/Dataset/2017-01-17_sewers_jan/siar_2017-01-17-10-25-40.bag
+- *Experiment 2*: http://robotics.upo.es/~daletei/SIAR/Dataset/2017-01-17_sewers_jan/siar_2017-01-17-11-17-28.bag
 
 
 It is composed by the following pacakges:
@@ -25,13 +28,13 @@ In order to build the package, clone it inside the *src* directory of your Catki
 ## Dependencies
 
 - libkml-1.2.0 (or higher)
-- libxml++-1.0 (or higher) or any version. Sometime it is necessary to make a symbolic link in /usr/include/libkml++ to the folder /usr/include/libkml++-1.0/libkml++
+- Rgbd-odom package. Can be downloaded from: https://github.com/robotics-upo/rgbd_odom.git
 
 # amcl_sewer
 
 This module has been included for performing the localization of the SIAR platform while navigating through the sewer network. 
 
-It uses Monte-Carlo based localization with two different weights. 
+It uses Adaptive Monte-Carlo Localization with two different weights. 
 
 First, it calculates the distance of the particle with the graph (i.e. distance to closest edge). Particles that are farther 
 from the graph are less likely to represent the state of the SIAR.
@@ -39,13 +42,21 @@ from the graph are less likely to represent the state of the SIAR.
 Second, whenever the manhole detector detects a manhole the weights are changed to the distance to the closest manhole.
 In this way, we can precisely locate the SIAR platform in the sewer network.
 
-The main node is described below.
+## Launching the experiments
+
+In the "launch" subdirectory, two launch files are given for easilly executing the experiments described in the submitted paper:
+
+- *amcl_experiment_1.launch*. By default, it searches for then bag of Experiment 1 in "~/siar_2017-01-17-10-25-40.bag" (can be changed with the parameter bag_file) and produces the stats file: "~/stats_experiment_1.txt". 
+
+- *amcl_experiment_1.launch*. By default, it searches for then bag of Experiment 1 in "~/siar_2017-01-17-11-17-28.bag" (can be changed with the parameter bag_file) and produces the stats file: "~/stats_experiment_2.txt". 
 
 ## amcl_node
 
-This node gets an image from the topic "/in/rgb/image_raw" and republishes it rescaled and with frame dropping options. 
+This node executes the localization. 
 
 The parameters are (default values given inside parentheses):
+
+
 
 ### ROS Parameters
 
@@ -94,9 +105,6 @@ The parameters are (default values given inside parentheses):
 * */ground_truth* (std_msgs/Bool) If true we are really below a manhole (hand labeled)
 * */amcl_node/initial_pose* (geometry_msgs/PoseWithCovarianceStampedConstPtr)
 
-## Launching the experiments
-
-In the "launch" subdirectory, two launch files are given for easilly executing the performing
 
 
 # manhole_detector
@@ -159,6 +167,6 @@ Loads a bag file and generates four data files with downsampled depth (80x60) im
 
 ### Use:
 
- * *generate_dataset_learning*  <bag file> <input_file> [<camera_name>] [<skip first n images>] 
+ * *generate_dataset_learning*  \<bag file\> \<input_file\> \[\<camera_name\>\] \[\<skip first n images\>\] 
  
  (camera_name defaults to "/up")
