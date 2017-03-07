@@ -9,7 +9,12 @@ It makes use of the keras python library for using neural networks for detection
 
 It requires the hdf5 and h5py for loading the trained network
 
-Keras should be configured (go to ~/.keras) for using Theanos backend.
+## Configuring Keras
+
+Keras should be configured with the following parameters. Please edit "~/.keras/keras.json" file.
+
+- "backend": "theano"
+- "image_dim_ordering": "th"
 
 ## cnn_detector.py
 
@@ -17,7 +22,7 @@ This node uses the CNN for generating a bool message that will be true whenever 
 
 ### Use:
 
- cnn_detector.py <camera name> <cnn_file>
+ cnn_detector.py \<camera name\> \<cnn_file\>
  
  The cnn_file is saved in the test subdirectory. The camera name is usually "/up"
  
@@ -37,7 +42,7 @@ This node loads the handmade label file that identifies the sequence number of t
 a bool message indicating it.
 
 ### Use:
- fake_detector.py <camera name> <label_file>
+ fake_detector.py \<camera name\> \<label_file\>
  
 ### Published topics
 
