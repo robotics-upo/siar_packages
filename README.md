@@ -6,6 +6,7 @@ It also includes the localization system is presented in the paper "RGBD-based R
 
 This metapackage is composed by the following packages. For more details about them, please refere to their included README.md files:
 
+* *arduimu_v3* This module reads and filters the measures from a ARDUIMU_V3 device and traslates it into ROS standard imu messages
 * *frame_dropper* Contains two utilities: "frame_dropper" and "image_splitter" for replicating image flow that could be used for transmitting images over the network.
 * *localization_siar* A metapackage that groups all the packages necessary for the localization in the SIAR platform. Please refer to its internal README.md for more details.
 * *rssi_get* Contains a utility for publishing the perceived RSSI of nVIP2400 equipments
