@@ -1,86 +1,11 @@
-# siar_packages
-
-This metapackage compiles developments that have been made for the SIAR project, which belongs to the Echord++ FP7 European project in the Urban Robotics Challenge "Sewer Inspection".
-
-It is composed by the following pacakges:
-
-* *frame_dropper* Contains two utilities: "frame_dropper" and "image_splitter" for replicating image flow that could be used for transmitting images over the network.
-* *rssi_get* Contains a utility for publishing the perceived RSSI of nVIP2400 equipments
-* *siar_driver* A driver for controlling the SIAR platform
-* *udp_bridge* A bridge module to transmit data over a UDP link
-
-## Compilation
-In order to build the package, clone it inside the *src* directory of your Catkin workspace and compile it by using *catkin_make* as usual.
-
-
-# frame_dropper
-
-This module has been included for easily replicating image flows, so they can be configured for image transmission over a data link. 
-
-Note that the utilities assume 32FC1 format when publishing depth data.
-
-Two utilities have been included:
-
-## frame_dropper
-
-This node gets an image from the topic "/in/rgb/image_raw" and republishes it rescaled and with frame dropping options. Parameters:
-
-### ROS Parameters
-
-* *in*: Uses resolvename to ask for the name of the input image flow
-* *out*: Uses resolvename to ask for the name of the output image flow
-* *frame_skip*: Number of frames to be received before publishing one image in the output flow
-* *scale*: Scale (1 means no scaling)
-* *publish_depth*: Also duplicates the depth image flow from /in/depth_registered/image_raw
-
-### Published topics
-
-* *out/rgb/image_raw* Image transport publisher with the output flow
-
-### Subscribed topics
-
-* *out/rgb/image_raw* Image transport subscriber to the input flow
-
-
-## image_splitter
-
-This node extends the functionality of frame_dropper by taking two different input image flows, that could be interchanged online by publishing in the "reverse" topic.
-
-### ROS Parameters
-
-* *in_1*: Uses resolvename to ask for the name of the first input image flow
-* *out_1*: Uses resolvename to ask for the name of the first output image flow
-* *in_2*: Uses resolvename to ask for the name of the second input image flow
-* *out_2*: Uses resolvename to ask for the name of the second output image flow
-* *frame_skip*: Number of frames to be received before publishing one image in the output flow
-* *scale*: Scale (1 means no scaling)
-* *publish_depth*: Also duplicates the depth image flow from /in/depth_registered/image_raw
-* *use_depth*: If false, the depth image transport publisher is not instantiated
-* *publish_all*: Publishes both flows
-
-### Published topics
-
-* *out/rgb/image_raw* Image transport publisher with the output flow
-
-### Subscribed topics
-
-* *out/rgb/image_raw* Image transport subscriber to the input flow
-* */reverse* Out_1 takes the images from In_2 if /reverse is true. If false, normal flow
-* */publish_depth* To active or deactivate depth publishing online
-* */publish_all* Publishes both flows (in reverse order if publish depth is activated)
-
-# rssi_get
-
-Uses a scraping technique to obtain the RSSI data and other configuration from the nVIP2400 WiFi equipment
-
 # siar_driver
 This module acts as an interface between the SIAR control board and other ROS modules. With this module, standard command velocity messages can be sent to the robot and also odometry is provided. 
 
-The package is composed by three programs:
+The package is composed by three nodes:
 
 * *siar_driver* is a driver for controlling the robot by using ROS.
 * *siar_teleop_joy* is a program for teleoperating the robot with a joystick by using ROS (*optional feature*).
-* *siar_calibration_node* a simple node for calibrating the odometry estimation and commands of SIAR. Use: rosrun siar_driver siar_calibration_node <type of test> <total time> <raw velocity command> The program accepts joystick commands before starting the test (a joy node should be running).
+* *siar_calibration_node* a simple node for calibrating the odometry estimation and commands of SIAR. Use: rosrun siar_driver siar_calibration_node \<type of test\> \<total time\> \<raw velocity command\> The program accepts joystick commands before starting the test (a joy node should be running).
 
 The raposa_teleop_joy program is based on the following tutorial: 
 *Writing a Teleoperation Node for a Linux-Supported Joystick* 
@@ -161,7 +86,7 @@ Parameters of the *teresa_driver* program:
 
 * **publish_tf**: if true, it publishes the tf related to the odometry
 
-Parameters of the *teresa_teleop_joy* program:
+Parameters of the *siar_teleop_joy* program:
 
 * **freq**: Frequency in hertzs of the main loop.
 
@@ -188,79 +113,3 @@ Parameters of the *teresa_teleop_joy* program:
 * **max_angular_velocity**: Maximun allowd angular velocity in rad/s.
 
 * **max_joy_time** If no joystick command is received within this time --> stop SIAR. Useful when transmitting joy commands over the network
-
-# udp_bridge
-
-A bridge module to transmit SIAR related data over a UDP link. It contains two nodes: udp_server should be runned in the PC onboard the SIAR and udp_client in the base station.
-
-Note that two independents cores should be running in both PCs (base station and remote) and bridge will link them.
-
-Note that this package is still under development, and if the client goes down, it is possible that the server freezes, so it should be also restarted.
-
-## udp_server
-
-It is the node that has to be executed in the SIAR PC. The subscribed topics will be transmitted over UDP at a determinate maximum rate. 
-The published topics will publish whenever new data associated to this topic is received over UDP.
-
-### Params
-
- * *odomTopic* (/odom) The odometry topic
- * *odomRate* (5.0) Maximum rate in Hertzs of the odometry
- * *joy_topic* (/joy) The joy topic
- * *camera_1* (/front) Name of the primary camera
- * *camera_2* (/back) Name of the secondary camera
- * *image_rate* (5.0) Maximum rate of the images
- * *depth_rate* (2.0) Maximum rate of the depth images (should be lower than the image rate)
- * *jpeg_quality* (60) JPEG quality of the flows of images of cameras 1 and 2 (NOTE: it is convenient to duplicate the original flows, so they are not altered by this program)
- * *port* (16000); The UDP port to be used
- * *rssi_topic* ("/rssi_nvip_2400") The topic that contains the RSSI info and other link information
- * *rssi_rate* (1.0) Maximum rate of the RSSI 
- * *motor_battery_topic* ("/motor_battery_status") Name of the first battery status topic
- * *elec_battery_topic* ("/elec_battery_status") Second battery status topic
- * *batteryRate* (0.2) Maximum rate for the battery status
- * *point_topic* ("/rgbd_odom_node/point_cloud") Experimental: transmit point clouds (not tested)
- * *point_rate* (1.0) Experimental: point cloud rate
-
-### Published topics
-
- * */publish_depth_pub* Information to activate or deactivate depth publication from the base station
- * */publish_all* Information to activate or deactivate simultaneous image emision from two cameras
- * */slow* Activate or deactivate SIAR slow mode from the base station
- * */joy* Joystick commands 
- 
-### Subscribed topics
-
- * */camera_1/rgb/image_raw* Image transport subscriber 1
- * */camera_1/depth_registered/image_raw* Image transport subscriber 1b. Depth images
- * */camera_2/rgb/image_raw* Image transport subscriber 2
- * */camera_2/depth_registered/image_raw* Image transport subscriber 2b. Depth images
- * */motor_battery_status* Motor battery status
- * */elec_battery_status* Electronic battery status
- * */rssi_nvip_2400* nVIP link status
- * */rbgd_odom_node/point_cloud* Point cloud subscriber
-
-## udp_client
-
-This node should be used in the base station.
-
-The subscribed and published topics are complementary to the udp_server, so they will not be listed below. Only extra publishers are listed.
-
-### Params
-
- * *ip_address* (192.168.168.11) IP where the server is running (note that the server should be running before starting the program)
- * *odomTopic* (/odom) The odometry topic
- * *joy_topic* (/joy) The joy topic
- * *camera_1* (/front) Name of the primary camera
- * *camera_2* (/back) Name of the secondary camera
- * *port* (16000); The UDP port to be used
- * *rssi_topic* ("/rssi_nvip_2400") The topic that contains the RSSI info and other link information
- * *motor_battery_topic* ("/motor_battery_status") Name of the first battery status topic
- * *elec_battery_topic* ("/elec_battery_status") Second battery status topic
- * *point_topic* ("/rgbd_odom_node/point_cloud") Experimental: transmit point clouds (not tested)
- 
-### Extra Published topics
-
- * */camera_1/rgb/camera_info* Camera info topic associated to the camera 1 image flow (actual values are hardcoded)
- * */camera_1/depth_registered/camera_info* Camera info topic associated to the camera 1 depth image flow (actual values are hardcoded)
- * */camera_2/rgb/camera_info* Camera info topic associated to the camera 2 rgb image flow (actual values are hardcoded)
- * */camera_2/depth_registered/camera_info* Camera info topic associated to the camera 2 depth image flow (actual values are hardcoded)
