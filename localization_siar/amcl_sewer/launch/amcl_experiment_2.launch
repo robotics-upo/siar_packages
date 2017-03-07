@@ -12,7 +12,7 @@
   <arg name="camera" default="/front"/>
   <arg name="start" default="390"/>
   
-  <arg name="stats_file" default="$(find amcl_sewer)/stats11_1.txt"/>
+  <arg name="stats_file" default="$(find amcl_sewer)/stats_experiment_2.txt"/>
 
   # Bag file
   <node name="bag_player" type="play" pkg="rosbag" args="$(arg bag_file) --clock -s $(arg start) -r 1.0" if="$(arg play_bag)"/>

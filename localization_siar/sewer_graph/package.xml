@@ -15,15 +15,18 @@
   <build_depend>roscpp</build_depend>
   <build_depend>rosconsole</build_depend>
   <build_depend>functions</build_depend>
-  <build_depend>std_msgs</build_depend>
   <build_depend>geometry_msgs</build_depend>
+  <build_depend>simple_graph</build_depend>
+  <build_depend>std_msgs</build_depend>
   <build_depend>visualization_msgs</build_depend>
+  
   
   <run_depend>roscpp</run_depend>
   <run_depend>functions</run_depend>
-  <run_depend>rosconsole</run_depend>
-  <run_depend>std_msgs</run_depend>
   <run_depend>geometry_msgs</run_depend>
+  <run_depend>rosconsole</run_depend>
+  <run_depend>simple_graph</run_depend>
+  <run_depend>std_msgs</run_depend>
   <run_depend>visualization_msgs</run_depend>
 
 </package>

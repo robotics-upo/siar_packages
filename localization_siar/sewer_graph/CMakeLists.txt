@@ -6,20 +6,20 @@ cmake_minimum_required(VERSION 2.6)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS roscpp functions visualization_msgs roscpp geometry_msgs simple_graph)
-find_package(Boost REQUIRED)
+# find_package(Boost REQUIRED)
 # find_package(kml REQUIRED)
 
 catkin_package(
  INCLUDE_DIRS include
  LIBRARIES sewer_graph
- CATKIN_DEPENDS roscpp functions visualization_msgs roscpp geometry_msgs
+ CATKIN_DEPENDS roscpp functions visualization_msgs roscpp geometry_msgs simple_graph
  DEPENDS Boost kml
 )
 
 include_directories(include ${catkin_INCLUDE_DIRS})
 
 SET(FP_SOURCE src/earthlocation.cpp src/general.cpp src/sewer_graph.cpp) 
-SET(LIBS ${catkin_LIBRARIES} ${Boost_LIBRARIES} kmlbase kmldom kmlengine kmlconvenience)
+SET(LIBS ${catkin_LIBRARIES} kmlbase kmldom kmlengine kmlconvenience)
 
 add_library(sewer_graph ${FP_SOURCE}
 )

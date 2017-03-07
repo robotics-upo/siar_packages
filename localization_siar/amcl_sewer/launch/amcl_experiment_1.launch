@@ -11,7 +11,7 @@
   <arg name="camera" default="/front"/>
   <arg name="start" default="950"/>
   
-  <arg name="stats_file" default="/home/chur/stats10_1.txt"/>
+  <arg name="stats_file" default="~/stats_experiment_1.txt"/>
 
   # Bag file
   <node name="bag_player" type="play" pkg="rosbag" args="$(arg bag_file) --clock -s $(arg start) -r 1.0" />
@@ -21,12 +21,8 @@
   # Uncompress images and depth
   <node name="republish_img" type="republish" pkg="image_transport" output="screen" args="compressed in:=/$(arg camera)/rgb/image_raw raw out:=/$(arg camera)/rgb/image_raw"/>
   <node name="republish_depth" type="republish" pkg="image_transport" output="screen" args="compressedDepth in:=/$(arg camera)/depth_registered/image_raw raw out:=/$(arg camera)/depth_registered/image_raw"/>
-<!--   <node name="republish_img_2" type="republish" pkg="image_transport" output="screen" args="compressed in:=/up/rgb/image_raw raw out:=/up/rgb/image_raw"/> -->
   <node name="republish_depth_2" type="republish" pkg="image_transport" output="screen" args="compressedDepth in:=/up/depth_registered/image_raw raw out:=/up/depth_registered/image_raw"/>
     
-  # TF from camera to base_link_cam
-<!--   <node name="tf_odom" type="static_transform_publisher" pkg="tf" args="0.0 0.0 0.0 0 0 0 odom base_link 10" /> -->
-
   # Launch RGB-D odom
   <node name="rgbd_odom_node" type="rgbd_odom_node" pkg="rgbd_odom" >
     <param name="camera_topic" value="$(arg camera)" />
@@ -99,17 +95,14 @@
     
   <node name="vis" type="rviz" pkg="rviz" args="-d $(find rgbd_odom)/launch/amcl3d.rviz"/>
   
-  <node name="cnn_laber" type="cnn_detector.py" pkg="manhole_labeler" args="/up /home/chur/Dropbox/UPO/Papers/Iros2017/Code/detector/model.10-0.9861-0.9578.hdf5">
+  <node name="cnn_laber" type="cnn_detector.py" pkg="manhole_detector" args="/up $(find manhole_detector)/model.10-0.9861-0.9578.hdf5">
     <param name="thres" value="0.35"/>
   
   </node>
   
-  <node name="ground_truth_laber" type="fake_detector.py" pkg="manhole_labeler" args="/up $(find manhole_labeler)/test/input_vector_2017-01-17-10_ground_truth" >
+  <node name="ground_truth_laber" type="fake_detector.py" pkg="manhole_detector" args="/up $(find manhole_detector)/test/input_vector_2017-01-17-10_ground_truth" >
     <remap from="manhole" to="ground_truth"/>
   </node>
   
-  <!--node name="octo" type="octomap_server_node" pkg="octomap_server" args="cloud_in:=/rgbd_odom_node/point_cloud _frame_id:=/odom _resolution:=0.025" />
-  <node name="vis" type="rviz" pkg="rviz" args="-d $(find rgbd_odom)/launch/test.rviz"/-->
-
 
 </launch>	
