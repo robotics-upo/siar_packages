@@ -94,7 +94,7 @@
     
   </node>
     
-  <node name="vis" type="rviz" pkg="rviz" args="-d $(find rgbd_odom)/launch/amcl3d.rviz"/>
+  <node name="vis" type="rviz" pkg="rviz" args="-d $(find amcl_sewer)/launch/amcl3d.rviz"/>
   
   <node name="cnn_laber" type="cnn_detector.py" pkg="manhole_detector" args="/up $(find manhole_detector)/test/model.10-0.9861-0.9578.hdf5" output="screen">
     <param name="thres" value="0.42"/>
