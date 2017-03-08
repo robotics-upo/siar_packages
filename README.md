@@ -24,7 +24,7 @@ Before compiling, please install the dependencies (see Dependencies section for 
  
  > git clone https://github.com/robotics-upo/rgbd_odom.git
  
- > git clone https://github.com/robotics-upo/nonlinear_optimization
+ > git clone https://github.com/robotics-upo/nonlinear_optimization.git
  
  > git clone https://github.com/robotics-upo/siar_packages.git
  
