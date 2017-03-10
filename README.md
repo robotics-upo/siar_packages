@@ -15,11 +15,29 @@ This metapackage is composed by the following packages. For more details about t
 
 ## Compilation
 
-Before compiling, please check the dependencies
+Before compiling, please install the dependencies (see Dependencies section for details) (tested in Ubuntu 14.04). Recommended steps:
 
-In order to build the package, clone it inside the *src* directory of your Catkin workspace and compile it by using *catkin_make* as usual.
+
+ > roscd 
+ 
+ > cd ../src
+ 
+ > git clone https://github.com/robotics-upo/rgbd_odom.git
+ 
+ > git clone https://github.com/robotics-upo/nonlinear_optimization.git
+ 
+ > git clone https://github.com/robotics-upo/siar_packages.git
+ 
+ > sudo apt-get install libgsl0-dev libkml-dev libsuitesparse-metis-dev libsuperlu3-dev liblapack-dev libblas-dev
+ 
+ > roscd
+ 
+ > cd ..
+ 
+ > catkin_make
 
 ## Dependencies
 
 - libkml-1.2.0 (or higher)
 - Rgbd-odom package. Can be downloaded from: https://github.com/robotics-upo/rgbd_odom.git
+- Nonlinear_optimiation package (internal dependency of Rbgd-odom): https://github.com/robotics-upo/nonlinear_optimization
