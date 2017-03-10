@@ -6,6 +6,8 @@ import rospy
 import fileinput
 from sensor_msgs.msg import CompressedImage
 from std_msgs.msg import Bool
+from std_msgs.msg import Int32
+from geometry_msgs.msg import Pose2D
 import numpy as np
 import sys
 
@@ -34,11 +36,24 @@ class FakeDetector:
     seq = img.header.seq
     print "RGB Callback. Seq: %d"%seq
     bool_msg = Bool(False)
+    id_msg = Int32(-1)
+    pose_msg = Pose2D(float('nan'), float('nan'), float('nan'))
+    
     for i in range(len(self.detected_vector)):
       if self.detected_vector[i][0] <= seq and self.detected_vector[i][1] >= seq:
+        #  Prepare all data for publishing
+        if len(self.detected_vector[i]) > 2:
+          id_msg.data = self.detected_vector[i][2]
         bool_msg.data = True
+        
+        if len(self.detected_vector[i]) > 4:
+          print 'Hereeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
+          pose_msg.x = self.detected_vector[i][3]
+          pose_msg.y = self.detected_vector[i][4]
         break
     self.bool_pub.publish(bool_msg)
+    self.id_pub.publish(id_msg)
+    self.pose_pub.publish(pose_msg)
     
   def depth_callback(self, img):
     print "Depth Callback"
@@ -55,14 +70,12 @@ class FakeDetector:
     np.set_printoptions(precision=3, threshold=10000, linewidth=10000)
     rgb_image = camera + "/rgb/image_raw/compressed"
     rgb_info = camera + "/rgb/camera_info"
-    #depth_image = camera + "/depth_registered/image_raw/compressedDepth"
-    #depth_info = camera + "/depth_registered/camera_info"
-    # Set up your subscriber and define its callback
     rospy.Subscriber(rgb_image, CompressedImage, self.rgb_callback)
-    #rospy.Subscriber(depth_image, Image, self.depth_callback)
     
     # Setup publisher
     self.bool_pub = rospy.Publisher('manhole',Bool, queue_size=2)
+    self.id_pub = rospy.Publisher('manhole_id', Int32, queue_size=2)
+    self.pose_pub = rospy.Publisher('position', Pose2D, queue_size=2)
     # Spin until ctrl + c
     rospy.spin()
     
