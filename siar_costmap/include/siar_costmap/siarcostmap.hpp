@@ -13,6 +13,13 @@ class SiarCostmap
 	
 public:
 
+	// Point 2D
+	struct Point2D
+	{
+		float x;
+		float y;
+	};
+
 	// Class constructor
     SiarCostmap(std::string nodeName)
     {
@@ -140,6 +147,27 @@ public:
 	nav_msgs::OccupancyGrid &getCostmap(void)
 	{
 		return m_costmap;
+	}
+	
+	inline float getCost(float x, float y)
+	{
+		if(x > m_minX && x < m_maxX && y > m_minY && y < m_maxY)
+			return m_costmap.data[point2index(x,y)];
+		else
+			return -128;
+	}
+	
+	inline std::vector<float> getCost(std::vector<SiarCostmap::Point2D> &points)
+	{
+		std::vector<float> cost(points.size(), -128);
+		for(int i=0; i<points.size(); i++)
+		{
+			float x = points[i].x;
+			float y = points[i].y;
+			if(x > m_minX && x < m_maxX && y > m_minY && y < m_maxY)
+				cost[i] = m_costmap.data[point2index(x, y)];
+		}
+		return cost;
 	}
 	
 private:
