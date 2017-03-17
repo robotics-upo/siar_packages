@@ -1,0 +1,12 @@
+<launch>
+
+  <node pkg="depth2cloud" type="depth2cloud_node" name="depth2cloud_node" output="screen" >
+    <remap from="depth" to="/camera/depth/image"/>		# Topic for the camera depth
+    <remap from="info" to="/camera/rgb/camera_info"/>	# Topic for the camera info
+    <remap from="cloud" to="/kinectPointCloud"/>		# Topic name for output point cloud
+    <param name="range_min" value = "0.7"/>				# Min range in meters for point cloud generation
+    <param name="range_max" value = "6.0"/>				# Max range in meters for point cloud generation
+    <param name="down_sampling" value = "1"/>			# Camera down sampling factor. Values: 1, 2 or 4. The bigger the faster.
+  </node>
+
+</launch>
