@@ -33,11 +33,24 @@
     <arg name="device" value="$(arg imu_device)"/>
   </include>
   
-  <node name="siar_joy" pkg="siar_driver" type="siar_teleop_joy" output="screen" if="$(arg joystick)" />
+  <node name="siar_joy" pkg="siar_driver" type="siar_teleop_joy" output="screen" if="$(arg joystick)">
+    <remap from="/cmd_vel" to="/user_cmd_vel"/>
+  </node>
   <node name="joy_node" pkg="joy" type="joy_node" if="$(arg joystick)" />
+  
+  
+  <!-- Automatic control -->
+  <!--  <node name="siar_controller" pkg="siar_controller" type="siar_controller_node">
+      <remap from="/cmd_vel_in" to="/user_cmd_vel"/>
+      <remap from="/cmd_vel_out" to="/cmd_vel"/>
+    </node>-->
+  <include file="$(find siar_costmap)/launch/siar_costmap.launch"/>
   
   <!-- Comms -->
   <include file="$(find siar_driver)/launch/comms.launch" if="$(arg comms)"/>
+  
+  <!-- Perception -->
+  <include file="$(find siar_driver)/launch/perception.launch" if="$(arg perception)"/>
   
   <!-- Bag -->
   <include file="$(find siar_driver)/launch/bag.launch" if="$(arg bag)"/>

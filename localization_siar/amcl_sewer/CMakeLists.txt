@@ -14,7 +14,6 @@ find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   pcl_conversions 
   pcl_ros
-  octomap_ros
   sewer_graph
   simple_graph
   visualization_msgs
@@ -29,7 +28,7 @@ pkg_check_modules( gsl REQUIRED gsl )
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES stereo_processing
- CATKIN_DEPENDS roscpp rospy std_msgs pcl_ros octomap octomap_ros nav_msgs tf sewer_graph simple_graph gsll
+ CATKIN_DEPENDS roscpp rospy std_msgs pcl_ros nav_msgs tf sewer_graph simple_graph gsll
 #  DEPENDS system_lib
 )
 

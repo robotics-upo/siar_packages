@@ -1,52 +1,28 @@
 <launch>
 
-  # Bag filename
-  <arg name="bag_file" />
-  
-  # Starting second into the bag file
-  <arg name="start" default="0" />
-  
-  # Use simulation time fro TFs
-  <param name="use_sim_time" value="true" />
-
-  # Bag file
-  <node name="bag_player" type="play" pkg="rosbag" args="$(arg bag_file) --clock -s $(arg start)" />
-  
-  # Camera TFs
-  <include file="$(find bag_play)/launch/sensor_transform_siar.launch"/>
-  <include file="$(find bag_play)/launch/4_cam_double/4_cam_double.launch">
-    <arg name="load_driver" value="false"/>
-  </include>
-  
-   # Uncompress images and depth
-  <node name="republish_fd_img" type="republish" pkg="image_transport" output="screen" args="compressed in:=/front_down/rgb/image_raw raw out:=/front_down/rgb/image_raw"/>
-  <node name="republish_fd_depth" type="republish" pkg="image_transport" output="screen" args="compressedDepth in:=/front_down/depth_registered/image_raw raw out:=/front_down/depth_registered/image_raw"/>
-  <node name="republish_bd_img" type="republish" pkg="image_transport" output="screen" args="compressed in:=/back_down/rgb/image_raw raw out:=/back_down/rgb/image_raw"/>
-  <node name="republish_bd_depth" type="republish" pkg="image_transport" output="screen" args="compressedDepth in:=/back_down/depth_registered/image_raw raw out:=/back_down/depth_registered/image_raw"/>
-
   # Point cloud computation
   <node pkg="depth2cloud" type="depth2cloud_node" name="depth2cloud_front_down" output="screen" >
-    <remap from="depth" to="/front_down/depth_registered/image_raw"/>			# Topic for the camera depth
-    <remap from="info" to="/front_down/depth_registered/camera_info"/>			# Topic for the camera info
-    <remap from="cloud" to="/front_down/point_cloud"/>							# Topic name for output point cloud
-    <param name="range_min" value = "0.3"/>									# Min range in meters for point cloud generation
-    <param name="range_max" value = "7.0"/>									# Max range in meters for point cloud generation
-    <param name="down_sampling" value = "1"/>								# Camera down sampling factor. Values: 1, 2 or 4. The bigger the faster.
+    <remap from="depth" to="/front_down/depth_registered/image_raw"/>                   # Topic for the camera depth
+    <remap from="info" to="/front_down/depth_registered/camera_info"/>                  # Topic for the camera info
+    <remap from="cloud" to="/front_down/point_cloud"/>                                                  # Topic name for output point cloud
+    <param name="range_min" value = "0.3"/>                                                                     # Min range in meters for point cloud generation
+    <param name="range_max" value = "3.0"/>                                                                     # Max range in meters for point cloud generation
+    <param name="down_sampling" value = "1"/>                                                           # Camera down sampling factor. Values: 1, 2 or 4. The bigger the faster.
   </node>
   <node pkg="depth2cloud" type="depth2cloud_node" name="depth2cloud_back_down" output="screen" >
-    <remap from="depth" to="/back_down/depth_registered/image_raw"/>			# Topic for the camera depth
-    <remap from="info" to="/back_down/depth_registered/camera_info"/>			# Topic for the camera info
-    <remap from="cloud" to="/back_down/point_cloud"/>							# Topic name for output point cloud
-    <param name="range_min" value = "0.3"/>									# Min range in meters for point cloud generation
-    <param name="range_max" value = "7.0"/>									# Max range in meters for point cloud generation
-    <param name="down_sampling" value = "1"/>								# Camera down sampling factor. Values: 1, 2 or 4. The bigger the faster.
+    <remap from="depth" to="/back_down/depth_registered/image_raw"/>                    # Topic for the camera depth
+    <remap from="info" to="/back_down/depth_registered/camera_info"/>                   # Topic for the camera info
+    <remap from="cloud" to="/back_down/point_cloud"/>                                                   # Topic name for output point cloud
+    <param name="range_min" value = "0.3"/>                                                                     # Min range in meters for point cloud generation
+    <param name="range_max" value = "3.0"/>                                                                     # Max range in meters for point cloud generation
+    <param name="down_sampling" value = "1"/>                                                           # Camera down sampling factor. Values: 1, 2 or 4. The bigger the faster.
   </node>
   
   <node pkg="siar_costmap" type="costmap_node" name="costmap_node" output="screen" >
-    <remap from="cloud0" to="/front_down/point_cloud"/>			# Input cloud 0
-    <remap from="cloud1" to="/back_down/point_cloud"/>			# Input cloud 1
-    <param name="hz" value = "10.0"/>							# Costmap update rate
-    <param name="obstacle_height" value = "0.1"/>				# Absolute value of obstacle height (or hole depth)
+    <remap from="cloud0" to="/front_down/point_cloud"/>                 # Input cloud 0
+    <remap from="cloud1" to="/back_down/point_cloud"/>                  # Input cloud 1
+    <param name="hz" value = "10.0"/>                                                   # Costmap update rate
+    <param name="obstacle_height" value = "0.5"/>                               # Absolute value of obstacle height (or hole depth)
   </node>
 
 </launch>

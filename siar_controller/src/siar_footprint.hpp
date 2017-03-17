@@ -10,7 +10,7 @@ typedef std::vector<geometry_msgs::Point> FootprintType;
   
 class SiarFootprint {
 public:
-  SiarFootprint(double cellsize = 0.02, double length = 0.8, double width = 0.56, double wheel_width = 0.04);
+  SiarFootprint(double cellsize = 0.02, double length = 0.8, double width = 0.56, double wheel_width = 0.06);
   
   ~SiarFootprint();
   

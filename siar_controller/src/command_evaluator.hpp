@@ -53,7 +53,7 @@ namespace siar_controller {
     //! @param th Theta angle
     //! @param alt_map The altitude map
     //! @param collision (Out parameter) Will become true if a collision is detected
-    int applyFootprint(double x, double y, double th, nav_msgs::OccupancyGrid alt_map, bool &collision);
+    int applyFootprint(double x, double y, double th, const nav_msgs::OccupancyGrid &alt_map, bool &collision);
     
     inline int point2index(double x, double y)
         {
@@ -81,6 +81,8 @@ double CommandEvaluator::evualateTrajectory(const geometry_msgs::Twist& v_ini, c
   double dt = m_delta_T;
   int steps = m_T / m_delta_T;
   double x=0.0, y=0.0, th=0.0;
+  
+//   ROS_INFO("Evaluate trajectory: dt = %f \tsteps=%d", m_delta_T, steps);
 
 
   double lv = v_ini.linear.x;
@@ -90,18 +92,26 @@ double CommandEvaluator::evualateTrajectory(const geometry_msgs::Twist& v_ini, c
   
   // Initialize the footprint if needed:
   if (footprint == NULL) {
+    ROS_INFO("Getting footprint. Resolution: %f", alt_map.info.resolution);
     footprint = new SiarFootprint(alt_map.info.resolution); // TODO: CONFIGURABLE FOR VARIABLE WIDTH PROTOTYPE
     m_divRes = 1.0 / alt_map.info.resolution;
-    origin_x = -alt_map.info.height * alt_map.info.resolution /2.0;
-    origin_y = -alt_map.info.width * alt_map.info.resolution /2.0;
+    ROS_INFO("Alt map: height = %d \t width = %d", alt_map.info.height,
+             alt_map.info.width);
+    origin_x = alt_map.info.height * alt_map.info.resolution /2.0;
+    origin_y = alt_map.info.width * alt_map.info.resolution /2.0;
+    origin_x *= -1;
+    origin_y *= -1;
+    width = alt_map.info.width;
+    ROS_INFO("Origin : %f, %f", origin_x, origin_y);
   }
 
   //int ini = floor(steps/2.0 + 0.5);
   bool collision = false;
-  for(unsigned int i=0; i <= steps && !collision; i++)
+  for(int i=0; i <= steps && !collision; i++)
   {
+//     ROS_INFO("Computing new velocity");
     lv = computeNewVelocity(lv, av, dt, v_command);
-
+    
     // Integrate the model
     double lin_dist = lv * dt;
     th = th + (av * dt);
@@ -110,7 +120,9 @@ double CommandEvaluator::evualateTrajectory(const geometry_msgs::Twist& v_ini, c
     x = x + lin_dist*cos(th); // Euler 1
     y = y + lin_dist*sin(th); 
     
+//     ROS_INFO("Applying footprint: %f %f %f", x, y , th);
     cont_footprint += applyFootprint(x, y, th, alt_map, collision);
+//     ROS_INFO("After footprint");
 
   }
   
@@ -122,10 +134,11 @@ double CommandEvaluator::evualateTrajectory(const geometry_msgs::Twist& v_ini, c
 }
 
 // TODO: test the conversion between footprint coords and map coords
-int CommandEvaluator::applyFootprint(double x, double y, double th, nav_msgs::OccupancyGrid alt_map, bool &collision)
+int CommandEvaluator::applyFootprint(double x, double y, double th, const nav_msgs::OccupancyGrid &alt_map, bool &collision)
 {
   int ret_val = 0;
   
+//   ROS_INFO("Getting rotated footprint (%f,%f,%f)",x,y,th);
   FootprintType fp = footprint->getFootprint(x, y, th);
   
   int i_ini = x/alt_map.info.resolution + alt_map.info.origin.position.x;
@@ -135,9 +148,15 @@ int CommandEvaluator::applyFootprint(double x, double y, double th, nav_msgs::Oc
   
   int index;
   for (unsigned int i = 0; i < fp.size() && !collision; i++) {
+    
     index = point2index(fp.at(i).x, fp.at(i).y);
+//     ROS_INFO("Point2index(x,y) = %d", index);
+    if (index > alt_map.data.size() || index < 0)
+      ROS_INFO("Point2index(%f,%f) = %d", fp.at(i).x, fp.at(i).y,index);
+      continue;
     if (alt_map.data[index] == 127) 
       collision = true; // Collision detected!
+    
     ret_val += abs(alt_map.data[index]); // TODO: check index and coordinate transform
     
   }

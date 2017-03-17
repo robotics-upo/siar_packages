@@ -1,0 +1,22 @@
+<?xml version="1.0" ?>
+<launch>
+  
+  <arg name="emulate_laser" default="true"/>
+  <arg name="bag" default="0"/>
+  <arg name="data_skip" default="2"/>
+
+  
+  <!-- Camera stuff -->
+  <include file="$(find openni2_multicamera)/launch/4_cam_double/4_cam_double.launch" >
+    <arg name="data_skip" value="$(arg data_skip)"/>
+    
+  </include>
+  
+  
+  <!-- TF stuff (in the future will be inside the driver. TODO: add parameter -->
+  <include file="$(find siar_driver)/launch/sensor_transform_siar_4_cam.launch"/>
+<!--   <include file="$(find siar_driver)/launch/sensor_transform_siar_calib_2017_02_14_4_cam.launch"/> -->
+  
+  <include file="$(find siar_driver)/launch/bag.launch" if="$(arg bag)"/>
+  
+</launch>

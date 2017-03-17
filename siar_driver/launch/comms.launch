@@ -14,5 +14,5 @@
  <node pkg="web_video_server" type="web_video_server" name="videoserver_node" output="screen"/>
  
  <!-- Splitter nodes -->
- <include file="$(find frame_dropper)/launch/splitter_comms.launch"/>
+ <include file="$(find frame_dropper)/launch/splitter.launch"/>
 </launch>

@@ -13,6 +13,7 @@
 #include <ros/ros.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <nav_msgs/Odometry.h>
+#include <std_msgs/Int8.h>
 
 #include "command_evaluator.hpp"
 
@@ -28,8 +29,11 @@ public:
   
 protected:
   // Camera info subscribers and initialization
-  ros::Subscriber costmap_sub, cmd_vel_sub, odom_sub;
+  ros::Subscriber costmap_sub, cmd_vel_sub, odom_sub, mode_sub;
   ros::Publisher cmd_vel_pub;
+  
+  // Operation mode
+  int operation_mode;
   
   // Dynamic reconfigure stuff TODO
   typedef dynamic_reconfigure::Server<SiarControllerConfig> ReconfigureServer;
@@ -50,6 +54,7 @@ protected:
   void altitudeCallback(const nav_msgs::OccupancyGridConstPtr &msg);
   void cmdvelCallback(const geometry_msgs::Twist &msg);
   void odomCallback(const nav_msgs::Odometry &msg);
+  void modeCallback(const std_msgs::Int8 &msg);
   
   void loop();
 };
@@ -59,35 +64,40 @@ SiarController::~SiarController()
   delete cmd_eval;
 }
 
-SiarController::SiarController(ros::NodeHandle& nh, ros::NodeHandle& pn):reconfigure_server_(),config_init_(false),occ_received(false), cmd_eval(NULL)
+SiarController::SiarController(ros::NodeHandle& nh, ros::NodeHandle& pn):operation_mode(0),
+reconfigure_server_(),config_init_(false),occ_received(false), cmd_eval(NULL)
 {
   // Dynamic reconfigure initialization
   reconfigure_server_.reset(new ReconfigureServer(pn));
   call_type = boost::bind(&SiarController::parametersCallback, this, _1, _2);
-//   reconfigure_server_->setCallback(call_type);
+  reconfigure_server_->setCallback(call_type);
 //   
-//   ROS_INFO("Waiting for dynamic reconfigure initial values.");
-//   while (!config_init_ && ros::ok())
-//   {
-//     boost::this_thread::sleep(boost::posix_time::milliseconds(100));
-//   }
-  ROS_DEBUG("Dynamic reconfigure configuration received.");
+  ROS_INFO("Waiting for dynamic reconfigure initial values.");
+  while (!config_init_ && ros::ok())
+  {
+    boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+    ros::spinOnce();
+  }
+  
   
   if (!config_init_) {
     ROS_ERROR("Halted when reading the dynamic configuration");
     return;
   }
+  ROS_INFO("Dynamic reconfigure configuration received.");
   
   // ROS publishers/subscribers
   // Now camera info subscribers
   costmap_sub = nh.subscribe("/altitude_map", 2, &SiarController::altitudeCallback, this);
   cmd_vel_sub = nh.subscribe("/cmd_vel_in", 2, &SiarController::cmdvelCallback, this);
   odom_sub = nh.subscribe("/odom", 2, &SiarController::odomCallback, this);
+  mode_sub = nh.subscribe("/operation_mode", 2, &SiarController::modeCallback, this);
   
   // Now the publishers
   cmd_vel_pub = nh.advertise<geometry_msgs::Twist>(nh.resolveName("cmd_vel_out"), 2);
   
-  ros::Rate r(_conf.T);
+  ROS_INFO("Update Rate: %f", _conf.T);
+  ros::Rate r(1.0/_conf.T);
   while (ros::ok()) {
     ros::spinOnce();
     loop();
@@ -98,8 +108,10 @@ SiarController::SiarController(ros::NodeHandle& nh, ros::NodeHandle& pn):reconfi
 
 void SiarController::parametersCallback(SiarControllerConfig& config, uint32_t level)
 {
+  
   if (!config_init_) {
     // Declare the evaluator
+    config_init_ = true;
     RobotCharacteristics model;
     model.a_max = 1.0;
     model.a_max_theta = 1.0;
@@ -107,7 +119,10 @@ void SiarController::parametersCallback(SiarControllerConfig& config, uint32_t l
     model.theta_dot_max = config.alpha_max;
     cmd_eval = new CommandEvaluator(config.w_dist, config.w_safe, config.T_hor, model, config.delta_T); // TODO: insert the footprint related data (now only default values)
   }
+  config_init_ = true;
+  
   _conf = config;
+  
 }
 
 
@@ -134,6 +149,13 @@ void SiarController::odomCallback(const nav_msgs::Odometry& msg)
   last_velocity = msg.twist.twist; // TODO: Check bounds
 }
 
+void SiarController::modeCallback(const std_msgs::Int8& msg)
+{
+  operation_mode = msg.data;
+  ROS_INFO("Operation mode changed to: %d", operation_mode);
+}
+
+
 
 void SiarController::loop() {
   // Main loop --> we have to 
@@ -141,15 +163,19 @@ void SiarController::loop() {
   cmd_vel_msg.angular.x = 0.0;
   cmd_vel_msg.angular.y = 0.0;
   cmd_vel_msg.angular.z = 0.0; // TODO: Only discard rotation if a mode is activated
-  if (_conf.operation_mode == 0) {
+  if (operation_mode != 1) {
     // Manual --> bypass the last command
     cmd_vel_msg = last_command;
-  } else if (!computeCmdVel(cmd_vel_msg, last_velocity)) {
+  } else if (occ_received && !computeCmdVel(cmd_vel_msg, last_velocity)) {
     ROS_ERROR("Could not get a feasible velocity --> Stopping the robot");
     cmd_vel_msg.linear.x = 0.0;
     cmd_vel_msg.linear.y = 0.0;
     cmd_vel_msg.linear.z = 0.0;
-  }
+    cmd_vel_msg.angular.x = 0.0;
+    cmd_vel_msg.angular.y = 0.0;
+    cmd_vel_msg.angular.z = 0.0;
+  } else if (!occ_received) 
+    ROS_INFO("SiarController --> Warning: no altitude map");
   cmd_vel_pub.publish(cmd_vel_msg);
 }
 
@@ -168,21 +194,28 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
   best_cmd.linear.x = 0.0;
   best_cmd.angular.z = 0.0;
   
+  if(fabs(cmd_vel.linear.x) < lin_vel_dec)
+      return true;
+  
   curr_cmd = cmd_vel;
   
   if (!cmd_eval) {
     ROS_ERROR("SiarController::loop --> Command Evaluator is not configured\n");
   }
+  
+  ROS_INFO("Init loop");
 
   //Linear vel
-  for(unsigned int l = 0; l <= 3; l++) 
+  for(int l = 0; l <= 3; l++) 
   { 
-    if(fabs(curr_cmd.linear.x) < 0.1)
-      continue;
+    
     if (vx_orig > 0.0)
       curr_cmd.linear.x = vx_orig - l * lin_vel_dec;
     if (vx_orig < -0.0)
       curr_cmd.linear.x = vx_orig + l * lin_vel_dec;
+    
+    if(fabs(curr_cmd.linear.x) < lin_vel_dec)
+      break;
 
     curr_cmd.angular.z = vt_orig;
     double curr_cost = cmd_eval->evualateTrajectory(v_ini, curr_cmd, cmd_vel, last_map);
@@ -192,7 +225,7 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
     }
     
     //Angular vel
-    for(unsigned int v=1; v <= 5; v++)
+    for(int v=1; v <= 5; v++)
     {
       //To the right
       curr_cmd.angular.z = vt_orig + ang_vel_inc * v;
@@ -218,6 +251,9 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
       }
     }
   }
+  
+  ROS_INFO("End loop: Best command: %f,%f \t Orig command %f, %f",
+    best_cmd.linear.x, best_cmd.angular.z, cmd_vel.linear.x, cmd_vel.angular.z);
   cmd_vel = best_cmd;
 }
 

@@ -28,6 +28,7 @@
 #include <geometry_msgs/Twist.h>
 #include <std_msgs/Float32.h>
 #include <std_msgs/Bool.h>
+#include <std_msgs/Int8.h>
 #include <sensor_msgs/Joy.h>
 #include <stdlib.h>
 
@@ -44,6 +45,7 @@
 #define PANIC_FREQ          300
 #define LINEAR_VELOCITY_AXIS  1
 #define ANGULAR_VELOCITY_AXIS 0
+#define AUTO_BUTTON           3
 #define SLOW_BUTTON   	      5
 #define MAX_VELOCITY_BUTTON   7
 #define PANIC_BUTTON          2
@@ -54,9 +56,13 @@
 #define MAX_ANGULAR_VELOCITY  1.5707963
 
 #define MIN_VEL_VARIATION     0.001
-#define SLOW_MULTIPLIER       0.2
+#define SLOW_MULTIPLIER       0.8
 
 #define MAX_JOY_TIME          8.0
+
+#define MAX_AUTO_MODE         1
+#define MAX_TIME_DECAY        0.98
+
 
 ////////////////////////////////////////////////////
 // Variables that store the actual values        ///
@@ -76,6 +82,7 @@ int linearVelocityAxis;
 int angularVelocityAxis;
 int maxVelocityButton;
 int slowButton;
+int auto_button;
 
 //////////////////////////////////
 
@@ -92,10 +99,17 @@ bool backwards = false;
 bool ant_reverse_but = false;
 bool slow_mode = false;
 bool publishSlow = false;
+bool ant_auto_button = false;
+int auto_mode = 0;
+int max_auto_mode;
+
 
 ros::Time last_joy_time;
 ros::Publisher reverse_pub;
 ros::Publisher slow_pub;
+ros::Publisher mode_pub;
+
+bool setAutomaticMode(int new_mode);
 
 void joyReceived(const sensor_msgs::Joy::ConstPtr& joy)
 {
@@ -104,6 +118,17 @@ void joyReceived(const sensor_msgs::Joy::ConstPtr& joy)
   startPressed = joy->buttons[startButton] == 1;
   panic = panic | (joy->buttons[panicButton] == 1);
   backPressed = joy->buttons[backButton] == 1;
+  
+  
+  if (!ant_auto_button && joy->buttons[auto_button] == 1) {
+    // Request for mode change
+    auto_mode++;
+    if (auto_mode > max_auto_mode) 
+      auto_mode = 0;
+    setAutomaticMode(auto_mode?1:0);
+  }
+  ant_auto_button = joy->buttons[auto_button] == 1;
+  
   if (!ant_reverse_but && joy->buttons[reverseButton] == 1) {
     backwards = !backwards;
     std_msgs::Bool msg;
@@ -175,20 +200,26 @@ int main(int argc, char** argv)
   pn.param<int>("linear_velocity_axis",linearVelocityAxis,LINEAR_VELOCITY_AXIS);
   pn.param<int>("angular_velocity_axis",angularVelocityAxis,ANGULAR_VELOCITY_AXIS);
   
+  pn.param<int>("auto_button", auto_button, AUTO_BUTTON);
   pn.param<int>("slow_button", slowButton, SLOW_BUTTON);
   pn.param<int>("turbo_button", maxVelocityButton, MAX_VELOCITY_BUTTON);
   
   pn.param<double>("max_linear_velocity",maxLinearVelocity,MAX_LINEAR_VELOCITY);
   pn.param<double>("max_angular_velocity",maxAngularVelocity,MAX_ANGULAR_VELOCITY);
-  
-  double max_joy_time = 2.8;
+
+  double max_joy_time;
   pn.param<double>("max_joy_time", max_joy_time, MAX_JOY_TIME);
   
   pn.param<double>("slow_multipier", slow_multiplier, SLOW_MULTIPLIER);
+  
+  pn.param<int>("max_auto_mode", max_auto_mode, MAX_AUTO_MODE);
+  double max_time_decay;
+  pn.param<double>("max_time_decay", max_time_decay, MAX_TIME_DECAY);
 
   ros::Publisher vel_pub = pn.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
   reverse_pub = pn.advertise<std_msgs::Bool>("/reverse", 1);
   slow_pub = pn.advertise<std_msgs::Bool>("/slow_motion", 1);
+  mode_pub = pn.advertise<std_msgs::Int8>("/operation_mode", 1 );
   
   ros::Subscriber joy_sub = n.subscribe<sensor_msgs::Joy>("/joy", 5, joyReceived);		
 
@@ -229,8 +260,8 @@ int main(int argc, char** argv)
 	ROS_INFO("The show has started, please have fun.");
       }
       if ((ros::Time::now() - last_joy_time).toSec() > max_joy_time ) {
-        currentAngularVelocity *= 0.95;
-        currentLinearVelocity *= 0.95;
+        currentAngularVelocity *= max_time_decay;
+        currentLinearVelocity *= max_time_decay;
       } 
       sendCmdVel(currentLinearVelocity, currentAngularVelocity, vel_pub);
       
@@ -256,4 +287,12 @@ int main(int argc, char** argv)
   sendCmdVel(0.0, 0.0, vel_pub);
   
   return 0;
+}
+
+
+bool setAutomaticMode(int new_mode) 
+{
+  std_msgs::Int8 msg;
+  msg.data = new_mode;
+  mode_pub.publish(msg);
 }
