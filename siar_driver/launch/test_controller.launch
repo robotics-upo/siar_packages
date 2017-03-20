@@ -17,7 +17,7 @@
   <arg name="publish_tf" default="false"/>
   
   <!-- Bring up the raposa node and the imu if desired -->
-  <node name="siar_node" pkg="siar_driver" type="siar_node" output="screen">
+  <!--<node name="siar_node" pkg="siar_driver" type="siar_node" output="screen">
     <param name="siar_device_1" value="$(arg siar_device_1)"/>
     <param name="siar_device_2" value="$(arg siar_device_2)"/>
     <param name="battery_device" value="$(arg battery_device)"/>
@@ -31,7 +31,7 @@
   </node>
   <include file="$(find arduimu_v3)/launch/arduimu_v3.launch" if="$(arg use_imu)" >
     <arg name="device" value="$(arg imu_device)"/>
-  </include>
+  </include>-->
   
   <node name="siar_joy" pkg="siar_driver" type="siar_teleop_joy" output="screen" if="$(arg joystick)">
     <remap from="/cmd_vel" to="/user_cmd_vel"/>
@@ -40,19 +40,18 @@
   
   
   <!-- Automatic control -->
-   <node name="siar_controller" pkg="siar_controller" type="siar_controller_node">
+    <node name="siar_controller" pkg="siar_controller" type="siar_controller_node">
       <remap from="/cmd_vel_in" to="/user_cmd_vel"/>
       <remap from="/cmd_vel_out" to="/cmd_vel"/>
-      <param name="max_auot_mode" value="2"/>
     </node>
-  <include file="$(find siar_costmap)/launch/siar_costmap.launch"/>
+<!--   <include file="$(find siar_costmap)/launch/siar_costmap.launch"/> -->
   
   <!-- Comms -->
-  <include file="$(find siar_driver)/launch/comms.launch" if="$(arg comms)"/>
+<!--   <include file="$(find siar_driver)/launch/comms.launch" if="$(arg comms)"/> -->
   
   <!-- Perception -->
-  <include file="$(find siar_driver)/launch/perception.launch" if="$(arg perception)"/>
+<!--   <include file="$(find siar_driver)/launch/perception.launch" if="$(arg perception)"/> -->
   
   <!-- Bag -->
-  <include file="$(find siar_driver)/launch/bag.launch" if="$(arg bag)"/>
+<!--   <include file="$(find siar_driver)/launch/bag.launch" if="$(arg bag)"/> -->
 </launch>

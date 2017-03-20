@@ -162,8 +162,10 @@ void SiarController::loop() {
   geometry_msgs::Twist cmd_vel_msg = last_command;
   cmd_vel_msg.angular.x = 0.0;
   cmd_vel_msg.angular.y = 0.0;
-  cmd_vel_msg.angular.z = 0.0; // TODO: Only discard rotation if a mode is activated
-  if (operation_mode != 1) {
+  if (operation_mode == 1)
+    cmd_vel_msg.angular.z = 0.0; // TODO: Only discard rotation if a mode is activated
+    
+  if (operation_mode == 0) {
     // Manual --> bypass the last command
     cmd_vel_msg = last_command;
   } else if (occ_received && !computeCmdVel(cmd_vel_msg, last_velocity)) {
@@ -184,8 +186,8 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
   float vt_orig = cmd_vel.angular.z; // TODO: discard rotations?
   float vx_orig = cmd_vel.linear.x;
 
-  float ang_vel_inc = 0.025;
-  float lin_vel_dec = 0.05;
+  float ang_vel_inc = _conf.ang_inc;
+  float lin_vel_dec = _conf.lin_dec;
 
   double lowest_cost = 1e100;
   
@@ -205,8 +207,10 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
   
   ROS_INFO("Init loop");
 
+  
+  
   //Linear vel
-  for(int l = 0; l <= 3; l++) 
+  for(int l = 0; l <= _conf.n_lin; l++) 
   { 
     
     if (vx_orig > 0.0)
@@ -225,7 +229,7 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
     }
     
     //Angular vel
-    for(int v=1; v <= 5; v++)
+    for(int v=1; v <= _conf.n_ang; v++)
     {
       //To the right
       curr_cmd.angular.z = vt_orig + ang_vel_inc * v;
