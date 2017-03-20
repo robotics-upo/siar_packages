@@ -3,6 +3,8 @@
 
 #include <nav_msgs/OccupancyGrid.h>
 #include <geometry_msgs/Point.h>
+#include <ros/ros.h>
+#include <visualization_msgs/Marker.h>
 
 namespace siar_controller {
 
@@ -15,6 +17,8 @@ public:
   ~SiarFootprint();
   
   FootprintType getFootprint(double x, double y, double yaw);
+  
+  void printFootprint(double x, double y, double yaw, ros::Publisher pub, int id = 0);
   
 //   inline cv::Mat *getOriginalFootprint() {return footprint;}
   
@@ -71,6 +75,45 @@ FootprintType SiarFootprint::getFootprint(double x, double y, double yaw)
   return footprint_rot;
 }
 
+void SiarFootprint::printFootprint(double x, double y, double th, ros::Publisher pub, int id)  {
+  std::vector<geometry_msgs::Point> fp = getFootprint(x, y, th);
+  
+  static visualization_msgs::Marker points;
+  
+  
+  points.header.frame_id = "/base_link";
+  points.header.stamp = ros::Time::now();
+  points.ns = "footprint";
+  points.action = visualization_msgs::Marker::ADD;
+  points.pose.orientation.w = 1.0;
+  points.id = 0;
+  
+  geometry_msgs::Point p;
+  
+  
+  points.type = visualization_msgs::Marker::POINTS;
+  double cellsize = 0.02;
+  // POINTS markers use x and y scale for width/height respectively
+  points.scale.x = cellsize;
+  points.scale.y = cellsize;
+  
+  FootprintType footprint = getFootprint(x, y, th);
+  
+  
+  for (unsigned int i = 0;i < footprint.size(); i++) {
+    p.x = footprint.at(i).x;
+    p.y = footprint.at(i).y;
+    p.z = 0.0;
+    
+    points.points.push_back(p);
+  }
+  // Points are green
+  points.color.g = 1.0;
+  points.color.a = 1.0;
+  
+  pub.publish(points);
+  
+}
 
 }
 

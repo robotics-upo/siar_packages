@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   nav_msgs
   roscpp
   std_msgs
+  functions
 )
 
 find_package(OpenCV)
@@ -47,7 +48,7 @@ generate_dynamic_reconfigure_options(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES siar_controller
- CATKIN_DEPENDS  dynamic_reconfigure geometry_msgs nav_msgs roscpp std_msgs
+ CATKIN_DEPENDS  dynamic_reconfigure geometry_msgs nav_msgs roscpp std_msgs functions
 #  DEPENDS system_lib
 )
 
@@ -75,11 +76,15 @@ include_directories(
 ## Declare a C++ executable
 add_executable(test_footprint src/test/test_footprint.cpp)
 add_executable(siar_controller_node src/siar_controller_node.cpp)
+add_executable(test_command_evaluator src/test/test_command_evaluator.cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(test_footprint
   ${catkin_LIBRARIES} 
 )
 target_link_libraries(siar_controller_node
+  ${catkin_LIBRARIES} 
+)
+target_link_libraries(test_command_evaluator
   ${catkin_LIBRARIES} 
 )
