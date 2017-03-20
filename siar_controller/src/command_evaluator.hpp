@@ -58,7 +58,9 @@ namespace siar_controller {
     //! @param th Theta angle
     //! @param alt_map The altitude map
     //! @param collision (Out parameter) Will become true if a collision is detected
-    int applyFootprint(double x, double y, double th, const nav_msgs::OccupancyGrid &alt_map, bool &collision);
+    int applyFootprint(double x, double y, double th, 
+                       const nav_msgs::OccupancyGrid &alt_map, 
+                       bool &collision, bool apply_collision = false);
     
     inline int point2index(double x, double y)
         {
@@ -137,9 +139,12 @@ double CommandEvaluator::evualateTrajectory(const geometry_msgs::Twist& v_ini, c
     if (pub) {
       ROS_INFO("Applying footprint: %f %f %f", x, y , th);
       footprint->printFootprint(x, y, th, *pub);
+      usleep(5000);
+      footprint->printFootprintCollision(x, y, th, *pub, 1);
       usleep(10000);
     }
     cont_footprint += applyFootprint(x, y, th, alt_map, collision);
+    applyFootprint(x, y, th, alt_map, collision, true);
     
     if (pub)
       ROS_INFO("After footprint. Cont = %d", cont_footprint);
@@ -148,8 +153,9 @@ double CommandEvaluator::evualateTrajectory(const geometry_msgs::Twist& v_ini, c
   
   double ret = cont_footprint * m_w_safe + m_w_dist * sqrt(pow(x - operator_command.linear.x * m_T, 2.0) + y*y);
   if (collision) {
-    if (pub) 
+    if (pub) {
       ROS_INFO("Detected a collision in the simulation");
+    }
     return -1.0;
   }
     
@@ -157,12 +163,18 @@ double CommandEvaluator::evualateTrajectory(const geometry_msgs::Twist& v_ini, c
 }
 
 // TODO: test the conversion between footprint coords and map coords
-int CommandEvaluator::applyFootprint(double x, double y, double th, const nav_msgs::OccupancyGrid &alt_map, bool &collision)
+int CommandEvaluator::applyFootprint(double x, double y, double th, 
+                                     const nav_msgs::OccupancyGrid &alt_map, 
+                                     bool &collision, bool apply_collision)
 {
   int ret_val = 0;
   
 //   ROS_INFO("Getting rotated footprint (%f,%f,%f)",x,y,th);
-  FootprintType fp = footprint->getFootprint(x, y, th);
+  FootprintType fp;
+  if (!apply_collision)
+    fp = footprint->getFootprint(x, y, th);
+  else
+    fp = footprint->getFootprintCollision(x, y, th);
   
   int i_ini = x/alt_map.info.resolution + alt_map.info.origin.position.x;
   int j_ini = y/alt_map.info.resolution + alt_map.info.origin.position.y;

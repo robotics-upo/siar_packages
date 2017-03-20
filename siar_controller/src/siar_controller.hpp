@@ -30,7 +30,7 @@ public:
 protected:
   // Camera info subscribers and initialization
   ros::Subscriber costmap_sub, cmd_vel_sub, odom_sub, mode_sub;
-  ros::Publisher cmd_vel_pub;
+  ros::Publisher cmd_vel_pub, footprint_marker_pub;
   
   // Operation mode
   int operation_mode;
@@ -95,6 +95,7 @@ reconfigure_server_(),config_init_(false),occ_received(false), cmd_eval(NULL)
   
   // Now the publishers
   cmd_vel_pub = nh.advertise<geometry_msgs::Twist>(nh.resolveName("cmd_vel_out"), 2);
+  footprint_marker_pub = nh.advertise<visualization_msgs::Marker>("/footprint_marker", 10);
   
   ROS_INFO("Update Rate: %f", _conf.T);
   ros::Rate r(1.0/_conf.T);
@@ -196,7 +197,7 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
   best_cmd.linear.x = 0.0;
   best_cmd.angular.z = 0.0;
   
-  if(fabs(cmd_vel.linear.x) < lin_vel_dec)
+  if(fabs(cmd_vel.linear.x) < lin_vel_dec/2.0)
       return true;
   
   curr_cmd = cmd_vel;
@@ -223,6 +224,9 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
 
     curr_cmd.angular.z = vt_orig;
     double curr_cost = cmd_eval->evualateTrajectory(v_ini, curr_cmd, cmd_vel, last_map);
+//     if (l == 0) {
+//       cmd_eval->evualateTrajectory(v_ini, curr_cmd, cmd_vel, last_map);
+//     }
     if (curr_cost < lowest_cost && curr_cost > 0.0) {
       best_cmd = curr_cmd;
       lowest_cost = curr_cost;
@@ -259,6 +263,7 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
   ROS_INFO("End loop: Best command: %f,%f \t Orig command %f, %f",
     best_cmd.linear.x, best_cmd.angular.z, cmd_vel.linear.x, cmd_vel.angular.z);
   cmd_vel = best_cmd;
+  return lowest_cost < 1e50;
 }
 
 }

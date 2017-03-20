@@ -40,17 +40,18 @@
   
   
   <!-- Automatic control -->
-    <node name="siar_controller" pkg="siar_controller" type="siar_controller_node">
+    <node name="siar_controller" pkg="siar_controller" type="siar_controller_node" output="screen">
       <remap from="/cmd_vel_in" to="/user_cmd_vel"/>
       <remap from="/cmd_vel_out" to="/cmd_vel"/>
+      <remap from="/altitude_map" to="/costmap_node/costmap"/>
     </node>
-<!--   <include file="$(find siar_costmap)/launch/siar_costmap.launch"/> -->
+  <include file="$(find siar_costmap)/launch/siar_costmap.launch"/>
   
   <!-- Comms -->
 <!--   <include file="$(find siar_driver)/launch/comms.launch" if="$(arg comms)"/> -->
   
   <!-- Perception -->
-<!--   <include file="$(find siar_driver)/launch/perception.launch" if="$(arg perception)"/> -->
+  <include file="$(find siar_driver)/launch/perception.launch" if="$(arg perception)"/>
   
   <!-- Bag -->
 <!--   <include file="$(find siar_driver)/launch/bag.launch" if="$(arg bag)"/> -->

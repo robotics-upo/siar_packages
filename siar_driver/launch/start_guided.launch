@@ -36,14 +36,16 @@
   <node name="siar_joy" pkg="siar_driver" type="siar_teleop_joy" output="screen" if="$(arg joystick)">
     <remap from="/cmd_vel" to="/user_cmd_vel"/>
   </node>
-  <node name="joy_node" pkg="joy" type="joy_node" if="$(arg joystick)" />
+  <node name="joy_node" pkg="joy" type="joy_node" if="$(arg joystick)" >
+    <param name="max_auto_mode" value="2"/>
+  </node>
   
   
   <!-- Automatic control -->
    <node name="siar_controller" pkg="siar_controller" type="siar_controller_node">
       <remap from="/cmd_vel_in" to="/user_cmd_vel"/>
       <remap from="/cmd_vel_out" to="/cmd_vel"/>
-      <param name="max_auot_mode" value="2"/>
+      <remap from="/altitude_map" to="/costmap_node/costmap"/>
     </node>
   <include file="$(find siar_costmap)/launch/siar_costmap.launch"/>
   

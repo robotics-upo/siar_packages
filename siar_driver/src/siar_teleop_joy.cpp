@@ -125,7 +125,7 @@ void joyReceived(const sensor_msgs::Joy::ConstPtr& joy)
     auto_mode++;
     if (auto_mode > max_auto_mode) 
       auto_mode = 0;
-    setAutomaticMode(auto_mode?1:0);
+    setAutomaticMode(auto_mode);
   }
   ant_auto_button = joy->buttons[auto_button] == 1;
   
