@@ -35,6 +35,9 @@ protected:
   // Operation mode
   int operation_mode;
   
+  // Last command for taking into account the a_max
+  geometry_msgs::Twist last_command;
+  
   // Dynamic reconfigure stuff TODO
   typedef dynamic_reconfigure::Server<SiarControllerConfig> ReconfigureServer;
   boost::shared_ptr<ReconfigureServer> reconfigure_server_;
@@ -104,6 +107,8 @@ reconfigure_server_(),config_init_(false),occ_received(false), cmd_eval(NULL)
     loop();
     r.sleep();
   }
+  last_command.linear.x = last_command.linear.y = last_command.linear.z = 0.0;
+  last_command.angular.x = last_command.angular.y = last_command.angular.z = 0.0;
 }
 
 
@@ -171,15 +176,22 @@ void SiarController::loop() {
     cmd_vel_msg = last_command;
   } else if (occ_received && !computeCmdVel(cmd_vel_msg, last_velocity)) {
     ROS_ERROR("Could not get a feasible velocity --> Stopping the robot");
-    cmd_vel_msg.linear.x = 0.0;
+    if (fabs(last_command.linear.x) < _conf.a_max)
+      cmd_vel_msg.linear.x = 0.0;
+    else
+      cmd_vel_msg.linear.x = last_command.linear.x - _conf.a_max * _conf.T * boost::math::sign(last_command.linear.x);
     cmd_vel_msg.linear.y = 0.0;
     cmd_vel_msg.linear.z = 0.0;
     cmd_vel_msg.angular.x = 0.0;
     cmd_vel_msg.angular.y = 0.0;
-    cmd_vel_msg.angular.z = 0.0;
+    if (fabs(last_command.angular.z) < _conf.a_theta_max)
+      cmd_vel_msg.angular.z = 0.0;
+    else
+      cmd_vel_msg.angular.z = last_command.angular.z - _conf.theta_max * _conf.T * boost::math::sign(last_command.angular.z);
   } else if (!occ_received) 
     ROS_INFO("SiarController --> Warning: no altitude map");
   cmd_vel_pub.publish(cmd_vel_msg);
+  last_command = cmd_vel_msg;
 }
 
 bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry_msgs::Twist &v_ini)
