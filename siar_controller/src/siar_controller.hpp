@@ -47,7 +47,7 @@ protected:
   
   
   nav_msgs::OccupancyGrid last_map; // Saves the last map to make the calculations
-  geometry_msgs::Twist last_command, last_velocity;
+  geometry_msgs::Twist user_command, last_velocity;
   bool occ_received;
   
   CommandEvaluator *cmd_eval;
@@ -136,7 +136,7 @@ void SiarController::parametersCallback(SiarControllerConfig& config, uint32_t l
 void SiarController::cmdvelCallback(const geometry_msgs::Twist& msg)
 {
   // The callback only copies the data to the class
-  last_command = msg;
+  user_command = msg;
 }
 
 void SiarController::altitudeCallback(const nav_msgs::OccupancyGridConstPtr &msg)
@@ -165,31 +165,31 @@ void SiarController::modeCallback(const std_msgs::Int8& msg)
 
 void SiarController::loop() {
   // Main loop --> we have to 
-  geometry_msgs::Twist cmd_vel_msg = last_command;
-  cmd_vel_msg.angular.x = 0.0;
-  cmd_vel_msg.angular.y = 0.0;
+  geometry_msgs::Twist cmd_vel_msg = user_command;
   if (operation_mode == 1)
-    cmd_vel_msg.angular.z = 0.0; // TODO: Only discard rotation if a mode is activated
+    cmd_vel_msg.angular.z = 0.0;
     
-  if (operation_mode == 0) {
-    // Manual --> bypass the last command
-    cmd_vel_msg = last_command;
-  } else if (occ_received && !computeCmdVel(cmd_vel_msg, last_velocity)) {
-    ROS_ERROR("Could not get a feasible velocity --> Stopping the robot");
-    if (fabs(last_command.linear.x) < _conf.a_max)
-      cmd_vel_msg.linear.x = 0.0;
-    else
-      cmd_vel_msg.linear.x = last_command.linear.x - _conf.a_max * _conf.T * boost::math::sign(last_command.linear.x);
-    cmd_vel_msg.linear.y = 0.0;
-    cmd_vel_msg.linear.z = 0.0;
-    cmd_vel_msg.angular.x = 0.0;
-    cmd_vel_msg.angular.y = 0.0;
-    if (fabs(last_command.angular.z) < _conf.a_theta_max)
-      cmd_vel_msg.angular.z = 0.0;
-    else
-      cmd_vel_msg.angular.z = last_command.angular.z - _conf.theta_max * _conf.T * boost::math::sign(last_command.angular.z);
-  } else if (!occ_received) 
-    ROS_INFO("SiarController --> Warning: no altitude map");
+  if (operation_mode != 0) {
+    if (occ_received && !computeCmdVel(cmd_vel_msg, last_velocity)) {
+      ROS_ERROR("Could not get a feasible velocity --> Stopping the robot");
+      // Stop the robot at the double of maximum acceleration
+      double a_brake = 3.0 * _conf.a_max;
+      double a_th_brake = 3.0 * _conf.a_theta_max;
+      if (fabs(last_command.linear.x) < a_brake )
+        cmd_vel_msg.linear.x = 0.0;
+      else
+        cmd_vel_msg.linear.x = last_command.linear.x - a_brake * _conf.T * boost::math::sign(last_command.linear.x);
+      cmd_vel_msg.linear.y = 0.0;
+      cmd_vel_msg.linear.z = 0.0;
+      cmd_vel_msg.angular.x = 0.0;
+      cmd_vel_msg.angular.y = 0.0;
+      if (fabs(last_command.angular.z) < a_th_brake)
+        cmd_vel_msg.angular.z = 0.0;
+      else
+        cmd_vel_msg.angular.z = last_command.angular.z - a_th_brake * _conf.T * boost::math::sign(last_command.angular.z);
+    } else if (!occ_received) 
+      ROS_INFO("SiarController --> Warning: no altitude map");
+  }
   cmd_vel_pub.publish(cmd_vel_msg);
   last_command = cmd_vel_msg;
 }
@@ -199,8 +199,8 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
   float vt_orig = cmd_vel.angular.z; // TODO: discard rotations?
   float vx_orig = cmd_vel.linear.x;
 
-  float ang_vel_inc = _conf.ang_inc;
-  float lin_vel_dec = _conf.lin_dec;
+  float ang_vel_inc = _ conf.a_max * _conf.delta_T;
+  float lin_vel_dec = a_th_brake * _conf.delta_T;
 
   double lowest_cost = 1e100;
   
@@ -212,7 +212,7 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
   if(fabs(cmd_vel.linear.x) < lin_vel_dec/2.0)
       return true;
   
-  curr_cmd = cmd_vel;
+  curr_cmd = last_command;
   
   if (!cmd_eval) {
     ROS_ERROR("SiarController::loop --> Command Evaluator is not configured\n");
