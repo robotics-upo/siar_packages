@@ -1,5 +1,8 @@
+<?xml version="1.0"?>
 <launch>
 
+  <arg name="resolution" default="0.025"/>
+  
   # Point cloud computation
   <node pkg="depth2cloud" type="depth2cloud_node" name="depth2cloud_front_down" output="screen" >
     <remap from="depth" to="/front_down/depth_registered/image_raw"/>                   # Topic for the camera depth
@@ -23,7 +26,7 @@
     <remap from="cloud1" to="/back_down/point_cloud"/>                  # Input cloud 1
     <param name="hz" value = "10.0"/>                                                   # Costmap update rate
     <param name="obstacle_height" value = "0.12"/>                               # Absolute value of obstacle height (or hole depth)
-    <param name="resolution" value="0.02"/>
+    <param name="resolution" value="$(arg resolution)"/>
   </node>
 
 </launch>

@@ -123,14 +123,16 @@ void SiarController::parametersCallback(SiarControllerConfig& config, uint32_t l
     model.a_max_theta = config.a_theta_max;
     model.v_max = config.v_max;
     model.theta_dot_max = config.alpha_max;
-    cmd_eval = new CommandEvaluator(config.w_dist, config.w_safe, config.T_hor, model, config.delta_T); // TODO: insert the footprint related data (now only default values)
+    SiarFootprint *p = new SiarFootprint(0.025, config.robot_longitude, config.robot_width, config.wheel_width);
+    cmd_eval = new CommandEvaluator(config.w_dist, config.w_safe, config.T_hor, model, config.delta_T, p); // TODO: insert the footprint related data (now only default values)
   } else {
     RobotCharacteristics model;
     model.a_max = config.a_max;
     model.a_max_theta = config.a_theta_max;
     model.v_max = config.v_max;
     model.theta_dot_max = config.alpha_max;
-    cmd_eval->setParameters(config.w_dist, config.w_safe, config.T_hor, model, config.delta_T);
+    SiarFootprint *p = new SiarFootprint(0.025, config.robot_longitude, config.robot_width, config.wheel_width);
+    cmd_eval->setParameters(config.w_dist, config.w_safe, config.T_hor, model, config.delta_T, p);
   }
   
   _conf = config;

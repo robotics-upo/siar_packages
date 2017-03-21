@@ -20,9 +20,12 @@ namespace siar_controller {
   
   class CommandEvaluator {
   public:
-    CommandEvaluator(double w_dist, double w_safe, double T, const RobotCharacteristics &model, double delta_T = 0.1);
+    CommandEvaluator(double w_dist, double w_safe, double T, const RobotCharacteristics &model, double delta_T = 0.1, SiarFootprint *footprint_p = NULL);
     
-    void setParameters(double w_dist, double w_safe, double T, const RobotCharacteristics &model, double delta_T = 0.1);
+    //! @brief Sets the parameters into the evaluator
+    //! @param footprint_p --> has the parameters for width, length and wheel_width
+    //! @note The evaluator will delete the footprint_p
+    void setParameters(double w_dist, double w_safe, double T, const RobotCharacteristics &model, double delta_T = 0.1, SiarFootprint *footprint_p = NULL);
     
     //! @brief Simulates the trajectory during T and generates a cost according to the cost map
     //! @retval -1.0 --> Collision
@@ -47,7 +50,7 @@ namespace siar_controller {
     
     RobotCharacteristics m_model;
     
-    SiarFootprint *footprint;
+    SiarFootprint *footprint, *footprint_params;
     
     inline void computeNewVelocity(double &v, double &w, double dt, const geometry_msgs::Twist &com){
         v = std::min(com.linear.x, v + m_model.a_max * dt * boost::math::sign(com.linear.x - v));
@@ -70,22 +73,26 @@ namespace siar_controller {
         }
   };
 
-CommandEvaluator::CommandEvaluator(double w_dist, double w_safe, double T, const RobotCharacteristics &model, double delta_T):footprint(NULL)
+CommandEvaluator::CommandEvaluator(double w_dist, double w_safe, double T, const RobotCharacteristics &model, double delta_T, SiarFootprint *footprint_p):footprint(NULL), footprint_params(NULL)
 {
-  setParameters(w_dist, w_safe, T, model, delta_T);
+  
+  setParameters(w_dist, w_safe, T, model, delta_T, footprint_p);
 }
 
-void CommandEvaluator::setParameters(double w_dist, double w_safe, double T, const RobotCharacteristics &model, double delta_T) {
+void CommandEvaluator::setParameters(double w_dist, double w_safe, double T, const RobotCharacteristics &model, double delta_T, SiarFootprint *footprint_p) {
   m_w_dist = w_dist;
   m_w_safe = w_safe;
   m_T = T;
   m_delta_T = delta_T;
   m_model = model;
+  delete footprint_params;
+  footprint_params = footprint_p;
 }
 
 CommandEvaluator::~CommandEvaluator()
 {
   delete footprint;
+  delete footprint_params;
 }
 
 double CommandEvaluator::evualateTrajectory(const geometry_msgs::Twist& v_ini, const geometry_msgs::Twist& v_command, 
@@ -113,7 +120,12 @@ double CommandEvaluator::evualateTrajectory(const geometry_msgs::Twist& v_ini, c
   // Initialize the footprint if needed:
   if (footprint == NULL) {
       ROS_INFO("Getting footprint. Resolution: %f", alt_map.info.resolution);
-    footprint = new SiarFootprint(alt_map.info.resolution); // TODO: CONFIGURABLE FOR VARIABLE WIDTH PROTOTYPE
+    if (footprint_params == NULL)
+       // TODO: CONFIGURABLE FOR VARIABLE WIDTH PROTOTYPE
+      footprint = new SiarFootprint(alt_map.info.resolution);
+    else
+      footprint = new SiarFootprint(alt_map.info.resolution, footprint_params->m_length, footprint_params->m_width, footprint_params->m_wheel_width);
+      
     m_divRes = 1.0 / alt_map.info.resolution;
    
     ROS_INFO("Alt map: height = %d \t width = %d", alt_map.info.height, alt_map.info.width);

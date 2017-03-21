@@ -24,14 +24,14 @@ public:
   
 //   inline cv::Mat *getOriginalFootprint() {return footprint;}
   
-protected:
   double m_length, m_width, m_wheel_width;
-  
+
+protected:  
   double m_cellsize;
   
   // Base footprint image
 //   cv::Mat *footprint;
-  
+
   FootprintType footprint_p;
   FootprintType footprint_p_2;
   FootprintType footprint_rot, footprint_rot_2;
