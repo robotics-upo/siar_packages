@@ -22,6 +22,8 @@ namespace siar_controller {
   public:
     CommandEvaluator(double w_dist, double w_safe, double T, const RobotCharacteristics &model, double delta_T = 0.1);
     
+    void setParameters(double w_dist, double w_safe, double T, const RobotCharacteristics &model, double delta_T = 0.1);
+    
     //! @brief Simulates the trajectory during T and generates a cost according to the cost map
     //! @retval -1.0 --> Collision
     double evualateTrajectory(const geometry_msgs::Twist &v_ini, const geometry_msgs::Twist &v_command, 
@@ -70,6 +72,10 @@ namespace siar_controller {
 
 CommandEvaluator::CommandEvaluator(double w_dist, double w_safe, double T, const RobotCharacteristics &model, double delta_T):footprint(NULL)
 {
+  setParameters(w_dist, w_safe, T, model, delta_T);
+}
+
+void CommandEvaluator::setParameters(double w_dist, double w_safe, double T, const RobotCharacteristics &model, double delta_T) {
   m_w_dist = w_dist;
   m_w_safe = w_safe;
   m_T = T;

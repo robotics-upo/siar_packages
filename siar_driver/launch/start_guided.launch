@@ -35,11 +35,9 @@
   
   <node name="siar_joy" pkg="siar_driver" type="siar_teleop_joy" output="screen" if="$(arg joystick)">
     <remap from="/cmd_vel" to="/user_cmd_vel"/>
-  </node>
-  <node name="joy_node" pkg="joy" type="joy_node" if="$(arg joystick)" >
     <param name="max_auto_mode" value="2"/>
   </node>
-  
+  <node name="joy_node" pkg="joy" type="joy_node" if="$(arg joystick)" />
   
   <!-- Automatic control -->
    <node name="siar_controller" pkg="siar_controller" type="siar_controller_node">

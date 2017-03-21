@@ -119,6 +119,13 @@ void SiarController::parametersCallback(SiarControllerConfig& config, uint32_t l
     model.v_max = config.v_max;
     model.theta_dot_max = config.alpha_max;
     cmd_eval = new CommandEvaluator(config.w_dist, config.w_safe, config.T_hor, model, config.delta_T); // TODO: insert the footprint related data (now only default values)
+  } else {
+    RobotCharacteristics model;
+    model.a_max = 1.0;
+    model.a_max_theta = 1.0;
+    model.v_max = config.v_max;
+    model.theta_dot_max = config.alpha_max;
+    cmd_eval->setParameters(config.w_dist, config.w_safe, config.T_hor, model, config.delta_T);
   }
   config_init_ = true;
   
@@ -160,6 +167,8 @@ void SiarController::modeCallback(const std_msgs::Int8& msg)
 
 void SiarController::loop() {
   // Main loop --> we have to 
+  
+  ROS_INFO("Init loop. T_hor = %f. Delta_T = %f. ", _conf.T_hor, _conf.delta_T);
   geometry_msgs::Twist cmd_vel_msg = last_command;
   cmd_vel_msg.angular.x = 0.0;
   cmd_vel_msg.angular.y = 0.0;
@@ -205,10 +214,6 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
   if (!cmd_eval) {
     ROS_ERROR("SiarController::loop --> Command Evaluator is not configured\n");
   }
-  
-  ROS_INFO("Init loop");
-
-  
   
   //Linear vel
   for(int l = 0; l <= _conf.n_lin; l++) 
