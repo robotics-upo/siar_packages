@@ -162,7 +162,7 @@ double CommandEvaluator::evualateTrajectory(const geometry_msgs::Twist& v_ini, c
       usleep(10000);
     }
     cont_footprint += applyFootprint(x, y, th, alt_map, collision);
-    applyFootprint(x, y, th, alt_map, collision, true);
+//     applyFootprint(x, y, th, alt_map, collision, true);
     
     if (pub)
       ROS_INFO("After footprint. Cont = %d", cont_footprint);

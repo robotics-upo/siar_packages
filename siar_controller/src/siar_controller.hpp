@@ -38,7 +38,7 @@ protected:
   // Last command for taking into account the a_max
   geometry_msgs::Twist last_command;
   
-  // Dynamic reconfigure stuff TODO
+  // Dynamic reconfigure stuff
   typedef dynamic_reconfigure::Server<SiarControllerConfig> ReconfigureServer;
   boost::shared_ptr<ReconfigureServer> reconfigure_server_;
   bool config_init_;
@@ -182,7 +182,7 @@ void SiarController::loop() {
       // Stop the robot at the double of maximum acceleration
       double a_brake = 3.0 * _conf.a_max;
       double a_th_brake = 3.0 * _conf.a_theta_max;
-      if (fabs(last_command.linear.x) < a_brake )
+      if (fabs(last_command.linear.x) < a_brake * _conf.T )
         cmd_vel_msg.linear.x = 0.0;
       else
         cmd_vel_msg.linear.x = last_command.linear.x - a_brake * _conf.T * boost::math::sign(last_command.linear.x);
@@ -190,7 +190,7 @@ void SiarController::loop() {
       cmd_vel_msg.linear.z = 0.0;
       cmd_vel_msg.angular.x = 0.0;
       cmd_vel_msg.angular.y = 0.0;
-      if (fabs(last_command.angular.z) < a_th_brake)
+      if (fabs(last_command.angular.z) < a_th_brake * _conf.T)
         cmd_vel_msg.angular.z = 0.0;
       else
         cmd_vel_msg.angular.z = last_command.angular.z - a_th_brake * _conf.T * boost::math::sign(last_command.angular.z);
@@ -212,7 +212,7 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
   vx_orig += lin_vel_dec * boost::math::sign(cmd_vel.linear.x - vx_orig);
   vt_orig += ang_vel_inc * boost::math::sign(cmd_vel.angular.z - vt_orig);
   
-  ROS_INFO("Ang_vel_inc = %f\t Lin_vel_inc = %f", ang_vel_inc, lin_vel_dec);
+//   ROS_INFO("Ang_vel_inc = %f\t Lin_vel_inc = %f", ang_vel_inc, lin_vel_dec);
 
   double lowest_cost = 1e100;
   
@@ -253,6 +253,8 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
     if (curr_cost < lowest_cost && curr_cost > 0.0) {
       best_cmd = curr_cmd;
       lowest_cost = curr_cost;
+      if (l == 0)
+        best_cmd.angular.z = 0.0;
     }
     
     //Angular vel
