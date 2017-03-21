@@ -201,11 +201,16 @@ void SiarController::loop() {
 
 bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry_msgs::Twist &v_ini)
 {
-  float vt_orig = cmd_vel.angular.z; // TODO: discard rotations?
-  float vx_orig = cmd_vel.linear.x;
-
-  float ang_vel_inc = _conf.a_max * _conf.delta_T;
-  float lin_vel_dec = _conf.a_theta_max * _conf.delta_T;
+  float vt_orig = last_command.angular.z; // TODO: discard rotations?
+  float vx_orig = last_command.linear.x;
+  
+  float ang_vel_inc = _conf.a_max * _conf.delta_T / (float)_conf.n_ang;
+  float lin_vel_dec = _conf.a_theta_max * _conf.delta_T/ (float)_conf.n_lin;
+  
+  vx_orig += lin_vel_dec * boost::math::sign(cmd_vel.linear.x - vx_orig);
+  vt_orig += ang_vel_inc * boost::math::sign(cmd_vel.angular.z - vt_orig);
+  
+  ROS_INFO("Ang_vel_inc = %f\t Lin_vel_inc = %f", ang_vel_inc, lin_vel_dec);
 
   double lowest_cost = 1e100;
   
@@ -214,8 +219,9 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
   best_cmd.linear.x = 0.0;
   best_cmd.angular.z = 0.0;
   
-  if(fabs(cmd_vel.linear.x) < lin_vel_dec/2.0)
-      return true;
+//   if(fabs(cmd_vel.linear.x) < lin_vel_dec/2.0) {
+//     return true;
+//   }
   
   curr_cmd = last_command;
   
@@ -232,8 +238,10 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
     if (vx_orig < -0.0)
       curr_cmd.linear.x = vx_orig + l * lin_vel_dec;
     
-    if(fabs(curr_cmd.linear.x) < lin_vel_dec)
+    if(fabs(curr_cmd.linear.x) < lin_vel_dec) {
+      lowest_cost = 0.0;
       break;
+    }
 
     curr_cmd.angular.z = vt_orig;
     double curr_cost = cmd_eval->evualateTrajectory(v_ini, curr_cmd, cmd_vel, last_map);
