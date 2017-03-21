@@ -237,7 +237,7 @@ private:
 	inline int point2index(float &x, float &y)
 	{
 		//return (m_costmap.info.height - (int)((x-m_minX)*m_divRes))*m_costmap.info.width + m_costmap.info.width - (int)((y-m_minY)*m_divRes);
-		return ((int)((x-m_minX)*m_divRes))*m_costmap.info.width + (int)((y-m_minY)*m_divRes);
+		return ((int)((x-m_minX)*m_divRes))*m_costmap.info.width + m_costmap.info.width - (int)((y-m_minY)*m_divRes);
 	}
 	
 	// Params
