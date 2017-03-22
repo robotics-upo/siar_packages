@@ -97,7 +97,7 @@ CommandEvaluator::~CommandEvaluator()
 
 double CommandEvaluator::evualateTrajectory(const geometry_msgs::Twist& v_ini, const geometry_msgs::Twist& v_command, 
                                             const geometry_msgs::Twist& operator_command, const nav_msgs::OccupancyGrid& alt_map,
-                                            ros::Publisher *pub)
+                                            visualization_msgs::Marker &m)
 {
   double dt = m_delta_T;
   int steps = m_T / m_delta_T;
@@ -108,13 +108,11 @@ double CommandEvaluator::evualateTrajectory(const geometry_msgs::Twist& v_ini, c
   double lv = v_ini.linear.x;
   double av = v_ini.angular.z;
   
-  if (pub) {
-    ROS_INFO("Evaluate trajectory: dt = %f \tsteps=%d \tv_ini_x = %f\t th_dot_ini = %f", m_delta_T, steps, lv, av);
-    ROS_INFO("v_command_x = %f\t th_dot_command = %f", v_command.linear.x, v_command.angular.z);
-    ROS_INFO("v_max = %f\t a_max = %f", m_model.v_max, m_model.a_max);
-  }
-
-  
+//   if (pub) {
+//     ROS_INFO("Evaluate trajectory: dt = %f \tsteps=%d \tv_ini_x = %f\t th_dot_ini = %f", m_delta_T, steps, lv, av);
+//     ROS_INFO("v_command_x = %f\t th_dot_command = %f", v_command.linear.x, v_command.angular.z);
+//     ROS_INFO("v_max = %f\t a_max = %f", m_model.v_max, m_model.a_max);
+//   }
   int cont_footprint = 0;
   
   // Initialize the footprint if needed:
@@ -137,14 +135,13 @@ double CommandEvaluator::evualateTrajectory(const geometry_msgs::Twist& v_ini, c
     ROS_INFO("Origin : %f, %f", origin_x, origin_y);
   }
 
-  //int ini = floor(steps/2.0 + 0.5);
   bool collision = false;
   for(int i=0; i <= steps && !collision; i++)
   {
     
     computeNewVelocity(lv, av, dt, v_command);
-    if (pub)
-      ROS_INFO("Computing new velocity. Lv = %f", lv);
+    
+    
     
     // Integrate the model
     double lin_dist = lv * dt;
@@ -154,26 +151,16 @@ double CommandEvaluator::evualateTrajectory(const geometry_msgs::Twist& v_ini, c
     x = x + lin_dist*cos(th); // Euler 1
     y = y + lin_dist*sin(th); 
     
-    if (pub) {
-      ROS_INFO("Applying footprint: %f %f %f", x, y , th);
-      footprint->printFootprint(x, y, th, *pub);
-      usleep(5000);
-      footprint->printFootprintCollision(x, y, th, *pub, 1);
-      usleep(10000);
-    }
+    footprint->addPoints(x, y, th, m, 0, i == 0);
+    
     cont_footprint += applyFootprint(x, y, th, alt_map, collision);
     applyFootprint(x, y, th, alt_map, collision, true);
-    
-    if (pub)
-      ROS_INFO("After footprint. Cont = %d", cont_footprint);
-
   }
   
   double ret = cont_footprint * m_w_safe + m_w_dist * sqrt(pow(x - operator_command.linear.x * m_T, 2.0) + y*y);
   if (collision) {
-    if (pub) {
-      ROS_INFO("Detected a collision in the simulation");
-    }
+    m.color.r = 1.0;
+    m.color.g = 0.0;
     return -1.0;
   }
     

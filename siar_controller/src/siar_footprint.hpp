@@ -19,8 +19,8 @@ public:
   FootprintType getFootprint(double x, double y, double yaw);
   FootprintType getFootprintCollision(double x, double y, double yaw);
   
-  void printFootprint(double x, double y, double yaw, ros::Publisher pub, int id = 0);
-  void printFootprintCollision(double x, double y, double yaw, ros::Publisher pub, int id = 0);
+  void addPoints(double x, double y, double yaw, visualization_msgs::Marker &m, int id = 0, bool init = false);
+//   void printFootprintCollision(double x, double y, double yaw, ros::Publisher pub, int id = 0);
   
 //   inline cv::Mat *getOriginalFootprint() {return footprint;}
   
@@ -102,83 +102,74 @@ FootprintType SiarFootprint::getFootprintCollision(double x, double y, double ya
   return footprint_rot_2;
 }
 
-void SiarFootprint::printFootprint(double x, double y, double th, ros::Publisher pub, int id)  {
+void SiarFootprint::addPoints(double x, double y, double th, visualization_msgs::Marker &m, int id, bool init) {
   std::vector<geometry_msgs::Point> fp = getFootprint(x, y, th);
-  
-  static visualization_msgs::Marker points;
-  
-  
-  points.header.frame_id = "/base_link";
-  points.header.stamp = ros::Time::now();
-  points.ns = "footprint";
-  points.action = visualization_msgs::Marker::ADD;
-  points.pose.orientation.w = 1.0;
-  points.id = id;
-  
-  geometry_msgs::Point p;
-  
-  
-  points.type = visualization_msgs::Marker::POINTS;
+  if (init) {
+    m.header.frame_id = "/base_link";
+    m.header.stamp = ros::Time::now();
+    m.ns = "footprint";
+    m.action = visualization_msgs::Marker::ADD;
+    m.pose.orientation.w = 1.0;
+    m.id = id;
+    m.points.clear();
+    m.type = visualization_msgs::Marker::POINTS;
   // POINTS markers use x and y scale for width/height respectively
-  points.scale.x = m_cellsize;
-  points.scale.y = m_cellsize;
-  
+    m.scale.x = m_cellsize;
+    m.scale.y = m_cellsize;
+    // Points are green
+    m.color.g = 1.0;
+    m.color.a = 1.0;
+  }
   FootprintType footprint = getFootprint(x, y, th);
-  
+  geometry_msgs::Point p;
   
   for (unsigned int i = 0;i < footprint.size(); i++) {
     p.x = footprint.at(i).x;
     p.y = footprint.at(i).y;
     p.z = 0.0;
     
-    points.points.push_back(p);
+    m.points.push_back(p);
   }
-  // Points are green
-  points.color.g = 1.0;
-  points.color.a = 1.0;
-  
-  pub.publish(points);
-  
 }
 
-void SiarFootprint::printFootprintCollision(double x, double y, double th, ros::Publisher pub, int id)  {
-  std::vector<geometry_msgs::Point> fp = getFootprintCollision(x, y, th);
-  
-  static visualization_msgs::Marker points;
-  
-  
-  points.header.frame_id = "/base_link";
-  points.header.stamp = ros::Time::now();
-  points.ns = "footprint";
-  points.action = visualization_msgs::Marker::ADD;
-  points.pose.orientation.w = 1.0;
-  points.id = id;
-  
-  geometry_msgs::Point p;
-  
-  
-  points.type = visualization_msgs::Marker::POINTS;
-  // POINTS markers use x and y scale for width/height respectively
-  points.scale.x = m_cellsize;
-  points.scale.y = m_cellsize;
-  
-  FootprintType footprint = getFootprintCollision(x, y, th);
-  
-  
-  for (unsigned int i = 0;i < footprint.size(); i++) {
-    p.x = footprint.at(i).x;
-    p.y = footprint.at(i).y;
-    p.z = 0.0;
-    
-    points.points.push_back(p);
-  }
-  // Collision points are red
-  points.color.r = 1.0;
-  points.color.a = 1.0;
-  
-  pub.publish(points);
-  
-}
+// void SiarFootprint::addFootprintCollision(double x, double y, double th, ros::Publisher pub, int id)  {
+//   std::vector<geometry_msgs::Point> fp = getFootprintCollision(x, y, th);
+//   
+//   static visualization_msgs::Marker points;
+//   
+//   
+//   points.header.frame_id = "/base_link";
+//   points.header.stamp = ros::Time::now();
+//   points.ns = "footprint";
+//   points.action = visualization_msgs::Marker::ADD;
+//   points.pose.orientation.w = 1.0;
+//   points.id = id;
+//   
+//   geometry_msgs::Point p;
+//   
+//   
+//   points.type = visualization_msgs::Marker::POINTS;
+//   // POINTS markers use x and y scale for width/height respectively
+//   points.scale.x = m_cellsize;
+//   points.scale.y = m_cellsize;
+//   
+//   FootprintType footprint = getFootprintCollision(x, y, th);
+//   
+//   
+//   for (unsigned int i = 0;i < footprint.size(); i++) {
+//     p.x = footprint.at(i).x;
+//     p.y = footprint.at(i).y;
+//     p.z = 0.0;
+//     
+//     points.points.push_back(p);
+//   }
+//   // Collision points are red
+//   points.color.r = 1.0;
+//   points.color.a = 1.0;
+//   
+//   pub.publish(points);
+//   
+// }
 
 }
 

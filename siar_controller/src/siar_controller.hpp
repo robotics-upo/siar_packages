@@ -15,6 +15,8 @@
 #include <nav_msgs/Odometry.h>
 #include <std_msgs/Int8.h>
 
+#include <visualization_msgs/MarkerArray.h>
+
 #include "command_evaluator.hpp"
 
 namespace siar_controller {
@@ -44,6 +46,10 @@ protected:
   bool config_init_;
   ReconfigureServer::CallbackType call_type;  
   SiarControllerConfig _conf;
+  
+  // Representation stuff
+  visualization_msgs::MarkerArray markers;
+  void copyMarker(visualization_msgs::Marker &dst , const visualization_msgs::Marker &orig) const;
   
   
   nav_msgs::OccupancyGrid last_map; // Saves the last map to make the calculations
@@ -98,7 +104,7 @@ reconfigure_server_(),config_init_(false),occ_received(false), cmd_eval(NULL)
   
   // Now the publishers
   cmd_vel_pub = nh.advertise<geometry_msgs::Twist>(nh.resolveName("cmd_vel_out"), 2);
-  footprint_marker_pub = nh.advertise<visualization_msgs::Marker>("/footprint_marker", 10);
+  footprint_marker_pub = nh.advertise<visualization_msgs::MarkerArray>("/trajectory_marker", 10);
   
   ROS_INFO("Update Rate: %f", _conf.T);
   ros::Rate r(1.0/_conf.T);
@@ -175,7 +181,7 @@ void SiarController::loop() {
   geometry_msgs::Twist cmd_vel_msg = user_command;
   if (operation_mode == 1)
     cmd_vel_msg.angular.z = 0.0;
-    
+  
   if (operation_mode != 0) {
     if (occ_received && !computeCmdVel(cmd_vel_msg, last_velocity)) {
       ROS_ERROR("Could not get a feasible velocity --> Stopping the robot");
@@ -212,7 +218,7 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
   vx_orig += lin_vel_dec * boost::math::sign(cmd_vel.linear.x - vx_orig);
   vt_orig += ang_vel_inc * boost::math::sign(cmd_vel.angular.z - vt_orig);
   
-  ROS_INFO("Ang_vel_inc = %f\t Lin_vel_inc = %f", ang_vel_inc, lin_vel_dec);
+//   ROS_INFO("Ang_vel_inc = %f\t Lin_vel_inc = %f", ang_vel_inc, lin_vel_dec);
 
   double lowest_cost = 1e100;
   
@@ -221,15 +227,15 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
   best_cmd.linear.x = 0.0;
   best_cmd.angular.z = 0.0;
   
-//   if(fabs(cmd_vel.linear.x) < lin_vel_dec/2.0) {
-//     return true;
-//   }
-  
   curr_cmd = last_command;
   
   if (!cmd_eval) {
     ROS_ERROR("SiarController::loop --> Command Evaluator is not configured\n");
   }
+  
+  static visualization_msgs::Marker m;
+  
+  int n_commands = 0;
   
   //Linear vel
   for(int l = 0; l <= _conf.n_lin; l++) 
@@ -246,10 +252,11 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
     }
 
     curr_cmd.angular.z = vt_orig;
-    double curr_cost = cmd_eval->evualateTrajectory(v_ini, curr_cmd, cmd_vel, last_map);
-//     if (l == 0) {
-//       cmd_eval->evualateTrajectory(v_ini, curr_cmd, cmd_vel, last_map);
-//     }
+    
+    double curr_cost = cmd_eval->evualateTrajectory(v_ini, curr_cmd, cmd_vel, last_map, m);
+    
+    copyMarker(markers.markers[n_commands++], m);
+    
     if (curr_cost < lowest_cost && curr_cost > 0.0) {
       best_cmd = curr_cmd;
       lowest_cost = curr_cost;
@@ -288,6 +295,17 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
   cmd_vel = best_cmd;
   return lowest_cost < 1e50;
 }
+
+void SiarController::copyMarker(visualization_msgs::Marker& dst, const visualization_msgs::Marker& orig) const
+{
+  dst.points.assign(orig.points.begin(), orig.points.end());
+  dst.color = orig.color;
+  dst.scale = orig.scale;
+  dst.action = orig.action;
+  dst.header = orig.header;
+  dst.lifetime = orig.lifetime; // TODO: check the fields to copy
+}
+
 
 }
 
