@@ -3,7 +3,7 @@
   
   <arg name="emulate_laser" default="true"/>
   <arg name="bag" default="0"/>
-  <arg name="data_skip" default="2"/>
+  <arg name="data_skip" default="0"/>
 
   
   <!-- Camera stuff -->

@@ -25,7 +25,7 @@
     <remap from="cloud0" to="/front_down/point_cloud"/>                 # Input cloud 0
     <remap from="cloud1" to="/back_down/point_cloud"/>                  # Input cloud 1
     <param name="hz" value = "10.0"/>                                                   # Costmap update rate
-    <param name="obstacle_height" value = "0.12"/>                               # Absolute value of obstacle height (or hole depth)
+    <param name="obstacle_height" value = "0.05"/>                               # Absolute value of obstacle height (or hole depth)
     <param name="resolution" value="$(arg resolution)"/>
   </node>
 

@@ -69,7 +69,7 @@ namespace siar_controller {
     
     inline int point2index(double x, double y)
         {
-                return ((int)((x - origin_x)*m_divRes))*width + (int)((y - origin_y)*m_divRes);
+                return ((int)((x - origin_x)*m_divRes) + 1)*width - (int)((y - origin_y)*m_divRes);
         }
   };
 
@@ -146,15 +146,12 @@ double CommandEvaluator::evualateTrajectory(const geometry_msgs::Twist& v_ini, c
     // Integrate the model
     double lin_dist = lv * dt;
     th = th + (av * dt);
-    //normalization just in case
-//     th = normalizeAngle(th, -M_PI, M_PI);
     x = x + lin_dist*cos(th); // Euler 1
     y = y + lin_dist*sin(th); 
     
     footprint->addPoints(x, y, th, m, 0, i == 0);
     
     cont_footprint += applyFootprint(x, y, th, alt_map, collision);
-    applyFootprint(x, y, th, alt_map, collision, true);
   }
   
   double ret = cont_footprint * m_w_safe + m_w_dist * sqrt(pow(x - operator_command.linear.x * m_T, 2.0) + y*y);
@@ -180,9 +177,6 @@ int CommandEvaluator::applyFootprint(double x, double y, double th,
     fp = footprint->getFootprint(x, y, th);
   else
     fp = footprint->getFootprintCollision(x, y, th);
-  
-  int i_ini = x/alt_map.info.resolution + alt_map.info.origin.position.x;
-  int j_ini = y/alt_map.info.resolution + alt_map.info.origin.position.y;
   
   collision = false;
   
