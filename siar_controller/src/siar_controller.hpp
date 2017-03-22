@@ -139,7 +139,7 @@ reconfigure_server_(),config_init_(false),occ_received(false), cmd_eval(NULL)
 
 void SiarController::parametersCallback(SiarControllerConfig& config, uint32_t level)
 {
-  
+  _conf = config;
   if (!config_init_) {
     // Declare the evaluator
     config_init_ = true;
@@ -148,6 +148,7 @@ void SiarController::parametersCallback(SiarControllerConfig& config, uint32_t l
     model.a_max_theta = config.a_theta_max;
     model.v_max = config.v_max;
     model.theta_dot_max = config.alpha_max;
+//     ROS_INFO("R_L = /*%*/f, R_W = %f, W_W = %f", config.robot_longitude, config.robot_width, config.wheel_width);
     SiarFootprint *p = new SiarFootprint(0.025, config.robot_longitude, config.robot_width, config.wheel_width);
     cmd_eval = new CommandEvaluator(config.w_dist, config.w_safe, config.T_hor, model, config.delta_T, p); // TODO: insert the footprint related data (now only default values)
   } else {
@@ -160,11 +161,10 @@ void SiarController::parametersCallback(SiarControllerConfig& config, uint32_t l
     cmd_eval->setParameters(config.w_dist, config.w_safe, config.T_hor, model, config.delta_T, p);
   }
   markers.markers.reserve(_conf.n_lin * (_conf.n_ang + 1) * 2 + 20);
-  _conf = config;
   ang_vel_inc = _conf.a_max * _conf.delta_T / (float)_conf.n_ang;
   lin_vel_dec = _conf.a_theta_max * _conf.delta_T/ (float)_conf.n_lin;
-  ROS_INFO("Ang_vel_inc = %f\t Lin_vel_inc = %f", ang_vel_inc, lin_vel_dec);
-  getDiscreteTestSet(true);
+  
+  getDiscreteTestSet(0.6, true);
   
 }
 
@@ -246,6 +246,8 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
   test_set = getDiscreteTestSet(cmd_vel.linear.x);
   markers.markers.resize(test_set.size());
   
+  ROS_INFO (" Checking %d velocities. ", (int) test_set.size());
+  
   //Linear vel
   for (unsigned int i = 0; i < test_set.size(); i++) 
   { 
@@ -308,8 +310,9 @@ std::vector< geometry_msgs::Twist > SiarController::getAccelTestSet(double x)
 
 std::vector< geometry_msgs::Twist > SiarController::getDiscreteTestSet(double v_command_x, bool force_recompute)
 {
-  
+  ROS_INFO("Get Discrete Test set: n_lin = %d n_ang = %d" , _conf.n_lin, _conf.n_ang);
   if (discrete_test_set_forward.size() == 0 || force_recompute) {
+    double ang_vel_inc = _conf.alpha_max / (double)_conf.n_ang;
     discrete_test_set_forward.clear();
     discrete_test_set_backward.clear();
     curr_cmd.angular.x = curr_cmd.angular.y = curr_cmd.angular.z = 0.0;
@@ -318,22 +321,22 @@ std::vector< geometry_msgs::Twist > SiarController::getDiscreteTestSet(double v_
       curr_cmd.angular.z = 0.0;
       curr_cmd.linear.x = (double)i * _conf.v_max / (double)_conf.n_lin;
       discrete_test_set_forward.push_back(curr_cmd);
+      ROS_INFO("Discrete test set. Command %d. vx = %f. v_theta = %f", (int)discrete_test_set_forward.size(), curr_cmd.linear.x, curr_cmd.angular.z);
       curr_cmd.linear.x *= -1.0;
       discrete_test_set_backward.push_back(curr_cmd);
-      ROS_INFO("Discrete test set. Command %d. vx = %f. v_theta = %f", (int)discrete_test_set_forward.size(), curr_cmd.linear.x, curr_cmd.angular.z);
       for (int j = 1; j <= _conf.n_ang; j++) {
         // To the left
         curr_cmd.angular.z = ang_vel_inc * j;
-        discrete_test_set_forward.push_back(curr_cmd);
-        curr_cmd.linear.x *= -1.0;
         discrete_test_set_backward.push_back(curr_cmd);
+        curr_cmd.linear.x *= -1.0;
+        discrete_test_set_forward.push_back(curr_cmd);
         ROS_INFO("Discrete test set. Command %d. vx = %f. v_theta = %f", (int)discrete_test_set_forward.size(), curr_cmd.linear.x, curr_cmd.angular.z);
         //to the right
-        curr_cmd.angular.z = -ang_vel_inc * j;
+        curr_cmd.angular.z = - ang_vel_inc * j;
         discrete_test_set_forward.push_back(curr_cmd);
+        ROS_INFO("Discrete test set. Command %d. vx = %f. v_theta = %f", (int)discrete_test_set_forward.size(), curr_cmd.linear.x, curr_cmd.angular.z);
         curr_cmd.linear.x *= -1.0;
         discrete_test_set_backward.push_back(curr_cmd);
-        ROS_INFO("Discrete test set. Command %d. vx = %f. v_theta = %f", (int)discrete_test_set_forward.size(), curr_cmd.linear.x, curr_cmd.angular.z);
       }
     }
   }
@@ -370,12 +373,12 @@ void SiarController::evaluateAndActualizeBest(const geometry_msgs::Twist& cmd_ve
     m.color.a = 1.0;
   } else if (curr_cost > 0.0) {
     m.color.b = 0.0;
-    m.color.r = 0.0; // Best marker on purple
+    m.color.r = 0.0; // Best marker on green
     m.color.g = 1.0;
     m.color.a = 0.7;
   } else {
-    m.color.b = 0.0;
-    m.color.r = 1.0; // Best marker on purple
+    m.color.b = 0.0; // Collision
+    m.color.r = 1.0; // Best marker on red
     m.color.g = 0.0;
     m.color.a = 0.7;
   }
