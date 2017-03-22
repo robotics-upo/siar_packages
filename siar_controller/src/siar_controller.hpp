@@ -179,21 +179,9 @@ void SiarController::loop() {
   if (operation_mode != 0) {
     if (occ_received && !computeCmdVel(cmd_vel_msg, last_velocity)) {
       ROS_ERROR("Could not get a feasible velocity --> Stopping the robot");
-      // Stop the robot at the double of maximum acceleration
-      double a_brake = 3.0 * _conf.a_max;
-      double a_th_brake = 3.0 * _conf.a_theta_max;
-      if (fabs(last_command.linear.x) < a_brake * _conf.T )
-        cmd_vel_msg.linear.x = 0.0;
-      else
-        cmd_vel_msg.linear.x = last_command.linear.x - a_brake * _conf.T * boost::math::sign(last_command.linear.x);
-      cmd_vel_msg.linear.y = 0.0;
-      cmd_vel_msg.linear.z = 0.0;
-      cmd_vel_msg.angular.x = 0.0;
-      cmd_vel_msg.angular.y = 0.0;
-      if (fabs(last_command.angular.z) < a_th_brake * _conf.T)
-        cmd_vel_msg.angular.z = 0.0;
-      else
-        cmd_vel_msg.angular.z = last_command.angular.z - a_th_brake * _conf.T * boost::math::sign(last_command.angular.z);
+      // Stop the robot 
+      cmd_vel_msg.angular.z = 0.0;
+      cmd_vel_msg.linear.x = 0.0;
     } else if (!occ_received) 
       ROS_INFO("SiarController --> Warning: no altitude map");
   }
@@ -242,6 +230,8 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
     
     if(fabs(curr_cmd.linear.x) < lin_vel_dec) {
       lowest_cost = 0.0;
+      if (l == 0)
+        best_cmd.angular.z = 0.0;
       break;
     }
 
@@ -253,14 +243,12 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
     if (curr_cost < lowest_cost && curr_cost > 0.0) {
       best_cmd = curr_cmd;
       lowest_cost = curr_cost;
-      if (l == 0)
-        best_cmd.angular.z = 0.0;
     }
     
     //Angular vel
     for(int v=1; v <= _conf.n_ang; v++)
     {
-      //To the right
+      //To the left
       curr_cmd.angular.z = vt_orig + ang_vel_inc * v;
       if(fabs(curr_cmd.angular.z) > cmd_eval->getCharacteristics().theta_dot_max)
               curr_cmd.angular.z = cmd_eval->getCharacteristics().theta_dot_max;
@@ -271,12 +259,12 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
         best_cmd = curr_cmd;
       }
 
-      //to the left
+      //to the right
       curr_cmd.angular.z = vt_orig - ang_vel_inc * v;
       if(fabs(curr_cmd.angular.z) > cmd_eval->getCharacteristics().theta_dot_max)
-              curr_cmd.angular.z = cmd_eval->getCharacteristics().theta_dot_max;
+              curr_cmd.angular.z = -cmd_eval->getCharacteristics().theta_dot_max;
       
-      double curr_cost = cmd_eval->evualateTrajectory(v_ini, curr_cmd, cmd_vel, last_map);
+      curr_cost = cmd_eval->evualateTrajectory(v_ini, curr_cmd, cmd_vel, last_map);
       
       if (curr_cost < lowest_cost && curr_cost > 0.0) {
         best_cmd = curr_cmd;
