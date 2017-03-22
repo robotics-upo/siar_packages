@@ -29,9 +29,9 @@ namespace siar_controller {
     
     //! @brief Simulates the trajectory during T and generates a cost according to the cost map
     //! @retval -1.0 --> Collision
-    double evualateTrajectory(const geometry_msgs::Twist &v_ini, const geometry_msgs::Twist &v_command, 
-                              const geometry_msgs::Twist &operator_command, const nav_msgs::OccupancyGrid &alt_map,
-                             ros::Publisher *pub = NULL);
+    double evualateTrajectory(const geometry_msgs::Twist& v_ini, const geometry_msgs::Twist& v_command, 
+                              const geometry_msgs::Twist& operator_command, const nav_msgs::OccupancyGrid& alt_map,
+                              visualization_msgs::Marker &m);
     
     //! @brief Destructor
     ~CommandEvaluator();
@@ -136,12 +136,9 @@ double CommandEvaluator::evualateTrajectory(const geometry_msgs::Twist& v_ini, c
   }
 
   bool collision = false;
-  for(int i=0; i <= steps && !collision; i++)
+  for(int i = 0; i <= steps && !collision; i++)
   {
-    
     computeNewVelocity(lv, av, dt, v_command);
-    
-    
     
     // Integrate the model
     double lin_dist = lv * dt;
@@ -149,8 +146,8 @@ double CommandEvaluator::evualateTrajectory(const geometry_msgs::Twist& v_ini, c
     x = x + lin_dist*cos(th); // Euler 1
     y = y + lin_dist*sin(th); 
     
+    // Actualize the cost
     footprint->addPoints(x, y, th, m, 0, i == 0);
-    
     cont_footprint += applyFootprint(x, y, th, alt_map, collision);
   }
   

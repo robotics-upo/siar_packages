@@ -14,7 +14,7 @@ bool loadAltMap(nav_msgs::OccupancyGrid& map, const char *filename);
 int main(int argc, char **argv) {
   ros::init(argc, argv, "test_trajectory_evaluator");
   ros::NodeHandle n;
-  ros::Publisher marker_pub = n.advertise<visualization_msgs::Marker>("footprint_marker", 10);
+  ros::Publisher marker_pub = n.advertise<visualization_msgs::Marker>("footprint_marker", 10, true);
   
   double cellsize = 0.02;
   
@@ -101,9 +101,12 @@ int main(int argc, char **argv) {
   
   
   
-  
-  cout << "Evaluating trajectory. Result = " << eval.evualateTrajectory(vel_ini, vel, vel, oc, &marker_pub);
+  visualization_msgs::Marker m;
+  cout << "Evaluating trajectory. Result = " << eval.evualateTrajectory(vel_ini, vel, vel, oc, m);
   cout << endl;
+  
+  ROS_INFO("Publishing marker. N_points = %d", (int)m.points.size());
+  marker_pub.publish(m);
   
   while (ros::ok()) {
   

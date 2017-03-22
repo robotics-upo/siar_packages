@@ -50,13 +50,22 @@ protected:
   // Representation stuff
   visualization_msgs::MarkerArray markers;
   void copyMarker(visualization_msgs::Marker &dst , const visualization_msgs::Marker &orig) const;
+  visualization_msgs::Marker m;
   
-  
+  // Occ. stuff
   nav_msgs::OccupancyGrid last_map; // Saves the last map to make the calculations
-  geometry_msgs::Twist user_command, last_velocity;
   bool occ_received;
-  
+
+  // Command evaluation
+  geometry_msgs::Twist user_command, last_velocity;
   CommandEvaluator *cmd_eval;
+  
+  
+  // Optimization search
+  double lowest_cost, curr_cost;
+  geometry_msgs::Twist best_cmd, curr_cmd;
+  int n_commands, n_best;
+  void evaluateAndActualizeBest(geometry_msgs::Twist& cmd_vel, const geometry_msgs::Twist &v_ini);
 
   // Callbacks  
   void parametersCallback(SiarControllerConfig &config, uint32_t level);
@@ -64,6 +73,7 @@ protected:
   void cmdvelCallback(const geometry_msgs::Twist &msg);
   void odomCallback(const nav_msgs::Odometry &msg);
   void modeCallback(const std_msgs::Int8 &msg);
+  
   
   void loop();
 };
@@ -140,7 +150,7 @@ void SiarController::parametersCallback(SiarControllerConfig& config, uint32_t l
     SiarFootprint *p = new SiarFootprint(0.025, config.robot_longitude, config.robot_width, config.wheel_width);
     cmd_eval->setParameters(config.w_dist, config.w_safe, config.T_hor, model, config.delta_T, p);
   }
-  markers.markers.resize(config.n_lin * config.n_ang);
+  markers.markers.reserve(config.n_lin * config.n_ang + 1);
   
   _conf = config;
 }
@@ -208,23 +218,21 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
   vt_orig += ang_vel_inc * boost::math::sign(cmd_vel.angular.z - vt_orig);
   
 //   ROS_INFO("Ang_vel_inc = %f\t Lin_vel_inc = %f", ang_vel_inc, lin_vel_dec);
-
-  double lowest_cost = 1e100;
   
-  geometry_msgs::Twist best_cmd, curr_cmd;
-  best_cmd = cmd_vel;
-  best_cmd.linear.x = 0.0;
-  best_cmd.angular.z = 0.0;
-  
-  curr_cmd = last_command;
   
   if (!cmd_eval) {
     ROS_ERROR("SiarController::loop --> Command Evaluator is not configured\n");
+    return -1.0;
   }
   
-  static visualization_msgs::Marker m;
-  
-  int n_commands = 0;
+  // Initialize search
+  n_commands = 0;
+  n_best = -1;
+  lowest_cost = 1e100;
+  best_cmd = cmd_vel;
+  best_cmd.linear.x = 0.0;
+  best_cmd.angular.z = 0.0;
+  curr_cmd = last_command;
   
   //Linear vel
   for(int l = 0; l <= _conf.n_lin; l++) 
@@ -244,14 +252,7 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
 
     curr_cmd.angular.z = vt_orig;
     
-    double curr_cost = cmd_eval->evualateTrajectory(v_ini, curr_cmd, cmd_vel, last_map, m);
-    
-    copyMarker(markers.markers[n_commands++], m);
-    
-    if (curr_cost < lowest_cost && curr_cost > 0.0) {
-      best_cmd = curr_cmd;
-      lowest_cost = curr_cost;
-    }
+    evaluateAndActualizeBest(cmd_vel, v_ini);
     
     //Angular vel
     for(int v=1; v <= _conf.n_ang; v++)
@@ -261,31 +262,46 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
       if(fabs(curr_cmd.angular.z) > cmd_eval->getCharacteristics().theta_dot_max)
               curr_cmd.angular.z = cmd_eval->getCharacteristics().theta_dot_max;
       
-      curr_cost = cmd_eval->evualateTrajectory(v_ini, curr_cmd, cmd_vel, last_map);
-      
-      if (curr_cost < lowest_cost && curr_cost > 0.0) {
-        best_cmd = curr_cmd;
-      }
+      evaluateAndActualizeBest(cmd_vel, v_ini);
 
       //to the right
       curr_cmd.angular.z = vt_orig - ang_vel_inc * v;
       if(fabs(curr_cmd.angular.z) > cmd_eval->getCharacteristics().theta_dot_max)
               curr_cmd.angular.z = -cmd_eval->getCharacteristics().theta_dot_max;
-      
-      curr_cost = cmd_eval->evualateTrajectory(v_ini, curr_cmd, cmd_vel, last_map);
-      
-      if (curr_cost < lowest_cost && curr_cost > 0.0) {
-        best_cmd = curr_cmd;
-        lowest_cost = curr_cost;
-      }
+      evaluateAndActualizeBest(cmd_vel, v_ini);
     }
   }
   
-  ROS_INFO("End loop: Best command: %f,%f \t Orig command %f, %f",
-    best_cmd.linear.x, best_cmd.angular.z, cmd_vel.linear.x, cmd_vel.angular.z);
+//   ROS_INFO("End loop: Best command: %f,%f \t Orig command %f, %f",
+//     best_cmd.linear.x, best_cmd.angular.z, cmd_vel.linear.x, cmd_vel.angular.z);
+
+  markers.markers.resize(n_commands);
+  footprint_marker_pub.publish(markers);
   cmd_vel = best_cmd;
   return lowest_cost < 1e50;
 }
+
+void SiarController::evaluateAndActualizeBest(geometry_msgs::Twist& cmd_vel, const geometry_msgs::Twist &v_ini)
+{
+  curr_cost = cmd_eval->evualateTrajectory(v_ini, curr_cmd, cmd_vel, last_map, m);
+  best_cmd = curr_cmd;
+  lowest_cost = curr_cost;
+        
+  if (n_best >= 0) {
+    markers.markers[n_best].color.g = 1.0;
+    markers.markers[n_best].color.r = 0.0;
+    markers.markers[n_best].color.b = 0.0;
+    markers.markers[n_best].color.a = 0.7;
+  }
+
+  n_best = n_commands;
+  m.color.b = 1.0;
+  m.color.r = 1.0; // Best marker on purple
+  m.color.g = 0.0;
+  
+  copyMarker(markers.markers[n_commands++], m);
+}
+
 
 void SiarController::copyMarker(visualization_msgs::Marker& dst, const visualization_msgs::Marker& orig) const
 {

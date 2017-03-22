@@ -29,12 +29,15 @@ int main(int argc, char **argv) {
     theta = atof(argv[3]);
   }
   
+  visualization_msgs::Marker m;
+  fp.addPoints(x, y, theta, m, 0, true);
+  fp.addPoints(x+2, y, theta,m, 0, false);
   
-  fp.printFootprint(x, y, theta, marker_pub, 0);
+  marker_pub.publish(m);
   sleep(1);
   ros::spinOnce();
   sleep(2);
-  fp.printFootprintCollision(x, y, theta, marker_pub, 1);
+//   fp.printFootprintCollision(x, y, theta, marker_pub, 1);
   
   ros::spin();
  
