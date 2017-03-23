@@ -262,6 +262,7 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
     footprint_marker_pub.publish(markers);
   }
   cmd_vel = best_cmd;
+  cmd_vel.angular.z *= -1.0; // TODO: necessary?
   return lowest_cost < 1e50;
 }
 
