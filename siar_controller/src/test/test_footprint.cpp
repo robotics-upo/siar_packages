@@ -12,7 +12,7 @@ int main(int argc, char **argv) {
   double cellsize = 0.02;
   // POINTS markers use x and y scale for width/height respectively
   
-  SiarFootprint fp(cellsize);
+  SiarFootprint fp(cellsize, 0.8, 0.56, 0.08, true);
   double x = 0.0;
   double y = 0.0;
   double theta = 0.0;
