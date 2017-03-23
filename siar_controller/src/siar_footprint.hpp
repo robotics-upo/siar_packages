@@ -12,7 +12,7 @@ typedef std::vector<geometry_msgs::Point> FootprintType;
   
 class SiarFootprint {
 public:
-  SiarFootprint(double cellsize = 0.02, double length = 0.8, double width = 0.56, double wheel_width = 0.06);
+  SiarFootprint(double cellsize = 0.02, double length = 0.8, double width = 0.56, double wheel_width = 0.06, bool simplified = false);
   
   ~SiarFootprint();
   
@@ -38,7 +38,7 @@ protected:
   
 };
 
-SiarFootprint::SiarFootprint(double cellsize, double length , double width, double wheel_width):
+SiarFootprint::SiarFootprint(double cellsize, double length , double width, double wheel_width, bool simplified):
 m_length(length),m_width(width), m_wheel_width(wheel_width), m_cellsize(cellsize)
 {
   // Construct original_grid. 1 --> Metadata
@@ -59,7 +59,9 @@ m_length(length),m_width(width), m_wheel_width(wheel_width), m_cellsize(cellsize
       }
       if (j < n_cel_wheel || n_width - j <= n_cel_wheel ) {
         p.y = y;
-        footprint_p.push_back(p);
+        if (!simplified || i%2 == j%2) {
+          footprint_p.push_back(p); // Alternate for make the collision detection simpler
+        }
       }
     }
   }
