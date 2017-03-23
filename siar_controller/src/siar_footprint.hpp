@@ -118,6 +118,7 @@ void SiarFootprint::addPoints(double x, double y, double th, visualization_msgs:
   // POINTS markers use x and y scale for width/height respectively
     m.scale.x = m_cellsize;
     m.scale.y = m_cellsize;
+    m.scale.z = 0.1;
     // Points are green
     m.color.g = 1.0;
     m.color.a = 1.0;

@@ -146,8 +146,11 @@ double CommandEvaluator::evualateTrajectory(const geometry_msgs::Twist& v_ini, c
     x = x + lin_dist*cos(th); // Euler 1
     y = y + lin_dist*sin(th); 
     
+    // Represent downsampled
+    if (i % 5 == 0) 
+      footprint->addPoints(x, y, th, m, 0, i == 0);
+    
     // Actualize the cost
-    footprint->addPoints(x, y, th, m, 0, i == 0);
     cont_footprint += applyFootprint(x, y, th, alt_map, collision);
   }
   

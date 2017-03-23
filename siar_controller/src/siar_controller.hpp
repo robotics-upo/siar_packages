@@ -62,10 +62,12 @@ protected:
   
   
   // Optimization search
+  float ang_vel_inc;
+  float lin_vel_dec;
   double lowest_cost, curr_cost;
   geometry_msgs::Twist best_cmd, curr_cmd;
   int n_commands, n_best;
-  void evaluateAndActualizeBest(geometry_msgs::Twist& cmd_vel, const geometry_msgs::Twist &v_ini);
+  void evaluateAndActualizeBest(const geometry_msgs::Twist& cmd_vel, const geometry_msgs::Twist &v_ini);
 
   // Callbacks  
   void parametersCallback(SiarControllerConfig &config, uint32_t level);
@@ -74,6 +76,10 @@ protected:
   void odomCallback(const nav_msgs::Odometry &msg);
   void modeCallback(const std_msgs::Int8 &msg);
   
+  // Get the test velocity set 
+  std::vector <geometry_msgs::Twist> getAccelTestSet(double v_x);
+  std::vector <geometry_msgs::Twist> getDiscreteTestSet(double v_command_x, bool force_recompute = false);
+  std::vector <geometry_msgs::Twist> discrete_test_set_forward, discrete_test_set_backward;
   
   void loop();
 };
@@ -125,12 +131,15 @@ reconfigure_server_(),config_init_(false),occ_received(false), cmd_eval(NULL)
   }
   last_command.linear.x = last_command.linear.y = last_command.linear.z = 0.0;
   last_command.angular.x = last_command.angular.y = last_command.angular.z = 0.0;
+  
+  // Initialize odometry measures: TODO
+  
 }
 
 
 void SiarController::parametersCallback(SiarControllerConfig& config, uint32_t level)
 {
-  
+  _conf = config;
   if (!config_init_) {
     // Declare the evaluator
     config_init_ = true;
@@ -139,6 +148,7 @@ void SiarController::parametersCallback(SiarControllerConfig& config, uint32_t l
     model.a_max_theta = config.a_theta_max;
     model.v_max = config.v_max;
     model.theta_dot_max = config.alpha_max;
+//     ROS_INFO("R_L = /*%*/f, R_W = %f, W_W = %f", config.robot_longitude, config.robot_width, config.wheel_width);
     SiarFootprint *p = new SiarFootprint(0.025, config.robot_longitude, config.robot_width, config.wheel_width);
     cmd_eval = new CommandEvaluator(config.w_dist, config.w_safe, config.T_hor, model, config.delta_T, p); // TODO: insert the footprint related data (now only default values)
   } else {
@@ -150,9 +160,12 @@ void SiarController::parametersCallback(SiarControllerConfig& config, uint32_t l
     SiarFootprint *p = new SiarFootprint(0.025, config.robot_longitude, config.robot_width, config.wheel_width);
     cmd_eval->setParameters(config.w_dist, config.w_safe, config.T_hor, model, config.delta_T, p);
   }
-  markers.markers.reserve(config.n_lin * config.n_ang + 1);
+  markers.markers.reserve(_conf.n_lin * (_conf.n_ang + 1) * 2 + 20);
+  ang_vel_inc = _conf.a_max * _conf.delta_T / (float)_conf.n_ang;
+  lin_vel_dec = _conf.a_theta_max * _conf.delta_T/ (float)_conf.n_lin;
   
-  _conf = config;
+  getDiscreteTestSet(0.6, true);
+  
 }
 
 
@@ -194,7 +207,8 @@ void SiarController::loop() {
     cmd_vel_msg.angular.z = 0.0;
   
   if (operation_mode != 0) {
-    if (occ_received && !computeCmdVel(cmd_vel_msg, last_velocity)) {
+//     if (occ_received && !computeCmdVel(cmd_vel_msg, last_velocity)) {
+    if (occ_received && !computeCmdVel(cmd_vel_msg, last_command)) {
       ROS_ERROR("Could not get a feasible velocity --> Stopping the robot");
       // Stop the robot 
       cmd_vel_msg.angular.z = 0.0;
@@ -208,21 +222,15 @@ void SiarController::loop() {
 
 bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry_msgs::Twist &v_ini)
 {
-  float vt_orig = last_command.angular.z; // TODO: discard rotations?
-  float vx_orig = last_command.linear.x;
-  
-  float ang_vel_inc = _conf.a_max * _conf.delta_T / (float)_conf.n_ang;
-  float lin_vel_dec = _conf.a_theta_max * _conf.delta_T/ (float)_conf.n_lin;
-  
-  vx_orig += lin_vel_dec * boost::math::sign(cmd_vel.linear.x - vx_orig);
-  vt_orig += ang_vel_inc * boost::math::sign(cmd_vel.angular.z - vt_orig);
-  
-//   ROS_INFO("Ang_vel_inc = %f\t Lin_vel_inc = %f", ang_vel_inc, lin_vel_dec);
-  
-  
   if (!cmd_eval) {
     ROS_ERROR("SiarController::loop --> Command Evaluator is not configured\n");
     return -1.0;
+  }
+  
+  if (fabs(cmd_vel.linear.x) < lin_vel_dec && fabs(last_command.linear.x) < lin_vel_dec*2.0) {
+    cmd_vel.angular.z = 0.0;
+    cmd_vel.linear.x = 0.0;
+    return true;
   }
   
   // Initialize search
@@ -231,86 +239,169 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
   lowest_cost = 1e100;
   best_cmd = cmd_vel;
   best_cmd.linear.x = 0.0;
-  best_cmd.angular.z = 0.0;
-  curr_cmd = last_command;
+  
+  // Get test set (different options available)
+  std::vector<geometry_msgs::Twist> test_set;
+//   test_set = getAccelTestSet(cmd_vel.linear.x);
+  test_set = getDiscreteTestSet(cmd_vel.linear.x);
+  markers.markers.resize(test_set.size());
+  
+  ROS_INFO (" Checking %d velocities. ", (int) test_set.size());
   
   //Linear vel
+  for (unsigned int i = 0; i < test_set.size(); i++) 
+  { 
+    curr_cmd = test_set.at(i);
+    evaluateAndActualizeBest(cmd_vel, v_ini);
+  }
+  
+  ROS_INFO("End loop: Best command: %f,%f \t Orig command %f, %f",
+    best_cmd.linear.x, best_cmd.angular.z, cmd_vel.linear.x, cmd_vel.angular.z);
+
+  if (test_set.size() > 0) {
+    footprint_marker_pub.publish(markers);
+  }
+  cmd_vel = best_cmd;
+  return lowest_cost < 1e50;
+}
+
+std::vector< geometry_msgs::Twist > SiarController::getAccelTestSet(double x)
+{
+  std::vector<geometry_msgs::Twist> ret;
+  
+  curr_cmd = last_command;
+  
+  float vt_orig = last_command.angular.z; // TODO: discard rotations?
+  float vx_orig = last_command.linear.x;
+  
+  vx_orig += lin_vel_dec * boost::math::sign(x - vx_orig);
+  if (vx_orig > _conf.v_max) 
+    vx_orig = _conf.v_max;
+  
+  
   for(int l = 0; l <= _conf.n_lin; l++) 
   { 
-    
-    if (vx_orig > 0.0)
-      curr_cmd.linear.x = vx_orig - l * lin_vel_dec;
-    if (vx_orig < -0.0)
-      curr_cmd.linear.x = vx_orig + l * lin_vel_dec;
-    
+    curr_cmd.angular.z = vt_orig;
+    curr_cmd.linear.x = vx_orig - l * lin_vel_dec * boost::math::sign(vx_orig);
     if(fabs(curr_cmd.linear.x) < lin_vel_dec) {
-      lowest_cost = 0.0;
-      if (l == 0)
-        best_cmd.angular.z = 0.0;
+      if (l == 0) {
+        curr_cmd.angular.z = 0.0;
+      }
+      ret.push_back(curr_cmd);
       break;
     }
 
-    curr_cmd.angular.z = vt_orig;
-    
-    evaluateAndActualizeBest(cmd_vel, v_ini);
+    ret.push_back(curr_cmd);
     
     //Angular vel
     for(int v=1; v <= _conf.n_ang; v++)
     {
       //To the left
       curr_cmd.angular.z = vt_orig + ang_vel_inc * v;
-      if(fabs(curr_cmd.angular.z) > cmd_eval->getCharacteristics().theta_dot_max)
-              curr_cmd.angular.z = cmd_eval->getCharacteristics().theta_dot_max;
-      
-      evaluateAndActualizeBest(cmd_vel, v_ini);
-
+      ret.push_back(curr_cmd);
       //to the right
       curr_cmd.angular.z = vt_orig - ang_vel_inc * v;
-      if(fabs(curr_cmd.angular.z) > cmd_eval->getCharacteristics().theta_dot_max)
-              curr_cmd.angular.z = -cmd_eval->getCharacteristics().theta_dot_max;
-      evaluateAndActualizeBest(cmd_vel, v_ini);
+      ret.push_back(curr_cmd);
     }
   }
   
-//   ROS_INFO("End loop: Best command: %f,%f \t Orig command %f, %f",
-//     best_cmd.linear.x, best_cmd.angular.z, cmd_vel.linear.x, cmd_vel.angular.z);
-
-  markers.markers.resize(n_commands);
-  footprint_marker_pub.publish(markers);
-  cmd_vel = best_cmd;
-  return lowest_cost < 1e50;
+  return ret;
 }
 
-void SiarController::evaluateAndActualizeBest(geometry_msgs::Twist& cmd_vel, const geometry_msgs::Twist &v_ini)
+std::vector< geometry_msgs::Twist > SiarController::getDiscreteTestSet(double v_command_x, bool force_recompute)
+{
+  ROS_INFO("Get Discrete Test set: n_lin = %d n_ang = %d" , _conf.n_lin, _conf.n_ang);
+  if (discrete_test_set_forward.size() == 0 || force_recompute) {
+    double ang_vel_inc = _conf.alpha_max / (double)_conf.n_ang;
+    discrete_test_set_forward.clear();
+    discrete_test_set_backward.clear();
+    curr_cmd.angular.x = curr_cmd.angular.y = curr_cmd.angular.z = 0.0;
+    curr_cmd.linear.x = curr_cmd.linear.y = curr_cmd.linear.z = 0.0;
+    for (int i = 1; i <= _conf.n_lin; i++) {
+      curr_cmd.angular.z = 0.0;
+      curr_cmd.linear.x = (double)i * _conf.v_max / (double)_conf.n_lin;
+      discrete_test_set_forward.push_back(curr_cmd);
+      ROS_INFO("Discrete test set. Command %d. vx = %f. v_theta = %f", (int)discrete_test_set_forward.size(), curr_cmd.linear.x, curr_cmd.angular.z);
+      curr_cmd.linear.x *= -1.0;
+      discrete_test_set_backward.push_back(curr_cmd);
+      for (int j = 1; j <= _conf.n_ang; j++) {
+        // To the left
+        curr_cmd.angular.z = ang_vel_inc * j;
+        discrete_test_set_backward.push_back(curr_cmd);
+        curr_cmd.linear.x *= -1.0;
+        discrete_test_set_forward.push_back(curr_cmd);
+        ROS_INFO("Discrete test set. Command %d. vx = %f. v_theta = %f", (int)discrete_test_set_forward.size(), curr_cmd.linear.x, curr_cmd.angular.z);
+        //to the right
+        curr_cmd.angular.z = - ang_vel_inc * j;
+        discrete_test_set_forward.push_back(curr_cmd);
+        ROS_INFO("Discrete test set. Command %d. vx = %f. v_theta = %f", (int)discrete_test_set_forward.size(), curr_cmd.linear.x, curr_cmd.angular.z);
+        curr_cmd.linear.x *= -1.0;
+        discrete_test_set_backward.push_back(curr_cmd);
+      }
+    }
+  }
+  if (v_command_x > 0.05) 
+    return discrete_test_set_forward;
+  else if (v_command_x < -0.05)
+    return discrete_test_set_backward;
+  
+  std::vector< geometry_msgs::Twist > ret;
+  return ret;
+}
+
+
+
+void SiarController::evaluateAndActualizeBest(const geometry_msgs::Twist& cmd_vel, const geometry_msgs::Twist &v_ini)
 {
   curr_cost = cmd_eval->evualateTrajectory(v_ini, curr_cmd, cmd_vel, last_map, m);
-  best_cmd = curr_cmd;
-  lowest_cost = curr_cost;
+  if (curr_cost < lowest_cost && curr_cost >= 0.0) {
+    best_cmd = curr_cmd;
+    lowest_cost = curr_cost;
         
-  if (n_best >= 0) {
-    markers.markers[n_best].color.g = 1.0;
-    markers.markers[n_best].color.r = 0.0;
-    markers.markers[n_best].color.b = 0.0;
-    markers.markers[n_best].color.a = 0.7;
-  }
+    if (n_best >= 0) {
+      markers.markers[n_best].color.g = 1.0;
+      markers.markers[n_best].color.r = 0.0;
+      markers.markers[n_best].color.b = 0.0;
+      markers.markers[n_best].color.a = 0.7;
+    }
 
-  n_best = n_commands;
-  m.color.b = 1.0;
-  m.color.r = 1.0; // Best marker on purple
-  m.color.g = 0.0;
   
-  copyMarker(markers.markers[n_commands++], m);
+    n_best = n_commands;
+    m.color.b = 1.0;
+    m.color.r = 1.0; // Best marker on purple
+    m.color.g = 0.0;
+    m.color.a = 1.0;
+  } else if (curr_cost > 0.0) {
+    m.color.b = 0.0;
+    m.color.r = 0.0; // Best marker on green
+    m.color.g = 1.0;
+    m.color.a = 0.7;
+  } else {
+    m.color.b = 0.0; // Collision
+    m.color.r = 1.0; // Best marker on red
+    m.color.g = 0.0;
+    m.color.a = 0.7;
+  }
+  
+  copyMarker(markers.markers[n_commands], m);
+  markers.markers[n_commands].id = n_commands;
+  
+  n_commands++;
+//   ROS_INFO("N_commands = %d", n_commands);
 }
 
 
 void SiarController::copyMarker(visualization_msgs::Marker& dst, const visualization_msgs::Marker& orig) const
 {
+  dst.points.resize(orig.points.size());
   dst.points.assign(orig.points.begin(), orig.points.end());
   dst.color = orig.color;
   dst.scale = orig.scale;
   dst.action = orig.action;
   dst.header = orig.header;
-  dst.lifetime = orig.lifetime; // TODO: check the fields to copy
+  
+  dst.type = orig.type;
+  dst.lifetime = ros::Duration(_conf.T); // TODO: check the fields to copy
 }
 
 
