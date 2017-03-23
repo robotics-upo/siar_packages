@@ -15,6 +15,8 @@
   <arg name="perception" default="true"/>
   <arg name="bag" default="true"/>
   <arg name="publish_tf" default="false"/>
+  <arg name="obstacle_height" default="0.05"/>
+  <arg name="resolution" default ="0.025"/>
   
   <!-- Bring up the raposa node and the imu if desired -->
   <node name="siar_node" pkg="siar_driver" type="siar_node" output="screen">
@@ -45,7 +47,10 @@
       <remap from="/cmd_vel_out" to="/cmd_vel"/>
       <remap from="/altitude_map" to="/costmap_node/costmap"/>
     </node>
-  <include file="$(find siar_costmap)/launch/siar_costmap.launch"/>
+  <include file="$(find siar_costmap)/launch/siar_costmap.launch">
+    <arg name="obstacle_height" value="$(arg obstacle_height)"/>
+    <arg name="resolution" value="$(arg resolution)"/>
+  </include>
   
   <!-- Comms -->
   <include file="$(find siar_driver)/launch/comms.launch" if="$(arg comms)"/>

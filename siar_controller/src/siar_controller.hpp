@@ -242,8 +242,12 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
   
   // Get test set (different options available)
   std::vector<geometry_msgs::Twist> test_set;
-//   test_set = getAccelTestSet(cmd_vel.linear.x);
-  test_set = getDiscreteTestSet(cmd_vel.linear.x);
+  if (operation_mode == 1) {
+    test_set = getDiscreteTestSet(cmd_vel.linear.x);
+  } else {
+    test_set = getAccelTestSet(cmd_vel.linear.x);
+  }
+  
   markers.markers.resize(test_set.size());
   
   ROS_INFO (" Checking %d velocities. ", (int) test_set.size());
