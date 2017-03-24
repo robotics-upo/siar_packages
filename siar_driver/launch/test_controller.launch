@@ -4,7 +4,7 @@
   <arg name="joystick" default="true"/>
   <arg name="perception" default="true"/>
   <arg name="obstacle_height" default="0.05"/>
-  <arg name="resolution" default ="0.025"/>
+  <arg name="resolution" default ="0.01"/>
   
   <node name="siar_joy" pkg="siar_driver" type="siar_teleop_joy" output="screen" if="$(arg joystick)">
     <remap from="/cmd_vel" to="/user_cmd_vel"/>

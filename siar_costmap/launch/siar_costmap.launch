@@ -28,7 +28,11 @@
     <param name="hz" value = "10.0"/>                                                   # Costmap update rate
     <param name="obstacle_height" value = "$(arg obstacle_height)"/>                               # Absolute value of obstacle height (or hole depth)
     <param name="resolution" value="$(arg resolution)"/>
-    <param name="exp_decay" value = "7.0"/>					    # Obstacle exponential decay (it is counted in cells)
+    <param name="exp_decay" value = "20.0"/>					    # Obstacle exponential decay (it is counted in cells)
+    <param name="width" value="1.5"/>
+    <param name="height" value="3.0"/>
+    <param name="tilt_compensate" value="false"/>
+    <remap from="imu" to="/arduimu_v3/imu"/>
   </node>
 
 </launch>

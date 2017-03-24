@@ -84,7 +84,7 @@ public:
 			m_height = 4.0;
 		if(!lnh.getParam("base_frame_id", m_baseFrameId))
 			m_baseFrameId = "base_link";
-		if(!lnh.getParam("tilt_compesante", m_tiltCompesante))
+		if(!lnh.getParam("tilt_compensate", m_tiltCompesante))
 			m_tiltCompesante = false;
 
 		// Setup subscription to sensor data
@@ -140,7 +140,7 @@ public:
 		
 		// Initialize all cells in the grid to unkown value
 		for(int i=0; i<m_costmap.data.size(); i++)
-			m_costmap.data[i] = 0;//-128;
+			m_costmap.data[i] = -128;
 		
 		// Process the latest cloud received in each topic
 		std::vector<SiarCostmap::PointPix> obstacles;
@@ -232,14 +232,14 @@ public:
 			{
 				for(int j=0; j<m_costmap.info.width; j++, k++)
 				{
-					if(/*m_costmap.data[k] >= 0 && */m_costmap.data[k] < 127)
+					if(m_costmap.data[k] >= 0 && m_costmap.data[k] < 127)
 					{
 						float d = sqrt(distanceClosestObstacle(i, j, obstacles));
 						m_costmap.data[k] = (int)(127.0*exp(-C*d));
 						//std::cout << "Closest dist to (: " << i << ", " << j << "): "  << d << std::endl;
 					}
-					//else if(m_costmap.data[k] == -128)
-					//	m_costmap.data[k] = 0;
+					else if(m_costmap.data[k] == -128)
+						m_costmap.data[k] = 0;
 				}
 			}
 		}
