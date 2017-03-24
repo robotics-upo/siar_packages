@@ -32,7 +32,7 @@ public:
 protected:
   // Camera info subscribers and initialization
   ros::Subscriber costmap_sub, cmd_vel_sub, odom_sub, mode_sub;
-  ros::Publisher cmd_vel_pub, footprint_marker_pub;
+  ros::Publisher cmd_vel_pub, footprint_marker_pub, trajectory_marker_pub;
   
   // Operation mode
   int operation_mode;
@@ -50,7 +50,7 @@ protected:
   // Representation stuff
   visualization_msgs::MarkerArray markers;
   void copyMarker(visualization_msgs::Marker &dst , const visualization_msgs::Marker &orig) const;
-  visualization_msgs::Marker m;
+  visualization_msgs::Marker m, best;
   
   // Occ. stuff
   nav_msgs::OccupancyGrid last_map; // Saves the last map to make the calculations
@@ -120,7 +120,8 @@ reconfigure_server_(),config_init_(false),occ_received(false), cmd_eval(NULL)
   
   // Now the publishers
   cmd_vel_pub = nh.advertise<geometry_msgs::Twist>(nh.resolveName("cmd_vel_out"), 2);
-  footprint_marker_pub = nh.advertise<visualization_msgs::MarkerArray>("/trajectory_marker", 10);
+  trajectory_marker_pub = nh.advertise<visualization_msgs::MarkerArray>("/trajectory_marker", 10);
+  footprint_marker_pub = nh.advertise<visualization_msgs::Marker>("/best_marker", 10);
   
   ROS_INFO("Update Rate: %f", _conf.T);
   ros::Rate r(1.0/_conf.T);
@@ -263,7 +264,8 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
     best_cmd.linear.x, best_cmd.angular.z, cmd_vel.linear.x, cmd_vel.angular.z);
 
   if (test_set.size() > 0) {
-    footprint_marker_pub.publish(markers);
+    trajectory_marker_pub.publish(markers);
+    footprint_marker_pub.publish(best);
   }
   cmd_vel = best_cmd;
   cmd_vel.angular.z *= -1.0; // TODO: necessary?
@@ -280,8 +282,8 @@ std::vector< geometry_msgs::Twist > SiarController::getAccelTestSet(double x)
   float vx_orig = last_command.linear.x;
   
   vx_orig += lin_vel_dec * boost::math::sign(x - vx_orig);
-  if (vx_orig > _conf.v_max) 
-    vx_orig = _conf.v_max;
+  if (fabs(vx_orig) > _conf.v_max) 
+    vx_orig = _conf.v_max * boost::math::sign(vx_orig);
   
   
   for(int l = 0; l <= _conf.n_lin; l++) 
@@ -362,6 +364,8 @@ void SiarController::evaluateAndActualizeBest(const geometry_msgs::Twist& cmd_ve
   if (curr_cost < lowest_cost && curr_cost >= 0.0) {
     best_cmd = curr_cmd;
     lowest_cost = curr_cost;
+    
+    
         
     if (n_best >= 0) {
       markers.markers[n_best].color.g = 1.0;
@@ -388,7 +392,10 @@ void SiarController::evaluateAndActualizeBest(const geometry_msgs::Twist& cmd_ve
     m.color.a = 0.7;
   }
   
+  
+  
   copyMarker(markers.markers[n_commands], m);
+  copyMarker(best, m);
   markers.markers[n_commands].id = n_commands;
   
   n_commands++;
@@ -406,7 +413,7 @@ void SiarController::copyMarker(visualization_msgs::Marker& dst, const visualiza
   dst.header = orig.header;
   
   dst.type = orig.type;
-  dst.lifetime = ros::Duration(_conf.T); // TODO: check the fields to copy
+  dst.lifetime = ros::Duration(_conf.T*3.0); // TODO: check the fields to copy
 }
 
 
