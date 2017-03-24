@@ -28,6 +28,7 @@
     <param name="hz" value = "10.0"/>                                                   # Costmap update rate
     <param name="obstacle_height" value = "$(arg obstacle_height)"/>                               # Absolute value of obstacle height (or hole depth)
     <param name="resolution" value="$(arg resolution)"/>
+    <param name="exp_decay" value = "7.0"/>					    # Obstacle exponential decay (it is counted in cells)
   </node>
 
 </launch>

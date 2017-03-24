@@ -47,6 +47,7 @@
     <remap from="cloud1" to="/back_down/point_cloud"/>			# Input cloud 1
     <param name="hz" value = "10.0"/>							# Costmap update rate
     <param name="obstacle_height" value = "0.1"/>				# Absolute value of obstacle height (or hole depth)
+    <param name="exp_decay" value = "7.0"/>					    # Obstacle exponential decay (it is counted in cells)
   </node>
 
 </launch>
