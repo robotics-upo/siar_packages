@@ -16,8 +16,52 @@ public:
 	// Point 2D
 	struct Point2D
 	{
+		Point2D(void)
+		{
+		}
+		
+		Point2D(float _x, float _y)
+		{
+			x = _x;
+			y = _y;
+		}
+		
+		Point2D(const Point2D &d)
+		{
+			x = d.x;
+			y = d.y;
+		}
+		
 		float x;
 		float y;
+	};
+	
+	// Point pixel
+	struct PointPix
+	{
+		PointPix(void)
+		{
+		}
+		
+		PointPix(int _x, int _y)
+		{
+			x = _x;
+			y = _y;
+		}
+		
+		PointPix(const PointPix &d)
+		{
+			x = d.x;
+			y = d.y;
+		}
+		
+		inline float sqDist(int &_x, int &_y)
+		{
+			return (x-_x)*(x-_x) + (y-_y)*(y-_y);
+		}
+		
+		int x;
+		int y;
 	};
 
 	// Class constructor
@@ -94,6 +138,7 @@ public:
 			m_costmap.data[i] = 0;//-128;
 		
 		// Process the latest cloud received in each topic
+		std::vector<SiarCostmap::PointPix> obstacles;
 		for(int i=0; i<6; i++)
 		{
 			// Check if we have new data
@@ -120,14 +165,42 @@ public:
 				float x = *iterX, y = *iterY, z = *iterZ;
 				if(x > m_minX && x < m_maxX && y > m_minY && y < m_maxY)
 				{
-					int index = point2index(x,y);
+					int index;
+					point2index(x, y, index);
 					if(m_costmap.data[index] < 127)
 					{
 						if(fabs(z) > m_obstacleHeight)
+						{
+							SiarCostmap::PointPix p;
 							m_costmap.data[index] = 127;
+							index2pix(index, p);
+							obstacles.push_back(p);
+						}
 						else
-							m_costmap.data[index] = (int8_t)(z*100.0);
+							m_costmap.data[index] = 0;
 					}
+				}
+			}
+		}
+		
+		// Apply exponential decay over obstacles
+		if(m_expDecay > 0.0)
+		{
+			int k = 0;
+			float C = log(127.0/0.1)/m_expDecay;
+			//std::cout << "Decay: " << m_expDecay << ", C: " << C << ", NObs: " << obstacles.size() << std::endl;
+			for(int i=0; i<m_costmap.info.height; i++)
+			{
+				for(int j=0; j<m_costmap.info.width; j++, k++)
+				{
+					if(/*m_costmap.data[k] >= 0 && */m_costmap.data[k] < 127)
+					{
+						float d = sqrt(distanceClosestObstacle(i, j, obstacles));
+						m_costmap.data[k] = (int)(127.0*exp(-C*d));
+						//std::cout << "Closest dist to (: " << i << ", " << j << "): "  << d << std::endl;
+					}
+					//else if(m_costmap.data[k] == -128)
+					//	m_costmap.data[k] = 0;
 				}
 			}
 		}
@@ -151,21 +224,29 @@ public:
 	
 	inline float getCost(float x, float y)
 	{
+		int index;
 		if(x > m_minX && x < m_maxX && y > m_minY && y < m_maxY)
-			return m_costmap.data[point2index(x,y)];
+		{
+			point2index(x, y, index);
+			return m_costmap.data[index];
+		}
 		else
 			return -128;
 	}
 	
 	inline std::vector<float> getCost(std::vector<SiarCostmap::Point2D> &points)
 	{
+		int index;
 		std::vector<float> cost(points.size(), -128);
 		for(int i=0; i<points.size(); i++)
 		{
 			float x = points[i].x;
 			float y = points[i].y;
 			if(x > m_minX && x < m_maxX && y > m_minY && y < m_maxY)
-				cost[i] = m_costmap.data[point2index(x, y)];
+			{
+				point2index(x, y, index);
+				cost[i] = m_costmap.data[index];
+			}
 		}
 		return cost;
 	}
@@ -234,10 +315,33 @@ private:
 		}
 	}
 	
-	inline int point2index(float &x, float &y)
+	inline void point2index(float &x, float &y, int &index)
 	{
-		//return (m_costmap.info.height - (int)((x-m_minX)*m_divRes))*m_costmap.info.width + m_costmap.info.width - (int)((y-m_minY)*m_divRes);
-		return ((int)((x-m_minX)*m_divRes))*m_costmap.info.width + m_costmap.info.width - (int)((y-m_minY)*m_divRes);
+		index = ((int)((x-m_minX)*m_divRes))*m_costmap.info.width + m_costmap.info.width - (int)((y-m_minY)*m_divRes);
+	}
+	
+	inline void point2pix(float &x, float &y, SiarCostmap::PointPix &pix)
+	{
+		pix.x = (int)((x-m_minX)*m_divRes);
+		pix.y = m_costmap.info.width - (int)((y-m_minY)*m_divRes);
+	}
+	
+	inline void index2pix(int &index, SiarCostmap::PointPix &pix)
+	{
+		pix.x = index/m_costmap.info.width;
+		pix.y = index%m_costmap.info.width;
+	}
+	
+	float distanceClosestObstacle(int &x, int &y, std::vector<SiarCostmap::PointPix> &obs)
+	{
+		float d = 1000000.0;
+		for(int i=0; i<obs.size(); i++)
+		{
+			float k = obs[i].sqDist(x,y);
+			if(k < d)
+				d = k;
+		}
+		return d;
 	}
 	
 	// Params
