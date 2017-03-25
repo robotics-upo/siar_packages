@@ -8,6 +8,7 @@
 #include <sensor_msgs/point_cloud2_iterator.h>
 #include <pcl_ros/transforms.h>
 #include <nav_msgs/OccupancyGrid.h>
+#include <ANN/ANN.h>				
 
 class SiarCostmap
 {
@@ -54,11 +55,6 @@ public:
 		{
 			x = d.x;
 			y = d.y;
-		}
-		
-		inline float sqDist(int &_x, int &_y)
-		{
-			return (x-_x)*(x-_x) + (y-_y)*(y-_y);
 		}
 		
 		int x;
@@ -223,25 +219,42 @@ public:
 		}
 		
 		// Apply exponential decay over obstacles
-		if(m_expDecay > 0.0)
-		{
+		if(m_expDecay > 0.0 && obstacles.size() > 0)
+		{			
+			// Build the object positions array
+			ANNpointArray obsPts = annAllocPts(obstacles.size(), 2);
+			for(int i=0; i<obstacles.size(); i++)
+			{
+				obsPts[i][0] = obstacles[i].x;
+				obsPts[i][1] = obstacles[i].y;
+			}
+			
+			// Build the Kdtree structure for effitient search
+			ANNkd_tree* kdTree = new ANNkd_tree(obsPts, obstacles.size(), 2);
+
+			// Evaluate all cell to obstacle distances and compute cost
 			int k = 0;
+			ANNpoint queryPt = annAllocPt(2);
+			ANNidxArray nnIdx = new ANNidx[1];						
+			ANNdistArray dists = new ANNdist[1];
 			float C = log(127.0/0.1)/m_expDecay;
-			//std::cout << "Decay: " << m_expDecay << ", C: " << C << ", NObs: " << obstacles.size() << std::endl;
 			for(int i=0; i<m_costmap.info.height; i++)
 			{
 				for(int j=0; j<m_costmap.info.width; j++, k++)
 				{
 					if(m_costmap.data[k] >= 0 && m_costmap.data[k] < 127)
 					{
-						float d = sqrt(distanceClosestObstacle(i, j, obstacles));
-						m_costmap.data[k] = (int)(127.0*exp(-C*d));
-						//std::cout << "Closest dist to (: " << i << ", " << j << "): "  << d << std::endl;
+						// Compute distance to closest obstacle
+						queryPt[0] = i;
+						queryPt[1] = j;
+						kdTree->annkSearch(queryPt, 1, nnIdx, dists);
+						// Evaluate the cost	
+						m_costmap.data[k] = (int)(127.0*exp(-C*sqrt(dists[0])));
 					}
 					else if(m_costmap.data[k] == -128)
 						m_costmap.data[k] = 0;
 				}
-			}
+			}			
 		}
 		
 		// Update costmap info
@@ -250,8 +263,8 @@ public:
 		m_costmap.info.map_load_time = t;
 		
 		// Prepare next sensor reading
-		for(int i=0; i<6; i++)
-			m_cloudNew[i] = false;
+		//for(int i=0; i<6; i++)
+		//	m_cloudNew[i] = false;
 			
 		return m_costmap;
 	}
@@ -375,18 +388,6 @@ private:
 	{
 		pix.x = index/m_costmap.info.width;
 		pix.y = index%m_costmap.info.width;
-	}
-	
-	float distanceClosestObstacle(int &x, int &y, std::vector<SiarCostmap::PointPix> &obs)
-	{
-		float d = 1000000.0;
-		for(int i=0; i<obs.size(); i++)
-		{
-			float k = obs[i].sqDist(x,y);
-			if(k < d)
-				d = k;
-		}
-		return d;
 	}
 	
 	// Params

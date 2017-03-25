@@ -12,9 +12,12 @@ find_package(catkin REQUIRED COMPONENTS
   tf
 )
 
-## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
-
+find_library(ANN_LIB NAMES ann)
+IF(${ANN_LIB} STREQUAL "ANN_LIB-NOTFOUND")
+  message(FATAL_ERROR "ANN library not found!\nTry 'sudo apt-get install libann-dev'\n")
+ELSE()
+  message(STATUS "ANN = ${ANN_LIB}")
+ENDIF()
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -103,9 +106,8 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
    INCLUDE_DIRS include
-#  LIBRARIES siar_costmap
+   LIBRARIES ann
    CATKIN_DEPENDS nav_msgs ros_pcl roscpp sensor_msgs tf
-#  DEPENDS system_lib
 )
 
 ###########
@@ -134,6 +136,7 @@ include_directories(
 add_executable(costmap_node src/costmap_node.cpp)
 target_link_libraries(costmap_node
   ${catkin_LIBRARIES}
+  ann
 )
 
 
