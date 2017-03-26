@@ -19,6 +19,9 @@
 
 #include "command_evaluator.hpp"
 
+#include <stdlib.h>
+#include <ctime>
+
 namespace siar_controller {
 
 class SiarController {
@@ -60,6 +63,8 @@ protected:
   geometry_msgs::Twist user_command, last_velocity;
   CommandEvaluator *cmd_eval;
   
+  // Include ways to escape the local minima
+  double t_unfeasible,ang_scape_inc, max_t_unfeasible;
   
   // Optimization search
   float ang_vel_inc;
@@ -90,7 +95,7 @@ SiarController::~SiarController()
 }
 
 SiarController::SiarController(ros::NodeHandle& nh, ros::NodeHandle& pn):operation_mode(0),
-reconfigure_server_(),config_init_(false),occ_received(false), cmd_eval(NULL)
+reconfigure_server_(),config_init_(false),occ_received(false), cmd_eval(NULL), t_unfeasible(0), ang_scape_inc(0.1), max_t_unfeasible(0.8)
 {
   // Dynamic reconfigure initialization
   reconfigure_server_.reset(new ReconfigureServer(pn));
@@ -122,7 +127,7 @@ reconfigure_server_(),config_init_(false),occ_received(false), cmd_eval(NULL)
   cmd_vel_pub = nh.advertise<geometry_msgs::Twist>(nh.resolveName("cmd_vel_out"), 2);
   footprint_marker_pub = nh.advertise<visualization_msgs::MarkerArray>("/trajectory_marker", 10);
   
-  ROS_INFO("Update Rate: %f", _conf.T);
+//   ROS_INFO("Update Rate: %f", _conf.T);
   ros::Rate r(1.0/_conf.T);
   while (ros::ok()) {
     ros::spinOnce();
@@ -132,8 +137,8 @@ reconfigure_server_(),config_init_(false),occ_received(false), cmd_eval(NULL)
   last_command.linear.x = last_command.linear.y = last_command.linear.z = 0.0;
   last_command.angular.x = last_command.angular.y = last_command.angular.z = 0.0;
   
-  // Initialize odometry measures: TODO
-  
+  // Initialize random sequence
+  srand((unsigned)std::time(NULL));
 }
 
 
@@ -165,10 +170,7 @@ void SiarController::parametersCallback(SiarControllerConfig& config, uint32_t l
   lin_vel_dec = _conf.a_theta_max * _conf.delta_T/ (float)_conf.n_lin;
   
   getDiscreteTestSet(0.6, true);
-  
 }
-
-
 
 void SiarController::cmdvelCallback(const geometry_msgs::Twist& msg)
 {
@@ -208,14 +210,38 @@ void SiarController::loop() {
   
   if (operation_mode != 0) {
 //     if (occ_received && !computeCmdVel(cmd_vel_msg, last_velocity)) {
-    if (occ_received && !computeCmdVel(cmd_vel_msg, last_command)) {
-      ROS_ERROR("Could not get a feasible velocity --> Stopping the robot");
-      // Stop the robot 
-      cmd_vel_msg.angular.z = 0.0;
-      cmd_vel_msg.linear.x = 0.0;
-    } else if (!occ_received) 
+    if (!occ_received) {
       ROS_INFO("SiarController --> Warning: no altitude map");
+    } else if (!computeCmdVel(cmd_vel_msg, last_command)) {
+      if (fabs(user_command.linear.x) >= lin_vel_dec) {
+        // The USER wants to go
+        t_unfeasible+=_conf.T;
+        
+        
+        if (t_unfeasible > max_t_unfeasible) {
+          cmd_vel_msg.angular.z = last_command.angular.z + ang_scape_inc * boost::math::sign((double)rand() / (double)RAND_MAX - 0.5);
+          ROS_ERROR("Could not get a feasible velocity --> Randomly spinning. Time without valid command = %f", t_unfeasible);
+        } else {
+          ROS_ERROR("Could not get a feasible velocity --> Stopping the robot. Time without speed = %f", t_unfeasible);
+          // Stop the robot 
+          cmd_vel_msg.angular.z = 0.0;
+          cmd_vel_msg.linear.x = 0.0;
+          
+        }
+      } else {
+        cmd_vel_msg.angular.z = 0.0;
+        cmd_vel_msg.linear.x = 0.0;
+        t_unfeasible = 0.0;
+      }
+      
+      
+    } else {
+      t_unfeasible = 0.0; // A valid command has been generated --> restart the time counter
+    }
+  } else {
+    t_unfeasible = 0.0;
   }
+  
   cmd_vel_pub.publish(cmd_vel_msg);
   last_command = cmd_vel_msg;
 }
