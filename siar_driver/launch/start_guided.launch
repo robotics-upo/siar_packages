@@ -15,7 +15,7 @@
   <arg name="perception" default="true"/>
   <arg name="bag" default="true"/>
   <arg name="publish_tf" default="false"/>
-  <arg name="obstacle_height" default="0.05"/>
+  <arg name="obstacle_height" default="0.075"/>
   <arg name="resolution" default ="0.025"/>
   
   <!-- Bring up the raposa node and the imu if desired -->
@@ -38,6 +38,7 @@
   <node name="siar_joy" pkg="siar_driver" type="siar_teleop_joy" output="screen" if="$(arg joystick)">
     <remap from="/cmd_vel" to="/user_cmd_vel"/>
     <param name="max_auto_mode" value="2"/>
+    <param name="max_joy_time" value="30"/>
   </node>
   <node name="joy_node" pkg="joy" type="joy_node" if="$(arg joystick)" />
   

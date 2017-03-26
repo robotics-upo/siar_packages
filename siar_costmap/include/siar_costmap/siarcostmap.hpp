@@ -3,10 +3,12 @@
 
 #include <ros/ros.h>
 #include <tf/transform_listener.h>
+#include <sensor_msgs/Imu.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/point_cloud2_iterator.h>
 #include <pcl_ros/transforms.h>
 #include <nav_msgs/OccupancyGrid.h>
+#include <ANN/ANN.h>				
 
 class SiarCostmap
 {
@@ -55,11 +57,6 @@ public:
 			y = d.y;
 		}
 		
-		inline float sqDist(int &_x, int &_y)
-		{
-			return (x-_x)*(x-_x) + (y-_y)*(y-_y);
-		}
-		
 		int x;
 		int y;
 	};
@@ -83,6 +80,8 @@ public:
 			m_height = 4.0;
 		if(!lnh.getParam("base_frame_id", m_baseFrameId))
 			m_baseFrameId = "base_link";
+		if(!lnh.getParam("tilt_compensate", m_tiltCompesante))
+			m_tiltCompesante = false;
 
 		// Setup subscription to sensor data
 		m_sub0 = m_nh.subscribe("cloud0", 1, &SiarCostmap::cloud0Callback, this);
@@ -93,6 +92,8 @@ public:
 		m_sub5 = m_nh.subscribe("cloud5", 1, &SiarCostmap::cloud5Callback, this);
 		for(int i=0; i<6; i++)
 			m_cloudNew[i] = false;
+		m_sub6 = m_nh.subscribe("imu", 1, &SiarCostmap::imuCallback, this);
+		m_imuNew = false;
 	
 		// Setup publisher
 		m_pub = m_nh.advertise<nav_msgs::OccupancyGrid>(nodeName+"/costmap", 0);
@@ -135,7 +136,7 @@ public:
 		
 		// Initialize all cells in the grid to unkown value
 		for(int i=0; i<m_costmap.data.size(); i++)
-			m_costmap.data[i] = 0;//-128;
+			m_costmap.data[i] = -128;
 		
 		// Process the latest cloud received in each topic
 		std::vector<SiarCostmap::PointPix> obstacles;
@@ -156,13 +157,46 @@ public:
 				continue;
 			} 
 			
+			// Compute roll and pitch rotation matrix from IMU
+			double roll, pitch, yaw;
+			double cr, sr, cp, sp, cy, sy, rx, ry;
+			double r00, r01, r02, r10, r11, r12, r20, r21, r22;
+			if(m_tiltCompesante)
+			{
+				tf::Quaternion q(m_imu.orientation.x, m_imu.orientation.y, m_imu.orientation.z, m_imu.orientation.w);
+				tf::Matrix3x3 m(q);
+				m.getRPY(roll, pitch, yaw);
+				sr = sin(roll);
+				cr = cos(roll);
+				sp = sin(pitch);
+				cp = cos(pitch);
+				r00 = cp; 	r01 = sp*sr; 	r02 = cr*sp;
+				r10 =  0; 	r11 = cr;		r12 = -sr;
+				r20 = -sp;	r21 = cp*sr;	r22 = cp*cr;
+			}
+			
 			// Evaluate every point into the cloud	
 			sensor_msgs::PointCloud2Iterator<float> iterX(cloud, "x");
 			sensor_msgs::PointCloud2Iterator<float> iterY(cloud, "y");
 			sensor_msgs::PointCloud2Iterator<float> iterZ(cloud, "z");
 			for(int i=0; i<cloud.width; i++, ++iterX, ++iterY, ++iterZ)
 			{
-				float x = *iterX, y = *iterY, z = *iterZ;
+				// Tilt compensate the point if needed
+				float x, y, z;
+				if(m_tiltCompesante)
+				{
+					x = *iterX*r00 + *iterY*r01 + *iterZ*r02;
+					y = *iterX*r10 + *iterY*r11 + *iterZ*r12;
+					z = *iterX*r20 + *iterY*r21 + *iterZ*r22;
+				}
+				else
+				{
+					x = *iterX; 
+					y = *iterY; 
+					z = *iterZ;
+				}
+				
+				// Evaluate if this is an obstacle or not
 				if(x > m_minX && x < m_maxX && y > m_minY && y < m_maxY)
 				{
 					int index;
@@ -180,29 +214,47 @@ public:
 							m_costmap.data[index] = 0;
 					}
 				}
+				
 			}
 		}
 		
 		// Apply exponential decay over obstacles
-		if(m_expDecay > 0.0)
-		{
+		if(m_expDecay > 0.0 && obstacles.size() > 0)
+		{			
+			// Build the object positions array
+			ANNpointArray obsPts = annAllocPts(obstacles.size(), 2);
+			for(int i=0; i<obstacles.size(); i++)
+			{
+				obsPts[i][0] = obstacles[i].x;
+				obsPts[i][1] = obstacles[i].y;
+			}
+			
+			// Build the Kdtree structure for effitient search
+			ANNkd_tree* kdTree = new ANNkd_tree(obsPts, obstacles.size(), 2);
+
+			// Evaluate all cell to obstacle distances and compute cost
 			int k = 0;
+			ANNpoint queryPt = annAllocPt(2);
+			ANNidxArray nnIdx = new ANNidx[1];						
+			ANNdistArray dists = new ANNdist[1];
 			float C = log(127.0/0.1)/m_expDecay;
-			//std::cout << "Decay: " << m_expDecay << ", C: " << C << ", NObs: " << obstacles.size() << std::endl;
 			for(int i=0; i<m_costmap.info.height; i++)
 			{
 				for(int j=0; j<m_costmap.info.width; j++, k++)
 				{
-					if(/*m_costmap.data[k] >= 0 && */m_costmap.data[k] < 127)
+					if(m_costmap.data[k] >= 0 && m_costmap.data[k] < 127)
 					{
-						float d = sqrt(distanceClosestObstacle(i, j, obstacles));
-						m_costmap.data[k] = (int)(127.0*exp(-C*d));
-						//std::cout << "Closest dist to (: " << i << ", " << j << "): "  << d << std::endl;
+						// Compute distance to closest obstacle
+						queryPt[0] = i;
+						queryPt[1] = j;
+						kdTree->annkSearch(queryPt, 1, nnIdx, dists);
+						// Evaluate the cost	
+						m_costmap.data[k] = (int)(127.0*exp(-C*sqrt(dists[0])));
 					}
-					//else if(m_costmap.data[k] == -128)
-					//	m_costmap.data[k] = 0;
+					else if(m_costmap.data[k] == -128)
+						m_costmap.data[k] = 0;
 				}
-			}
+			}			
 		}
 		
 		// Update costmap info
@@ -211,8 +263,8 @@ public:
 		m_costmap.info.map_load_time = t;
 		
 		// Prepare next sensor reading
-		for(int i=0; i<6; i++)
-			m_cloudNew[i] = false;
+		//for(int i=0; i<6; i++)
+		//	m_cloudNew[i] = false;
 			
 		return m_costmap;
 	}
@@ -283,6 +335,12 @@ private:
 		processCloud(msg, 5);
 	}
 	
+	void imuCallback(const sensor_msgs::Imu::ConstPtr& msg)
+	{
+		m_imu = *msg;
+		m_imuNew = true;
+	} 
+
 	void updateTimer(const ros::TimerEvent& event)
 	{
 		// Update costmap
@@ -332,33 +390,23 @@ private:
 		pix.y = index%m_costmap.info.width;
 	}
 	
-	float distanceClosestObstacle(int &x, int &y, std::vector<SiarCostmap::PointPix> &obs)
-	{
-		float d = 1000000.0;
-		for(int i=0; i<obs.size(); i++)
-		{
-			float k = obs[i].sqDist(x,y);
-			if(k < d)
-				d = k;
-		}
-		return d;
-	}
-	
 	// Params
 	double m_hz, m_obstacleHeight, m_expDecay;
 	double m_width, m_height, m_resolution;
 	std::string m_baseFrameId;
+	bool m_tiltCompesante;
 	
 	// ROS stuff
 	ros::NodeHandle m_nh;	
 	ros::Timer timer;
 	tf::TransformListener m_tfListener;
-	ros::Subscriber m_sub0, m_sub1, m_sub2, m_sub3, m_sub4, m_sub5;
+	ros::Subscriber m_sub0, m_sub1, m_sub2, m_sub3, m_sub4, m_sub5, m_sub6;
 	ros::Publisher m_pub;
 
 	// Sensor data
 	sensor_msgs::PointCloud2 m_cloud[6];
-	bool m_cloudNew[6];
+	sensor_msgs::Imu m_imu;
+	bool m_cloudNew[6], m_imuNew;
 	tf::StampedTransform m_cloudTf[6];
 	
 	// Compute costmap

@@ -122,7 +122,7 @@ double CommandEvaluator::evualateTrajectory(const geometry_msgs::Twist& v_ini, c
        // TODO: CONFIGURABLE FOR VARIABLE WIDTH PROTOTYPE
       footprint = new SiarFootprint(alt_map.info.resolution);
     else
-      footprint = new SiarFootprint(alt_map.info.resolution, footprint_params->m_length, footprint_params->m_width, footprint_params->m_wheel_width);
+      footprint = new SiarFootprint(alt_map.info.resolution, footprint_params->m_length, footprint_params->m_width, footprint_params->m_wheel_width, true);
       
     m_divRes = 1.0 / alt_map.info.resolution;
    
