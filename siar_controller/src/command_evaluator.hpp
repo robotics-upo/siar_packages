@@ -206,6 +206,7 @@ double CommandEvaluator::evaluateTrajectoryMinVelocity(const geometry_msgs::Twis
 
   bool collision = false;
   double acc_dist = 0.0;
+  double t = 0.0;
   for(int i = 0; i <= steps && !collision; i++)
   {
     computeNewVelocity(lv, av, dt, v_command);
@@ -213,6 +214,7 @@ double CommandEvaluator::evaluateTrajectoryMinVelocity(const geometry_msgs::Twis
     // Integrate the model
     double lin_dist = lv * dt;
     acc_dist += lin_dist;
+    t += m_T;
     th = th + (av * dt);
     x = x + lin_dist*cos(th); // Euler 1
     y = y + lin_dist*sin(th); 
@@ -227,14 +229,14 @@ double CommandEvaluator::evaluateTrajectoryMinVelocity(const geometry_msgs::Twis
   
   double ret = cont_footprint * m_w_safe + m_w_dist * sqrt(pow(x - operator_command.linear.x * m_T, 2.0) + y*y);
   if (collision) {
-    double v_x = acc_dist / m_T;
+    double v_x = acc_dist / (t - 2.0 * m_T);
     
     if (v_x < m_model.v_min) { // Check the minimum velocity
       m.color.r = 1.0;
       m.color.g = 0.0;
       return -1.0;
     } else {
-      v_command.angular.z *= v_x / v_command.linear.x;
+      v_command.angular.z *= v_x / v_command.linear.x; // Maintain the commanded radius
       v_command.linear.x = v_x;
     }
   }
