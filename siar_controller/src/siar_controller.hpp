@@ -9,6 +9,8 @@
 #include <boost/array.hpp>
 #include <boost/bind.hpp>
 
+#include <functions/functions.h>
+
 #include <geometry_msgs/Twist.h>
 #include <ros/ros.h>
 #include <nav_msgs/OccupancyGrid.h>
@@ -44,11 +46,14 @@ protected:
   geometry_msgs::Twist last_command;
   
   // Dynamic reconfigure stuff
+  bool use_dynamic_reconfigure;
+  void initDynamicReconfigure(ros::NodeHandle& pn);
   typedef dynamic_reconfigure::Server<SiarControllerConfig> ReconfigureServer;
   boost::shared_ptr<ReconfigureServer> reconfigure_server_;
   bool config_init_;
   ReconfigureServer::CallbackType call_type;  
   SiarControllerConfig _conf;
+  RobotCharacteristics model;
   
   // Representation stuff
   visualization_msgs::MarkerArray markers;
@@ -81,10 +86,17 @@ protected:
   void odomCallback(const nav_msgs::Odometry &msg);
   void modeCallback(const std_msgs::Int8 &msg);
   
+  // Get parameters from parameter server
+  void getParameters(ros::NodeHandle &pn);
+  
   // Get the test velocity set 
   std::vector <geometry_msgs::Twist> getAccelTestSet(double v_x);
   std::vector <geometry_msgs::Twist> getDiscreteTestSet(double v_command_x, bool force_recompute = false);
+  std::vector <geometry_msgs::Twist> getTestSetFromFile(double v_command_x);
+  std::string velocityset_filename;
+  bool file_test_set_init;
   std::vector <geometry_msgs::Twist> discrete_test_set_forward, discrete_test_set_backward;
+  std::vector <geometry_msgs::Twist> file_test_set_forward, file_test_set_backward;
   
   void loop();
 };
@@ -97,24 +109,12 @@ SiarController::~SiarController()
 SiarController::SiarController(ros::NodeHandle& nh, ros::NodeHandle& pn):operation_mode(0),
 reconfigure_server_(),config_init_(false),occ_received(false), cmd_eval(NULL), t_unfeasible(0), ang_scape_inc(0.1), max_t_unfeasible(0.8)
 {
-  // Dynamic reconfigure initialization
-  reconfigure_server_.reset(new ReconfigureServer(pn));
-  call_type = boost::bind(&SiarController::parametersCallback, this, _1, _2);
-  reconfigure_server_->setCallback(call_type);
-//   
-  ROS_INFO("Waiting for dynamic reconfigure initial values.");
-  while (!config_init_ && ros::ok())
-  {
-    boost::this_thread::sleep(boost::posix_time::milliseconds(100));
-    ros::spinOnce();
-  }
+  getParameters(pn);
   
-  
-  if (!config_init_) {
-    ROS_ERROR("Halted when reading the dynamic configuration");
-    return;
+  if (use_dynamic_reconfigure) {
+    config_init_ = false;
+    initDynamicReconfigure(pn);
   }
-  ROS_INFO("Dynamic reconfigure configuration received.");
   
   // ROS publishers/subscribers
   // Now camera info subscribers
@@ -142,6 +142,73 @@ reconfigure_server_(),config_init_(false),occ_received(false), cmd_eval(NULL), t
   srand((unsigned)std::time(NULL));
 }
 
+void SiarController::getParameters(ros::NodeHandle& pn)
+{
+  config_init_ = true;
+  
+  pn.param("use_dynamic_reconfigure", use_dynamic_reconfigure, false);
+  
+  // Model parameters
+  pn.param("a_max", model.a_max, 0.5);
+  pn.param("a_max_theta", model.a_max_theta, 1.0);
+  pn.param("v_max", model.v_max, 0.2);
+  pn.param("omega_max", model.theta_dot_max, 0.4);
+  pn.param("v_min", model.v_min, 0.05);
+  
+  double r_l, r_w, w_w;
+  pn.param("robot_longitude", r_l, 0.78);
+  pn.param("robot_width", r_w, 0.56);
+  pn.param("wheel_width", w_w, 0.075);
+//     ROS_INFO("R_L = /*%*/f, R_W = %f, W_W = %f", r_l, r_w, w_w);
+  SiarFootprint *p = new SiarFootprint(0.025, r_l, r_w, w_w);
+  
+  pn.param("w_dist", _conf.w_dist, 1.0);
+  pn.param("w_safe", _conf.w_safe, 1.0);
+  pn.param("T_hor", _conf.T_hor, 3.0);
+  pn.param("delta_T", _conf.delta_T, 0.2);
+  pn.param("T", _conf.T, 0.1);
+  
+  cmd_eval = new CommandEvaluator(_conf.w_dist, _conf.w_safe, _conf.T_hor, model, _conf.delta_T, p); // TODO: insert the footprint related data (now only default values)
+  
+  pn.param("n_lin", _conf.n_lin, 3);
+  pn.param("n_ang", _conf.n_ang, 12);
+  
+  markers.markers.reserve(_conf.n_lin * (_conf.n_ang + 1) * 2 + 20);
+  ang_vel_inc = model.a_max * _conf.delta_T / (float)_conf.n_ang;
+  lin_vel_dec = model.a_max_theta * _conf.delta_T/ (float)_conf.n_lin;
+  
+  getDiscreteTestSet(0.6, true);
+  
+  pn.param("velocityset_filename", velocityset_filename, std::string("velocityset_file"));
+  file_test_set_init = false;
+  getTestSetFromFile(0.0);
+  
+  config_init_ = true;
+}
+
+void SiarController::initDynamicReconfigure(ros::NodeHandle &pn)
+{
+  // Dynamic reconfigure initialization
+  reconfigure_server_.reset(new ReconfigureServer(pn));
+  call_type = boost::bind(&SiarController::parametersCallback, this, _1, _2);
+  reconfigure_server_->setCallback(call_type);
+  //   
+  ROS_INFO("Waiting for dynamic reconfigure initial values.");
+  while (!config_init_ && ros::ok())
+  {
+    boost::this_thread::sleep(boost::posix_time::milliseconds(100));
+    ros::spinOnce();
+  }
+  
+  
+  if (!config_init_) {
+    ROS_ERROR("Halted when reading the dynamic configuration");
+    return;
+  }
+  ROS_INFO("Dynamic reconfigure configuration received.");
+}
+
+
 
 void SiarController::parametersCallback(SiarControllerConfig& config, uint32_t level)
 {
@@ -156,7 +223,7 @@ void SiarController::parametersCallback(SiarControllerConfig& config, uint32_t l
     model.theta_dot_max = config.alpha_max;
 //     ROS_INFO("R_L = /*%*/f, R_W = %f, W_W = %f", config.robot_longitude, config.robot_width, config.wheel_width);
     SiarFootprint *p = new SiarFootprint(0.025, config.robot_longitude, config.robot_width, config.wheel_width);
-    cmd_eval = new CommandEvaluator(config.w_dist, config.w_safe, config.T_hor, model, config.delta_T, p); // TODO: insert the footprint related data (now only default values)
+    cmd_eval = new CommandEvaluator(config.w_dist, config.w_safe, config.T_hor, model, config.delta_T, p); 
   } else {
     RobotCharacteristics model;
     model.a_max = config.a_max;
@@ -272,7 +339,11 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
   if (operation_mode == 1) {
     test_set = getDiscreteTestSet(cmd_vel.linear.x);
   } else {
-    test_set = getAccelTestSet(cmd_vel.linear.x);
+    if (file_test_set_forward.size() > 0) {
+      test_set = getTestSetFromFile(cmd_vel.linear.x);
+    } else {
+      test_set = getAccelTestSet(cmd_vel.linear.x);
+    }
   }
   
   markers.markers.resize(test_set.size());
@@ -308,8 +379,8 @@ std::vector< geometry_msgs::Twist > SiarController::getAccelTestSet(double x)
   float vx_orig = last_command.linear.x;
   
   vx_orig += lin_vel_dec * boost::math::sign(x - vx_orig);
-  if (fabs(vx_orig) > _conf.v_max) 
-    vx_orig = _conf.v_max * boost::math::sign(vx_orig);
+  if (fabs(vx_orig) > model.v_max) 
+    vx_orig = model.v_max * boost::math::sign(vx_orig);
   
   
   for(int l = 0; l <= _conf.n_lin; l++) 
@@ -341,6 +412,58 @@ std::vector< geometry_msgs::Twist > SiarController::getAccelTestSet(double x)
   return ret;
 }
 
+std::vector< geometry_msgs::Twist > SiarController::getTestSetFromFile(double v_command_x)
+{
+  if (!file_test_set_init) {
+    file_test_set_init = true;
+    file_test_set_forward.clear();
+    file_test_set_backward.clear();
+    
+    std::vector<std::vector <double> > M;
+    
+    geometry_msgs::Twist v;
+    v.linear.x = v.linear.y = v.linear.z = 0.0;
+    v.angular.x = v.angular.y = v.angular.z = 0.0;
+    
+    bool loaded = functions::getMatrixFromFile(velocityset_filename, M);
+    if (loaded) 
+    {
+      for ( auto vec : M )
+      {
+        if (vec.size() < 2)
+          continue;
+        
+        v.linear.x = vec.at(0);
+        v.angular.z = vec.at(1);
+        
+        
+        ROS_INFO("File test set. Forward Command %d. vx = %f. v_theta = %f", (int)file_test_set_forward.size(), v.linear.x, v.angular.z);
+        file_test_set_forward.push_back(v);
+        if (fabs(v.angular.z) > 1e-10) {
+          v.angular.z *= -1.0;
+          ROS_INFO("File test set. Forward Command %d. vx = %f. v_theta = %f", (int)file_test_set_forward.size(), v.linear.x, v.angular.z);
+          file_test_set_forward.push_back(v);
+        }
+        v.linear.x *= -1.0;
+        file_test_set_backward.push_back(v);
+        if (fabs(v.angular.z) > 1e-10) {
+          v.angular.z *= -1.0;
+          file_test_set_backward.push_back(v);
+        }
+      }
+    }
+  }
+  
+  if (v_command_x > model.v_min) 
+    return file_test_set_forward;
+  else if (v_command_x < -model.v_min)
+    return file_test_set_backward;
+  
+  std::vector< geometry_msgs::Twist > ret;
+  return ret;
+}
+
+
 std::vector< geometry_msgs::Twist > SiarController::getDiscreteTestSet(double v_command_x, bool force_recompute)
 {
   ROS_INFO("Get Discrete Test set: n_lin = %d n_ang = %d" , _conf.n_lin, _conf.n_ang);
@@ -354,7 +477,7 @@ std::vector< geometry_msgs::Twist > SiarController::getDiscreteTestSet(double v_
       curr_cmd.angular.z = 0.0;
       curr_cmd.linear.x = (double)i * _conf.v_max / (double)_conf.n_lin;
       discrete_test_set_forward.push_back(curr_cmd);
-      ROS_INFO("Discrete test set. Command %d. vx = %f. v_theta = %f", (int)discrete_test_set_forward.size(), curr_cmd.linear.x, curr_cmd.angular.z);
+//       ROS_INFO("Discrete test set. Command %d. vx = %f. v_theta = %f", (int)discrete_test_set_forward.size(), curr_cmd.linear.x, curr_cmd.angular.z);
       curr_cmd.linear.x *= -1.0;
       discrete_test_set_backward.push_back(curr_cmd);
       for (int j = 1; j <= _conf.n_ang; j++) {
@@ -363,35 +486,35 @@ std::vector< geometry_msgs::Twist > SiarController::getDiscreteTestSet(double v_
         discrete_test_set_backward.push_back(curr_cmd);
         curr_cmd.linear.x *= -1.0;
         discrete_test_set_forward.push_back(curr_cmd);
-        ROS_INFO("Discrete test set. Command %d. vx = %f. v_theta = %f", (int)discrete_test_set_forward.size(), curr_cmd.linear.x, curr_cmd.angular.z);
+//         ROS_INFO("Discrete test set. Command %d. vx = %f. v_theta = %f", (int)discrete_test_set_forward.size(), curr_cmd.linear.x, curr_cmd.angular.z);
         //to the right
         curr_cmd.angular.z = - ang_vel_inc * j;
         discrete_test_set_forward.push_back(curr_cmd);
-        ROS_INFO("Discrete test set. Command %d. vx = %f. v_theta = %f", (int)discrete_test_set_forward.size(), curr_cmd.linear.x, curr_cmd.angular.z);
+//         ROS_INFO("Discrete test set. Command %d. vx = %f. v_theta = %f", (int)discrete_test_set_forward.size(), curr_cmd.linear.x, curr_cmd.angular.z);
         curr_cmd.linear.x *= -1.0;
         discrete_test_set_backward.push_back(curr_cmd);
       }
     }
   }
-  if (v_command_x > 0.05) 
+  if (v_command_x > model.v_min) 
     return discrete_test_set_forward;
-  else if (v_command_x < -0.05)
+  else if (v_command_x < -model.v_min)
     return discrete_test_set_backward;
   
   std::vector< geometry_msgs::Twist > ret;
   return ret;
 }
 
-
-
 void SiarController::evaluateAndActualizeBest(const geometry_msgs::Twist& cmd_vel, const geometry_msgs::Twist &v_ini)
 {
-  curr_cost = cmd_eval->evualateTrajectory(v_ini, curr_cmd, cmd_vel, last_map, m);
+  if (operation_mode == 1) 
+    curr_cost = cmd_eval->evualateTrajectory(v_ini, curr_cmd, cmd_vel, last_map, m);
+  else 
+    curr_cost = cmd_eval->evaluateTrajectoryMinVelocity(v_ini, curr_cmd, cmd_vel, last_map, m);
+    
   if (curr_cost < lowest_cost && curr_cost >= 0.0) {
     best_cmd = curr_cmd;
     lowest_cost = curr_cost;
-    
-    
         
     if (n_best >= 0) {
       markers.markers[n_best].color.g = 1.0;
@@ -399,34 +522,31 @@ void SiarController::evaluateAndActualizeBest(const geometry_msgs::Twist& cmd_ve
       markers.markers[n_best].color.b = 0.0;
       markers.markers[n_best].color.a = 0.7;
     }
-
-  
     n_best = n_commands;
     m.color.b = 1.0;
-    m.color.r = 1.0; // Best marker on purple
-    m.color.g = 0.0;
+    m.color.r = 0.2; // Best marker on blue
+    m.color.g = 0.2;
     m.color.a = 1.0;
   } else if (curr_cost > 0.0) {
     m.color.b = 0.0;
     m.color.r = 0.0; // Best marker on green
     m.color.g = 1.0;
-    m.color.a = 0.7;
+    m.color.a = 0.5;
   } else {
     m.color.b = 0.0; // Collision
     m.color.r = 1.0; // Best marker on red
     m.color.g = 0.0;
-    m.color.a = 0.7;
+    m.color.a = 0.5;
+    
+    copyMarker(best, m);
   }
-  
-  
-  
   copyMarker(markers.markers[n_commands], m);
-  copyMarker(best, m);
+  
   markers.markers[n_commands].id = n_commands;
   
   n_commands++;
-//   ROS_INFO("N_commands = %d", n_commands);
 }
+
 
 
 void SiarController::copyMarker(visualization_msgs::Marker& dst, const visualization_msgs::Marker& orig) const

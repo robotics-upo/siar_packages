@@ -47,6 +47,8 @@
       <remap from="/cmd_vel_in" to="/user_cmd_vel"/>
       <remap from="/cmd_vel_out" to="/cmd_vel"/>
       <remap from="/altitude_map" to="/costmap_node/costmap"/>
+      
+      <rosparam file="$(find siar_controller)/cfg/siar_controller.yaml" command="load"  /> 
     </node>
   <include file="$(find siar_costmap)/launch/siar_costmap.launch">
     <arg name="obstacle_height" value="$(arg obstacle_height)"/>

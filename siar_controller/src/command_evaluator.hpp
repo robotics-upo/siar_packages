@@ -16,6 +16,7 @@ namespace siar_controller {
     double v_max;
     double theta_dot_max;
     double a_max_theta;
+    double v_min;
   };
   
   class CommandEvaluator {
@@ -32,6 +33,9 @@ namespace siar_controller {
     double evualateTrajectory(const geometry_msgs::Twist& v_ini, const geometry_msgs::Twist& v_command, 
                               const geometry_msgs::Twist& operator_command, const nav_msgs::OccupancyGrid& alt_map,
                               visualization_msgs::Marker &m);
+    
+    
+    double evaluateTrajectoryMinVelocity(const geometry_msgs::Twist& v_ini, geometry_msgs::Twist& v_command, const geometry_msgs::Twist& operator_command, const nav_msgs::OccupancyGrid& alt_map, visualization_msgs::Marker& m);
     
     //! @brief Destructor
     ~CommandEvaluator();
@@ -163,6 +167,81 @@ double CommandEvaluator::evualateTrajectory(const geometry_msgs::Twist& v_ini, c
     
   return ret;
 }
+
+double CommandEvaluator::evaluateTrajectoryMinVelocity(const geometry_msgs::Twist& v_ini, geometry_msgs::Twist& v_command, const geometry_msgs::Twist& operator_command, const nav_msgs::OccupancyGrid& alt_map, visualization_msgs::Marker& m)
+{
+  double dt = m_delta_T;
+  int steps = m_T / m_delta_T;
+  double x=0.0, y=0.0, th=0.0;
+ 
+  double lv = v_ini.linear.x;
+  double av = v_ini.angular.z;
+  
+//   if (pub) {
+//     ROS_INFO("Evaluate trajectory: dt = %f \tsteps=%d \tv_ini_x = %f\t th_dot_ini = %f", m_delta_T, steps, lv, av);
+//     ROS_INFO("v_command_x = %f\t th_dot_command = %f", v_command.linear.x, v_command.angular.z);
+//     ROS_INFO("v_max = %f\t a_max = %f", m_model.v_max, m_model.a_max);
+//   }
+  int cont_footprint = 0;
+  
+  // Initialize the footprint if needed:
+  if (footprint == NULL) {
+      ROS_INFO("Getting footprint. Resolution: %f", alt_map.info.resolution);
+    if (footprint_params == NULL)
+       // TODO: CONFIGURABLE FOR VARIABLE WIDTH PROTOTYPE
+      footprint = new SiarFootprint(alt_map.info.resolution);
+    else
+      footprint = new SiarFootprint(alt_map.info.resolution, footprint_params->m_length, footprint_params->m_width, footprint_params->m_wheel_width, true);
+      
+    m_divRes = 1.0 / alt_map.info.resolution;
+   
+    ROS_INFO("Alt map: height = %d \t width = %d", alt_map.info.height, alt_map.info.width);
+    origin_x = alt_map.info.height * alt_map.info.resolution /2.0;
+    origin_y = alt_map.info.width * alt_map.info.resolution /2.0;
+    origin_x *= -1;
+    origin_y *= -1;
+    width = alt_map.info.width;
+    ROS_INFO("Origin : %f, %f", origin_x, origin_y);
+  }
+
+  bool collision = false;
+  double acc_dist = 0.0;
+  for(int i = 0; i <= steps && !collision; i++)
+  {
+    computeNewVelocity(lv, av, dt, v_command);
+    
+    // Integrate the model
+    double lin_dist = lv * dt;
+    acc_dist += lin_dist;
+    th = th + (av * dt);
+    x = x + lin_dist*cos(th); // Euler 1
+    y = y + lin_dist*sin(th); 
+    
+    // Represent downsampled
+    if (i % 5 == 0) 
+      footprint->addPoints(x, y, th, m, 0, i == 0);
+    
+    // Actualize the cost
+    cont_footprint += applyFootprint(x, y, th, alt_map, collision);
+  }
+  
+  double ret = cont_footprint * m_w_safe + m_w_dist * sqrt(pow(x - operator_command.linear.x * m_T, 2.0) + y*y);
+  if (collision) {
+    double v_x = acc_dist / m_T;
+    
+    if (v_x < m_model.v_min) { // Check the minimum velocity
+      m.color.r = 1.0;
+      m.color.g = 0.0;
+      return -1.0;
+    } else {
+      v_command.angular.z *= v_x / v_command.linear.x;
+      v_command.linear.x = v_x;
+    }
+  }
+    
+  return ret;
+}
+
 
 // TODO: test the conversion between footprint coords and map coords
 int CommandEvaluator::applyFootprint(double x, double y, double th, 

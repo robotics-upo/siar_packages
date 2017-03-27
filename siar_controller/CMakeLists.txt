@@ -15,6 +15,8 @@ find_package(catkin REQUIRED COMPONENTS
   functions
 )
 
+set (CMAKE_CXX_FLAGS -std=c++11)
+
 find_package(OpenCV)
 
 ################################################
