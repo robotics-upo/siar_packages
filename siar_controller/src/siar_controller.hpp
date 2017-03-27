@@ -451,6 +451,8 @@ std::vector< geometry_msgs::Twist > SiarController::getTestSetFromFile(double v_
           file_test_set_backward.push_back(v);
         }
       }
+    } else {
+      ROS_ERROR("Could not load test velocity set from file: %s", velocityset_filename.c_str());
     }
   }
   
@@ -515,6 +517,7 @@ void SiarController::evaluateAndActualizeBest(const geometry_msgs::Twist& cmd_ve
   if (curr_cost < lowest_cost && curr_cost >= 0.0) {
     best_cmd = curr_cmd;
     lowest_cost = curr_cost;
+    
         
     if (n_best >= 0) {
       markers.markers[n_best].color.g = 1.0;
@@ -527,18 +530,18 @@ void SiarController::evaluateAndActualizeBest(const geometry_msgs::Twist& cmd_ve
     m.color.r = 0.2; // Best marker on blue
     m.color.g = 0.2;
     m.color.a = 1.0;
+    
+    copyMarker(best, m);
   } else if (curr_cost > 0.0) {
     m.color.b = 0.0;
-    m.color.r = 0.0; // Best marker on green
+    m.color.r = 0.0; // Feasible marker on green
     m.color.g = 1.0;
     m.color.a = 0.5;
   } else {
-    m.color.b = 0.0; // Collision
-    m.color.r = 1.0; // Best marker on red
+    m.color.b = 0.0; // Collision marker on red
+    m.color.r = 1.0; 
     m.color.g = 0.0;
     m.color.a = 0.5;
-    
-    copyMarker(best, m);
   }
   copyMarker(markers.markers[n_commands], m);
   
