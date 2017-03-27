@@ -56,9 +56,12 @@ a bool message indicating it.
 
 Loads a bag file and generates four data files with downsampled depth (80x60) images.:
 
-1 - "positive_depth": All depth images that are below a manhole according to the label file
-2 - "positive_rgb: All RGB images that are below a manhole according to the label file
+1 - "positive_depth": All depth images that are below a manhole according to the label file. It will include each positive image and its 180º deg rotation in order to enlarge the test data set and make it invariant to the track direction.
+
+2 - "positive_rgb: All RGB images that are below a manhole according to the label file. It will include each positive image and its 180º deg rotation in order to enlarge the test data set and make it invariant to the track direction.
+
 3 - "negative_depth": All depth images that are not below a manhole according to the label file
+
 4 - "negative_rgb": All RGB images that are not below a manhole according to the label file
 
 ### Use:
