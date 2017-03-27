@@ -14,9 +14,9 @@ In this way, we can precisely locate the SIAR platform in the sewer network.
 
 In the "launch" subdirectory, two launch files are given for easilly executing the experiments described in the submitted paper:
 
-- *amcl_experiment_1.launch*. By default, it searches for then bag of Experiment 1 in "~/siar_2017-01-17-10-25-40.bag" (can be changed with the parameter bag_file) and produces the stats file: "~/stats_experiment_1.txt". 
+- *amcl_experiment_1.launch*. By default, it searches for then bag of Experiment 1 in "\~/siar_2017-01-17-10-25-40.bag" (can be changed with the parameter bag_file) and produces the stats file: "\~/stats_experiment_1.txt". 
 
-- *amcl_experiment_1.launch*. By default, it searches for then bag of Experiment 1 in "~/siar_2017-01-17-11-17-28.bag" (can be changed with the parameter bag_file) and produces the stats file: "~/stats_experiment_2.txt". 
+- *amcl_experiment_1.launch*. By default, it searches for then bag of Experiment 1 in "\~/siar_2017-01-17-11-17-28.bag" (can be changed with the parameter bag_file) and produces the stats file: "\~/stats_experiment_2.txt". 
 
 ## amcl_node
 
