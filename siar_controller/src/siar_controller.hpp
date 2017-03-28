@@ -285,17 +285,10 @@ void SiarController::loop() {
         // The USER wants to go
         t_unfeasible+=_conf.T;
         
-        
-        if (t_unfeasible > max_t_unfeasible) {
-          cmd_vel_msg.angular.z = last_command.angular.z + ang_scape_inc * boost::math::sign((double)rand() / (double)RAND_MAX - 0.5);
-          ROS_ERROR("Could not get a feasible velocity --> Randomly spinning. Time without valid command = %f", t_unfeasible);
-        } else {
-          ROS_ERROR("Could not get a feasible velocity --> Stopping the robot. Time without speed = %f", t_unfeasible);
-          // Stop the robot 
-          cmd_vel_msg.angular.z = 0.0;
-          cmd_vel_msg.linear.x = 0.0;
-          
-        }
+        ROS_ERROR("Could not get a feasible velocity --> Stopping the robot. Time without speed = %f", t_unfeasible);
+        // Stop the robot 
+        cmd_vel_msg.angular.z = 0.0;
+        cmd_vel_msg.linear.x = 0.0;
       } else {
         cmd_vel_msg.angular.z = 0.0;
         cmd_vel_msg.linear.x = 0.0;
@@ -336,7 +329,7 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
   
   // Get test set (different options available)
   std::vector<geometry_msgs::Twist> test_set;
-  if (operation_mode == 1) {
+  if (operation_mode == 2) {
     test_set = getDiscreteTestSet(cmd_vel.linear.x);
   } else {
     if (file_test_set_forward.size() > 0) {

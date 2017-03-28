@@ -37,7 +37,7 @@
   
   <node name="siar_joy" pkg="siar_driver" type="siar_teleop_joy" output="screen" if="$(arg joystick)">
     <remap from="/cmd_vel" to="/user_cmd_vel"/>
-    <param name="max_auto_mode" value="2"/>
+    <param name="max_auto_mode" value="1"/>
     <param name="max_joy_time" value="30"/>
   </node>
   <node name="joy_node" pkg="joy" type="joy_node" if="$(arg joystick)" />
@@ -49,7 +49,7 @@
       <remap from="/altitude_map" to="/costmap_node/costmap"/>
       
       <rosparam file="$(find siar_controller)/cfg/siar_controller.yaml" command="load"  /> 
-      <param name="velocityset_filename" value="$(find siar_controller)/cfg/velocityset"/>
+      <param name="velocityset_filename" value="$(find siar_controller)/cfg/velocityset_2"/>
     </node>
   <include file="$(find siar_costmap)/launch/siar_costmap.launch">
     <arg name="obstacle_height" value="$(arg obstacle_height)"/>
@@ -64,4 +64,7 @@
   
   <!-- Bag -->
   <include file="$(find siar_driver)/launch/bag.launch" if="$(arg bag)"/>
+  
+  <!-- Localization node -->
+  <include file="$(find amcl_sewer)/launch/amcl_realtime.launch"/>
 </launch>

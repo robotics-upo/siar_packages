@@ -166,10 +166,10 @@ public:
 				tf::Quaternion q(m_imu.orientation.x, m_imu.orientation.y, m_imu.orientation.z, m_imu.orientation.w);
 				tf::Matrix3x3 m(q);
 				m.getRPY(roll, pitch, yaw);
-				sr = sin(roll);
-				cr = cos(roll);
-				sp = sin(pitch);
-				cp = cos(pitch);
+				sr = sin(-roll);
+				cr = cos(-roll);
+				sp = sin(-pitch);
+				cp = cos(-pitch);
 				r00 = cp; 	r01 = sp*sr; 	r02 = cr*sp;
 				r10 =  0; 	r11 = cr;		r12 = -sr;
 				r20 = -sp;	r21 = cp*sr;	r22 = cp*cr;
