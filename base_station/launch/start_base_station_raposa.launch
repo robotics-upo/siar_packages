@@ -1,0 +1,33 @@
+<?xml version="1.0"?>
+<launch>
+  
+  <arg name="joystick" default="true"/>
+  <arg name="emulate_laser" default="true"/>
+  <arg name="serial_port" default="/dev/ttyUSB0"/>
+  <arg name="baud" default="115200"/>
+
+  <!-- Laser emulation stuff -->
+  <include file="$(find raposa_nav)/launch/2_images_to_scan.launch" if="$(arg emulate_laser)">
+    <arg name="camera_1" value="/front_web"/>
+    <arg name="camera_2" value="/back_web"/>
+  </include>
+  <include file="$(find laser_assembler)/launch/laser_assembler.launch" if="$(arg emulate_laser)"/>
+  
+  <!-- TF stuff (only odom is going through the wifi) -->
+  <include file="$(find openni2_multicamera)/launch/frames_5_cam.launch"/>
+  <include file="$(find raposa_nav)/launch/sensor_transform_5_cam.launch"/>
+  <node pkg="odom_to_tf" type="odom_to_tf.py" name="odom_to_tf"/>
+  
+  <!-- Communication stuff -->
+  <include file="$(find udp_bridge)/launch/udp_client.launch"/>
+  <node pkg="serialbridge" type="serialclient" name="serialclient">
+    <param name="image_topic" value="/front_serial/rgb/image_raw/compressed"/>
+  </node>
+
+  
+  <!-- Representation stuff-->
+  <node pkg="rviz" type="rviz" name="rviz" args="-d ../.rviz/barcelona_junio.rviz"/>
+  
+  <!-- Joystick node that will be sent over the P900 link-->
+  <node pkg="joy" type="joy_node" name="joy_node"/>
+</launch>
