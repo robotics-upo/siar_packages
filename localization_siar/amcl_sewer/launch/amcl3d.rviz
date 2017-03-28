@@ -9,7 +9,6 @@ Panels:
         - /Marker1
         - /Front1
         - /DepthCloud1/Auto Size1
-        - /AerialMapDisplay1
       Splitter Ratio: 0.5
     Tree Height: 359
   - Class: rviz/Selection
@@ -30,7 +29,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: Up
+    SyncSource: Front
 Visualization Manager:
   Class: ""
   Displays:
@@ -57,7 +56,7 @@ Visualization Manager:
       Marker Topic: /amcl_sewer_node/sewer_graph
       Name: Marker
       Namespaces:
-        sewer_graph: true
+        {}
       Queue Size: 100
       Value: true
     - Arrow Length: 0.3
@@ -142,14 +141,15 @@ Visualization Manager:
       Transport Hint: compressed
       Unreliable: false
       Value: false
-    - Alpha: 0.7
-      Blocks: 3
+    - Class: (no class name found)
+      Enabled: false
+      Name: ""
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /manhole_marker
       Name: Marker
       Namespaces:
-        "": true
+        {}
       Queue Size: 100
       Value: true
   Enabled: true
@@ -176,16 +176,16 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/Orbit
-      Distance: 238.286
+      Distance: 110.967
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.06
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.926646
-        Y: 75.3506
-        Z: -57.5828
+        X: -0.222271
+        Y: 1.16576
+        Z: -58.6922
       Name: Current View
       Near Clip Distance: 0.01
       Pitch: 1.5548
@@ -215,5 +215,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1301
-  X: 65
-  Y: 24
+  X: 55
+  Y: 14

@@ -231,7 +231,7 @@ double CommandEvaluator::evaluateTrajectoryMinVelocity(const geometry_msgs::Twis
   if (collision) {
     double v_x = acc_dist / (t - 2.0 * m_T);
     
-    if (v_x < m_model.v_min) { // Check the minimum velocity
+    if (fabs(v_x) < m_model.v_min) { // Check the minimum velocity
       m.color.r = 1.0;
       m.color.g = 0.0;
       return -1.0;

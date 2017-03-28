@@ -100,7 +100,7 @@ public:
       
     
     if (!lnh.getParam("sewer_graph_file", m_sewer_graph_file))
-      m_sewer_graph_file = "/home/chur/siar_ws/src/siar/localization_siar/sewer_graph/test/sewer_graph_1";
+      m_sewer_graph_file = "/home/siar/siar_ws/src/siar_packages/localization_siar/sewer_graph/test/sewer_graph_1";
     
     if (!lnh.getParam("min_manhole_detected", m_min_manhole_detected))
       m_min_manhole_detected = 10;
@@ -123,7 +123,7 @@ public:
     if (!lnh.getParam("manholeThres", m_manholeThres))
       m_manholeThres = 0.15;
     
-    manholeConst1 = 1./(m_manholeDev*sqrt(2*M_PI));
+    manholeConst1 = 1./(m_manholeDev*sqrt(2*M_PI)); 
     manholeConst2 = 1./(2*m_manholeDev*m_manholeDev);
     
     // Init the statistic stuff

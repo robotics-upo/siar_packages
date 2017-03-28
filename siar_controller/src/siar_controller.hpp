@@ -283,17 +283,10 @@ void SiarController::loop() {
         // The USER wants to go
         t_unfeasible+=_conf.T;
         
-        
-        if (t_unfeasible > max_t_unfeasible) {
-          cmd_vel_msg.angular.z = last_command.angular.z + ang_scape_inc * boost::math::sign((double)rand() / (double)RAND_MAX - 0.5);
-          ROS_ERROR("Could not get a feasible velocity --> Randomly spinning. Time without valid command = %f", t_unfeasible);
-        } else {
-          ROS_ERROR("Could not get a feasible velocity --> Stopping the robot. Time without speed = %f", t_unfeasible);
-          // Stop the robot 
-          cmd_vel_msg.angular.z = 0.0;
-          cmd_vel_msg.linear.x = 0.0;
-          
-        }
+        ROS_ERROR("Could not get a feasible velocity --> Stopping the robot. Time without speed = %f", t_unfeasible);
+        // Stop the robot 
+        cmd_vel_msg.angular.z = 0.0;
+        cmd_vel_msg.linear.x = 0.0;
       } else {
         cmd_vel_msg.angular.z = 0.0;
         cmd_vel_msg.linear.x = 0.0;
@@ -334,7 +327,7 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
   
   // Get test set (different options available)
   std::vector<geometry_msgs::Twist> test_set;
-  if (operation_mode == 1) {
+  if (operation_mode == 2) {
     test_set = getDiscreteTestSet(cmd_vel.linear.x);
   } else {
     if (file_test_set_forward.size() > 0) {
@@ -449,6 +442,8 @@ std::vector< geometry_msgs::Twist > SiarController::getTestSetFromFile(double v_
           file_test_set_backward.push_back(v);
         }
       }
+    } else {
+      ROS_ERROR("Could not load test velocity set from file: %s", velocityset_filename.c_str());
     }
   }
   
@@ -517,6 +512,7 @@ void SiarController::evaluateAndActualizeBest(const geometry_msgs::Twist& cmd_ve
   if (curr_cost < lowest_cost && curr_cost >= 0.0) {
     best_cmd = curr_cmd;
     lowest_cost = curr_cost;
+    
         
     if (n_best >= 0) {
       markers.markers[n_best].color.g = 1.0;
@@ -529,18 +525,18 @@ void SiarController::evaluateAndActualizeBest(const geometry_msgs::Twist& cmd_ve
     m.color.r = 0.2; // Best marker on blue
     m.color.g = 0.2;
     m.color.a = 1.0;
+    
+    copyMarker(best, m);
   } else if (curr_cost > 0.0) {
     m.color.b = 0.0;
-    m.color.r = 0.0; // Best marker on green
+    m.color.r = 0.0; // Feasible marker on green
     m.color.g = 1.0;
     m.color.a = 0.5;
   } else {
-    m.color.b = 0.0; // Collision
-    m.color.r = 1.0; // Best marker on red
+    m.color.b = 0.0; // Collision marker on red
+    m.color.r = 1.0; 
     m.color.g = 0.0;
     m.color.a = 0.5;
-    
-    copyMarker(best, m);
   }
   copyMarker(markers.markers[n_commands], m);
   

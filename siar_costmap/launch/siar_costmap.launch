@@ -31,7 +31,7 @@
     <param name="exp_decay" value = "20.0"/>					    # Obstacle exponential decay (it is counted in cells)
     <param name="width" value="1.5"/>
     <param name="height" value="3.0"/>
-    <param name="tilt_compensate" value="false"/>
+    <param name="tilt_compensate" value="true"/>
     <remap from="imu" to="/arduimu_v3/imu"/>
   </node>
 
