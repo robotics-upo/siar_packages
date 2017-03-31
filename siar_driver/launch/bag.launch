@@ -12,21 +12,21 @@
 /back/depth_registered/image_raw/compressedDepth/parameter_descriptions
 /back/depth_registered/image_raw/compressedDepth/parameter_updates /back/rgb/camera_info /back/rgb/image_raw/compressed /back/rgb/image_raw/compressed/parameter_descriptions /back/rgb/image_raw/compressed/parameter_updates
         
-        /right/depth_registered/image_raw/compressedDepth
-        /right/depth_registered/camera_info  
-/right/depth_registered/image_raw/compressedDepth/parameter_descriptions
-/right/depth_registered/image_raw/compressedDepth/parameter_updates 
-        /right/rgb/camera_info /right/rgb/image_raw/compressed 
-        /right/rgb/image_raw/compressed/parameter_descriptions 
-        /right/rgb/image_raw/compressed/parameter_updates 
+        /front_down/depth_registered/image_raw/compressedDepth
+        /front_down/depth_registered/camera_info  
+/front_down/depth_registered/image_raw/compressedDepth/parameter_descriptions
+/front_down/depth_registered/image_raw/compressedDepth/parameter_updates 
+        /front_down/rgb/camera_info /front_down/rgb/image_raw/compressed 
+        /front_down/rgb/image_raw/compressed/parameter_descriptions 
+        /front_down/rgb/image_raw/compressed/parameter_updates 
         
-        /left/depth_registered/camera_info  
-        /left/depth_registered/image_raw/compressedDepth
-/left/depth_registered/image_raw/compressedDepth/parameter_descriptions
-/left/depth_registered/image_raw/compressedDepth/parameter_updates 
-        /left/rgb/camera_info /left/rgb/image_raw/compressed 
-        /left/rgb/image_raw/compressed/parameter_descriptions 
-        /left/rgb/image_raw/compressed/parameter_updates 
+        /back_down/depth_registered/camera_info  
+        /back_down/depth_registered/image_raw/compressedDepth
+/back_down/depth_registered/image_raw/compressedDepth/parameter_descriptions
+/back_down/depth_registered/image_raw/compressedDepth/parameter_updates 
+        /back_down/rgb/camera_info /back_down/rgb/image_raw/compressed 
+        /back_down/rgb/image_raw/compressed/parameter_descriptions 
+        /back_down/rgb/image_raw/compressed/parameter_updates 
       
       /up/depth_registered/camera_info  
         /up/depth_registered/image_raw/compressedDepth
@@ -36,6 +36,8 @@
         /up/rgb/image_raw/compressed/parameter_descriptions 
         /up/rgb/image_raw/compressed/parameter_updates 
       
+      
+      /best_marker /trajectory_marker /costmap_node/costmap
       
         /scan360
         /rssi_nvip_2400

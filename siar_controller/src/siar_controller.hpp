@@ -312,13 +312,6 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
     return -1.0;
   }
   
-  if (fabs(cmd_vel.linear.x) < lin_vel_dec && fabs(last_command.linear.x) < lin_vel_dec*2.0) {
-    cmd_vel.angular.z = 0.0;
-    cmd_vel.linear.x = 0.0;
-    return true;
-  }
-  
-  // Initialize search
   n_commands = 0;
   n_best = -1;
   lowest_cost = 1e100;
@@ -327,15 +320,16 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
   
   // Get test set (different options available)
   std::vector<geometry_msgs::Twist> test_set;
-  if (operation_mode == 2) {
-    test_set = getDiscreteTestSet(cmd_vel.linear.x);
-  } else {
+  if (operation_mode != 0) {
     if (file_test_set_forward.size() > 0) {
       test_set = getTestSetFromFile(cmd_vel.linear.x);
     } else {
       test_set = getAccelTestSet(cmd_vel.linear.x);
     }
   }
+  
+  // Clear the previous marker
+  best.points.resize(0);
   
   markers.markers.resize(test_set.size());
   
@@ -345,7 +339,7 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
   for (unsigned int i = 0; i < test_set.size(); i++) 
   { 
     curr_cmd = test_set.at(i);
-    evaluateAndActualizeBest(cmd_vel, v_ini);
+    evaluateAndActualizeBest(cmd_vel, v_ini); // Actualizes best velocity and best marker
   }
   
   ROS_INFO("End loop: Best command: %f,%f \t Orig command %f, %f",
@@ -504,10 +498,10 @@ std::vector< geometry_msgs::Twist > SiarController::getDiscreteTestSet(double v_
 
 void SiarController::evaluateAndActualizeBest(const geometry_msgs::Twist& cmd_vel, const geometry_msgs::Twist &v_ini)
 {
-  if (operation_mode == 1) 
-    curr_cost = cmd_eval->evualateTrajectory(v_ini, curr_cmd, cmd_vel, last_map, m);
-  else 
-    curr_cost = cmd_eval->evaluateTrajectoryMinVelocity(v_ini, curr_cmd, cmd_vel, last_map, m);
+//  if (operation_mode == 2) 
+  curr_cost = cmd_eval->evualateTrajectory(v_ini, curr_cmd, cmd_vel, last_map, m);
+  //else 
+    //curr_cost = cmd_eval->evaluateTrajectoryMinVelocity(v_ini, curr_cmd, cmd_vel, last_map, m);
     
   if (curr_cost < lowest_cost && curr_cost >= 0.0) {
     best_cmd = curr_cmd;
