@@ -1,9 +1,7 @@
 <?xml version="1.0"?>
 <launch>
   
-  <arg name="nvip_monitor" default="false" />
-  <arg name="serial_port" default="/dev/serial/by-id/usb-Prolific_Technology_Inc._USB-Serial_Controller_D-if00-port0"/>
-  <arg name="baud" default="115200"/>
+  <arg name="nvip_monitor" default="true" />
 
   <!-- Launch nVIP2400 RSSI monitoring if enabled -->
   <node pkg="rssi_get" type="get_rssi_nvip_2400.py" name="rssi_get_node" if="$(arg nvip_monitor)"/>
