@@ -29,17 +29,23 @@ namespace siar_controller {
     void setParameters(double w_dist, double w_safe, double T, const RobotCharacteristics &model, double delta_T = 0.1, SiarFootprint *footprint_p = NULL);
     
     //! @brief Simulates the trajectory during T and generates a cost according to the cost map
-    //! @retval -1.0 --> Collision
+    //! @retval -1.0 --> Collision  . If not collision --> cost of the trajectory (related to risk and difference with respect the user command)
+    //! @param v_ini Initial velocity of the vehicle
+    //! @param v_command  Effective Command which has to be tested
+    //! @param operator_command User's commanded velocity (to evaluate the cost of the difference v_command and operator_command)
+    //! @param alt_map Perceived altitude map of the environment
+    //! @param m (out) Marker that can be used for representing the trajectory in RViz.
     double evualateTrajectory(const geometry_msgs::Twist& v_ini, const geometry_msgs::Twist& v_command, 
                               const geometry_msgs::Twist& operator_command, const nav_msgs::OccupancyGrid& alt_map,
                               visualization_msgs::Marker &m);
     
-    
+    //! @brief Same as EvaluateTrajectory, but when a collision is detected, it returns the minimum command without velocity that holds the same trajectory (same radius of curvature)
     double evaluateTrajectoryMinVelocity(const geometry_msgs::Twist& v_ini, geometry_msgs::Twist& v_command, const geometry_msgs::Twist& operator_command, const nav_msgs::OccupancyGrid& alt_map, visualization_msgs::Marker& m);
     
     //! @brief Destructor
     ~CommandEvaluator();
     
+    //! @brief Gets the characteristics of the model
     inline RobotCharacteristics getCharacteristics() const {return m_model;}
     
     
@@ -56,17 +62,24 @@ namespace siar_controller {
     
     SiarFootprint *footprint, *footprint_params;
     
+    
+    //! @brief Actualizes the value of linear and angular velocities according to the model of the vehicle
+    //! @param v Linear velocity (in-out) (m/s)
+    //! @param w Angular velocity (in-out) (rad/s)
+    //! @param dt Step time (s)
+    //! @param com Commanded velocity (m/s and rad/s)
     inline void computeNewVelocity(double &v, double &w, double dt, const geometry_msgs::Twist &com){
         v = std::min(com.linear.x, v + m_model.a_max * dt * boost::math::sign(com.linear.x - v));
         w = std::min(com.angular.z, w + m_model.a_max_theta * dt * boost::math::sign(com.angular.z - w));
       }
     
-    //! brief Applies the footprint in the altitude map
+    //! @brief Applies the footprint in the altitude map
     //! @param x X coord
     //! @param y Y coord
     //! @param th Theta angle
     //! @param alt_map The altitude map
     //! @param collision (Out parameter) Will become true if a collision is detected
+    //! @param apply_collision If false, the wheel part of the footprint is used. If true, the collision part is used (and only positive obstacles are considered)
     int applyFootprint(double x, double y, double th, 
                        const nav_msgs::OccupancyGrid &alt_map, 
                        bool &collision, bool apply_collision = false);
@@ -225,6 +238,8 @@ double CommandEvaluator::evaluateTrajectoryMinVelocity(const geometry_msgs::Twis
     
     // Actualize the cost
     cont_footprint += applyFootprint(x, y, th, alt_map, collision);
+    if (!collision)
+      applyFootprint(x, y, th, alt_map, collision, true); // Search for positive collisions too
   }
   
   double ret = cont_footprint * m_w_safe + m_w_dist * sqrt(pow(x - operator_command.linear.x * m_T, 2.0) + y*y);
@@ -249,7 +264,6 @@ double CommandEvaluator::evaluateTrajectoryMinVelocity(const geometry_msgs::Twis
 }
 
 
-// TODO: test the conversion between footprint coords and map coords
 int CommandEvaluator::applyFootprint(double x, double y, double th, 
                                      const nav_msgs::OccupancyGrid &alt_map, 
                                      bool &collision, bool apply_collision)
@@ -274,8 +288,8 @@ int CommandEvaluator::applyFootprint(double x, double y, double th,
     if (index > alt_map.data.size() || index < 0) {
       continue;
     }
-    if (alt_map.data[index] == 127) 
-      collision = true; // Collision detected!
+    if (alt_map.data[index] == 127 || (alt_map.data[index] == -127 && !apply_collision)) 
+      collision = true; // Collision detected! (if applying the collision map, only consider positive obstacles)
     
     ret_val += abs(alt_map.data[index]); // TODO: check index and coordinate transform
     

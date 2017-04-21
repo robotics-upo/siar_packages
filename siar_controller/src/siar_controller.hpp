@@ -28,8 +28,10 @@ namespace siar_controller {
 
 class SiarController {
 public:
+  //! @brief Default constructor
   SiarController(ros::NodeHandle &nh, ros::NodeHandle &pn);
   
+  //! @brief Gets the best command
   bool computeCmdVel(geometry_msgs::Twist &cmd, const geometry_msgs::Twist &v_ini);
   
   ~SiarController();
@@ -77,6 +79,8 @@ protected:
   double lowest_cost, curr_cost;
   geometry_msgs::Twist best_cmd, curr_cmd;
   int n_commands, n_best;
+  
+  //! @brief Evaluates a command and then actualizes the best velocity so far if necessary
   void evaluateAndActualizeBest(const geometry_msgs::Twist& cmd_vel, const geometry_msgs::Twist &v_ini);
 
   // Callbacks  
@@ -86,18 +90,21 @@ protected:
   void odomCallback(const nav_msgs::Odometry &msg);
   void modeCallback(const std_msgs::Int8 &msg);
   
-  // Get parameters from parameter server
+  //! @brief Get parameters from parameter server
   void getParameters(ros::NodeHandle &pn);
   
-  // Get the test velocity set 
+  //! @brief Get the test velocity set 
   std::vector <geometry_msgs::Twist> getAccelTestSet(double v_x);
+  //! @brief Initializes the discrete_test_set_forward and discrete_test_set_backward according to the configuration information
   void initializeDiscreteTestSet();
+  //! @brief Retrieves the file_test_set_forward and backward from file (the filename is specified in the configuration)
   void initializeTestSetFromFile(const std::string &velocityset_filename, int n_interpol = 1);
   
   bool file_test_set_init;
   std::vector <geometry_msgs::Twist> discrete_test_set_forward, discrete_test_set_backward;
   std::vector <geometry_msgs::Twist> file_test_set_forward, file_test_set_backward;
   
+  //! @brief Adds a velocity to the forward test, the same velocity with opposite angular velocity. Then does the same to backward test but changing the sign of v.x
   void addVelocityToTestSets(const geometry_msgs::Twist &v, std::vector<geometry_msgs::Twist> &set_forward, std::vector<geometry_msgs::Twist> &set_backward);
   
   void loop();
