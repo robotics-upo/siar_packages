@@ -11,24 +11,37 @@
 #include <ros/ros.h>
 #include <boost/thread.hpp>
 #include <vector>
+#include <list>
 
 #include <boost/asio.hpp>
 using boost::asio::ip::udp;
+
+struct Message_ 
+{
+  std::vector <uint8_t> vec;
+  uint32_t id;
+  uint32_t size;
+  std::string topic;
+  uint32_t received; // Number of bytes received
+  uint16_t crc;
+};
 
 class UDPManager
 {
 public:
 
   //!Intialize the serial port to the given values
-  UDPManager():max_udp_length(1400),header("UDPHEAD"),max_length(200000L),running(false)
+  UDPManager():max_udp_length(1460),max_topic_length(256), max_msgs(5),header("UDPHEAD"),max_length(200000L),running(false) 
   {
-    ROS_INFO("In UDPManager()");
+//     ROS_INFO("In UDPManager()");
+    buf_s = new uint8_t[max_udp_length];
   }
   
   //!Default destructor
   ~UDPManager()
   {
     endSession();
+    delete[] buf_s;
   }
   
   //!Intialize the serial port to the given values
@@ -66,15 +79,20 @@ public:
   }
 
 protected:
+  std::list<Message_> msg_list; // List with the message to be processed
+  
 
-  //!Read (blocking) a complete message from the stream port
-  int readMessage(std::string &topic, std::vector<uint8_t> &msg, uint32_t max_topic_length = 256)
+  //!Reads a chunk and returns a message if a message has been completed
+  int getChunk(std::string &topic, std::vector <uint8_t> &msg)
   {
     int i;
     int err;
     int cont = 0;
     uint16_t crc;
     uint32_t size = 1;
+    uint32_t id;
+    
+    bool msg_complete = false;
     
     std::vector <uint8_t> msg_chunk;
     msg_chunk.resize(max_udp_length);
@@ -86,57 +104,102 @@ protected:
     bool header_found = false;
     try 
     {
-      
-      for(int cont_ant = cont;cont < size; cont_ant = cont) 
-      {
-        size_t len = socket_ptr->receive_from(boost::asio::buffer(msg_chunk.data(), max_udp_length), sender_endpoint);
-        if (len > header.size()) 
-        {
-          std::string possible_header((const char *)msg_chunk.data(), header.size());
+      size_t len = socket_ptr->receive_from(boost::asio::buffer(msg_chunk.data(), max_udp_length), sender_endpoint);
+      if (len > header.size()) 
+      { 
+        // Check if a new message has arrived
+        std::string possible_header((const char *)msg_chunk.data(), header.size());
           
-          if (header == possible_header) 
+        if (header == possible_header) 
+        {
+          header_found = true;
+          topic.clear();
+          // Get the important info
+          i = header.size();
+          char c = msg_chunk.at(i);
+          for (; c != ',' && i < max_topic_length ;i++, c = msg_chunk.at(i)) 
           {
-            header_found = true;
-            topic.clear();
-            // Get the important info
-            i = header.size();
-            char c = msg_chunk.at(i);
-            for (; c != ',' && i < max_topic_length ;i++, c = msg_chunk.at(i)) 
-            {
-              topic += c;
-            }
-            if (i >= max_topic_length) {
-              return -1;
-            }
+            topic += c;
+          }
+          if (i >= max_topic_length) {
+            return -1;
+          }
+          i++; 
+          size = *(uint32_t* ) (msg_chunk.data() + i);
+          i += 4;
+          id = *(uint32_t* ) (msg_chunk.data() + i);
+          i += 4;
+          ROS_INFO ("Got a message: size = %u. Topic: %s", size, topic.c_str());
             
-            size = *(uint32_t* ) (msg_chunk.data() + i + 1);
-            ROS_INFO ("Got a message: size = %u. Topic: %s", size, topic.c_str());
+          if (size > max_length) {
+            ROS_INFO("Max message length exceeded. Dropping");
+            return -1;
+          }
+          msg.resize(size);
             
-            if (size > max_length) {
-              ROS_INFO("Max message length exceeded. Dropping");
-              return -1;
+          // Get the crc16
+          crc = *(uint16_t *)(msg_chunk.data() + i);
+          i += 2;
+            
+          // Get the data
+          msg.resize(size);
+          for (; i < msg_chunk.size(); i++, cont++) {
+            msg[cont] = msg_chunk[i];
+          }
+          
+          if (abs(cont - size) < 2) {
+            // All the data has been retrieved --> return a non-negative number
+            msg_complete = true;
+          } else {
+            Message_ m;
+            m.vec = msg;
+            m.id = id;
+            m.topic = topic;
+            m.size = size;
+            m.crc = crc;
+            m.received = max_udp_length - topic.size() - 11;
+            
+            msg_list.push_back(m);
+            
+            if (msg_list.size() > max_msgs) 
+              msg_list.erase(msg_list.begin()); // If the buffer size is surpassed --> erase the oldest msg
+       
+          }
+        }
+      }
+      
+      if (!header_found)  // Not a header --> the message is not the first of one topic
+      {
+        // Find the existing message (if any)
+        // We have now a non-header block, try to append it to the existing info
+        id = *(uint32_t* ) (msg_chunk.data());
+        int cont_msg = 0;
+        for (auto it: msg_list) {
+          if (it.id == id) { 
+            // Found
+            uint32_t cont_ant = *(uint32_t* ) (msg_chunk.data() + 4); // Get the position
+            
+            memcpy(it.vec.data() + cont_ant, msg_chunk.data() + 8, len - 8);
+            it.received += len - 8;
+            if (it.received == it.size) {
+              // All the data has been received --> mark it
+              msg = it.vec;
+              msg_complete = true;
+              topic = it.topic;
+              size = it.size;
             }
-            msg.resize(size);
-            
-            // Get the crc16
-            crc = *(uint16_t *)(msg_chunk.data() + i + 5);
-            
-            // Get the data
-            msg.resize(size);
-            for (i = i + 7; i < msg_chunk.size(); i++, cont++) {
-              msg[cont] = msg_chunk[i];
-            }
-          } 
-          else if (header_found)
-	  {
-	    // We have now a non-header block, try to append it to the existing info
-	    cont += len;
-	    for (i = 0;cont_ant < cont && cont_ant < size; cont_ant++, i++) 
-	    {
-	      msg[cont_ant] = msg_chunk[i];
-	    }
-	  }
-        } 
+          }
+          cont_msg++;
+        }
+        
+        // Delete the message from the list
+        std::list<Message_>::iterator it_ = msg_list.begin();
+        
+        for (int cont_2 = 0;it_ != msg_list.end() && cont_2 < cont_msg;cont_2++, it_++) {
+          
+          
+        }
+        msg_list.erase(it_);
         
       }
       
@@ -145,7 +208,15 @@ protected:
         ROS_INFO("Bad CRC");
         return -1;
       }
-      ROS_INFO("CRC ok!");
+      
+      if (!msg_complete) {
+        return -2;
+      }
+      
+      if (msg_complete) {
+        return msg.size();
+        
+      }
     } 
     catch (std::exception &e) 
     {
@@ -166,11 +237,31 @@ protected:
   //! @brief Sends a message, breaks it into pieces if necessary (max_size)
   int blocking_write(const uint8_t* buf, uint32_t size) {
     int ret_val = size;
-    int cont = 0;
+    uint32_t id = msg_sent;
+    uint32_t cont = 0; // Counts bytes of real info (without headers)
     boost::system::error_code ignored_error;
+    
+    int total_header_size = header.size() + 11;
+    
+    memcpy(buf_s, &id, 4);
     try {
-      for (;cont < size; cont += max_udp_length) {
-        socket_ptr->send_to( boost::asio::buffer(buf + cont, max_udp_length), remote_endpoint, 0, ignored_error);
+      // Send the first chunk
+      int sending_bytes = max_udp_length - total_header_size; // Bytes without headers sent
+      if (sending_bytes > size) {
+        sending_bytes = size;
+      }
+      socket_ptr->send_to( boost::asio::buffer(buf, sending_bytes + total_header_size), remote_endpoint, 0, ignored_error);
+      cont += max_udp_length - total_header_size;
+      
+      sending_bytes = max_udp_length - 8;
+      for (;cont < size; cont += max_udp_length - 8) {
+        if ( size - cont < sending_bytes) {
+          sending_bytes = size - cont;
+        }
+        memcpy(buf_s + 4, &cont, 4);
+        memcpy(buf_s + 8, buf + cont + total_header_size, sending_bytes);
+        
+        socket_ptr->send_to( boost::asio::buffer(buf_s, sending_bytes + 8), remote_endpoint, 0, ignored_error);
       }
     } 
     catch (std::exception &e)
@@ -246,15 +337,17 @@ protected:
       memcpy(buffer.data() + header.size(), topic.c_str(), topic.size());
       *(buffer.data() + header.size() + topic.size()) = ',';
       memcpy(buffer.data() + header.size() + topic.size() + 1, &size, 4);
+      memcpy(buffer.data() + header.size() + topic.size() + 5, &msg_sent, 4);
       
       // Insert data (at the end of the message
-      ros::serialization::OStream stream(buffer.data() + topic.size() + header.size() + 7, size);
+      ros::serialization::OStream stream(buffer.data() + topic.size() + header.size() + 11, size);
       ros::serialization::Serializer<T>::write(stream, msg);
       
       // Insert CRC 
-      uint16_t crc = crc16(buffer.data() + topic.size() + header.size() + 7, size);
-      memcpy(buffer.data() + topic.size() + header.size() + 5, &crc, 2);
+      uint16_t crc = crc16(buffer.data() + topic.size() + header.size() + 11, size);
+      memcpy(buffer.data() + topic.size() + header.size() + 9, &crc, 2);
       ret_val = writeMessage(topic, buffer);
+      msg_sent++;
     } 
     catch (std::exception &e) 
     {
@@ -266,12 +359,15 @@ protected:
   //! Thread to read from serial port
   virtual void readThread() = 0;
   
-  //! UDP stuff
-  int max_udp_length;
+  //! UDP stuff 
+  int max_udp_length, max_topic_length;
+  int max_msgs; // Max messages in msg_list
   int port;
+  uint32_t msg_sent;
   boost::shared_ptr<udp::socket> socket_ptr;
   boost::asio::io_service io_service;
   udp::endpoint remote_endpoint;
+  uint8_t *buf_s;
   
   //! Reading thread handler
   boost::thread readThreadHandler;
