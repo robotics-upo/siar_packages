@@ -264,13 +264,13 @@ protected:
       if (sending_bytes > size) {
         sending_bytes = size;
       }
-      socket_ptr->send_to( boost::asio::buffer(buf, sending_bytes + total_header_size), remote_endpoint, 0, ignored_error);
+      socket_ptr->send_to( boost::asio::buffer(buf, sending_bytes), remote_endpoint, 0, ignored_error);
       cont += max_udp_length - total_header_size;
       
       sending_bytes = max_udp_length - 8;
-      for (;cont < size; cont += max_udp_length - 8) {
-        if ( size - cont < sending_bytes) {
-          sending_bytes = size - cont;
+      for (;cont < size - total_header_size; cont += max_udp_length - 8) {
+        if ( size - total_header_size - cont < sending_bytes) {
+          sending_bytes = size - total_header_size - cont;
         }
         memcpy(buf_s + 4, &cont, 4);
         memcpy(buf_s + 8, buf + cont + total_header_size, sending_bytes);
