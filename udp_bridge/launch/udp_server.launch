@@ -9,9 +9,20 @@
   <arg name="depth_rate" default="2"/>
   <arg name="jpeg_quality" default="25"/>
   <arg name="odom_cam_topic" default="/rgbd_odom_node/odom"/>
+  <arg name="debug" default="false"/>
   
-  <!-- Launch web videoserver -->
- <node pkg="udp_bridge" type="udp_server" name="udp_server" output="screen" launch-prefix="xterm -e gdb --args">
+  <!-- Launch UDP BRIDGE-->
+ <node pkg="udp_bridge" type="udp_server" name="udp_server" output="screen" launch-prefix="xterm -e gdb --args" unless="$(arg debug)">
+   <param name="camera_1"  value="$(arg camera_1)"/>
+   <param name="camera_2"  value="$(arg camera_2)"/>
+   <param name="image_rate" value="$(arg image_rate)"/>
+   <param name="depth_rate" value="$(arg depth_rate)"/>
+   <param name="jpeg_quality" value="$(arg jpeg_quality)"/>
+   <param name="odom_topic_2" value="$(arg odom_cam_topic)"/>
+ </node> 
+  
+  
+ <node pkg="udp_bridge" type="udp_server" name="udp_server" output="screen" launch-prefix="xterm -e gdb --args" if="$(arg debug)">
    <param name="camera_1"  value="$(arg camera_1)"/>
    <param name="camera_2"  value="$(arg camera_2)"/>
    <param name="image_rate" value="$(arg image_rate)"/>
