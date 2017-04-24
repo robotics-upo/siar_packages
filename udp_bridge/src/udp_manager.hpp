@@ -158,11 +158,11 @@ protected:
             m.topic = topic;
             m.size = size;
             m.crc = crc;
-            m.received = max_udp_length - topic.size() - 11;
+            m.received = len - header.size() - topic.size() - 11;
             
             msg_list.push_back(m);
             
-            ROS_INFO("Message list size: %u", (unsigned int)msg_list.size());
+            ROS_INFO("First chunk of message received. Received bytes: %d", (int)m.received);
             
             if (msg_list.size() > max_msgs) 
               msg_list.erase(msg_list.begin()); // If the buffer size is surpassed --> erase the oldest msg
@@ -260,12 +260,12 @@ protected:
     memcpy(buf_s, &id, 4);
     try {
       // Send the first chunk
-      int sending_bytes = max_udp_length - total_header_size; // Bytes without headers sent
+      int sending_bytes = max_udp_length; // Bytes sent
       if (sending_bytes > size) {
         sending_bytes = size;
       }
       socket_ptr->send_to( boost::asio::buffer(buf, sending_bytes), remote_endpoint, 0, ignored_error);
-      cont += max_udp_length - total_header_size;
+      cont += sending_bytes - total_header_size; // We have to discount the header size
       
       sending_bytes = max_udp_length - 8;
       for (;cont < size - total_header_size; cont += max_udp_length - 8) {
