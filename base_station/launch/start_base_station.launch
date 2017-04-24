@@ -3,7 +3,8 @@
   
   <arg name="joystick" default="true"/>
   <arg name="emulate_laser" default="true"/>
-
+  <arg name="ip_address" default="192.168.10.11"/>
+  
   <!-- TF stuff (only odom is going through the wifi) -->
   <include file="$(find siar_driver)/launch/sensor_transform_siar_4_cam.launch"/>
   <node pkg="odom_to_tf" type="odom_to_tf.py" name="odom_to_tf"/>
@@ -17,7 +18,9 @@
   </include>
   
   <!-- Communication stuff -->
-  <include file="$(find udp_bridge)/launch/udp_client.launch"/>
+  <include file="$(find udp_bridge)/launch/udp_client.launch">
+    <arg name="ip_address" value="$(arg ip_address)"/>
+  </include>
   
   <!-- Point cloud generation -->
   <node name="uncompresser" pkg="image_transport" type="republish"
