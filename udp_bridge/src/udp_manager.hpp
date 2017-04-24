@@ -31,7 +31,7 @@ class UDPManager
 public:
 
   //!Intialize the serial port to the given values
-  UDPManager():max_udp_length(1460),max_topic_length(256), max_msgs(5),header("UDPHEAD"),max_length(200000L),running(false) 
+  UDPManager():max_udp_length(1460),max_topic_length(256), max_msgs(5),msg_sent(0),header("UDPHEAD"),max_length(200000L),running(false) 
   {
 //     ROS_INFO("In UDPManager()");
     buf_s = new uint8_t[max_udp_length];
@@ -129,7 +129,7 @@ protected:
           i += 4;
           id = *(uint32_t* ) (msg_chunk.data() + i);
           i += 4;
-          ROS_INFO ("Got a message: size = %u. Topic: %s", size, topic.c_str());
+          ROS_INFO ("Got a message: len = %d, size = %u. id = %d, Topic: %s", (int)len, size, (int)id, topic.c_str());
             
           if (size > max_length) {
             ROS_INFO("Max message length exceeded. Dropping");
@@ -143,12 +143,13 @@ protected:
             
           // Get the data
           msg.resize(size);
-          for (; i < msg_chunk.size(); i++, cont++) {
+          for (; i < len; i++, cont++) {
             msg[cont] = msg_chunk[i];
           }
-          
+          ROS_INFO("Cont: %d \t Size: %d", (int)cont, (int)size);
           if (abs(cont - size) < 2) {
             // All the data has been retrieved --> return a non-negative number
+            ROS_INFO("Got a message composed by one datagram. Topic = %s. Size = %d", topic.c_str(), (int)size);
             msg_complete = true;
           } else {
             Message_ m;
@@ -176,36 +177,47 @@ protected:
         // We have now a non-header block, try to append it to the existing info
         id = *(uint32_t* ) (msg_chunk.data());
         int cont_msg = 0;
-        for (auto it: msg_list) {
-          if (it.id == id) { 
+        ROS_INFO("Received a message that is not a header. ID : %d", (int)id);
+        std::list<Message_>::iterator it = msg_list.begin();
+      
+        for (;it != msg_list.end();it++) {
+          if (it->id == id) { 
             // Found
             uint32_t cont_ant = *(uint32_t* ) (msg_chunk.data() + 4); // Get the position
             
-            memcpy(it.vec.data() + cont_ant, msg_chunk.data() + 8, len - 8);
-            it.received += len - 8;
-            if (it.received == it.size) {
+            memcpy(it->vec.data() + cont_ant, msg_chunk.data() + 8, len - 8);
+            it->received += len - 8;
+            if (it->received == it->size) {
               // All the data has been received --> mark it
-              msg = it.vec;
+              ROS_INFO("Completed a message. Topic %s. Size = %d", it->topic.c_str(), (int)it->size);
+              msg = it->vec;
               msg_complete = true;
-              topic = it.topic;
-              size = it.size;
+              topic = it->topic;
+              size = it->size;
+            } else {
+              ROS_INFO("Message not completed. Topic %s. Cont_ant = %d. Received = %d", it->topic.c_str(), (int)cont_ant, (int)it->received);
             }
           }
+          
           cont_msg++;
         }
         
-        // Delete the message from the list
-        std::list<Message_>::iterator it_ = msg_list.begin();
         
-        for (int cont_2 = 0;it_ != msg_list.end() && cont_2 < cont_msg;cont_2++, it_++) {
+        if (msg_complete) {
+          // Delete the message from the list
+          std::list<Message_>::iterator it_ = msg_list.begin();
+        
+          for (int cont_2 = 0;it_ != msg_list.end() && cont_2 < cont_msg;cont_2++, it_++) {
           
           
+          }
+          if (it_ != msg_list.end())
+            msg_list.erase(it_);
         }
-        msg_list.erase(it_);
         
       }
       
-      if (crc16(msg.data(), msg.size()) != crc) 
+      if (crc16(msg.data(), msg.size()) != crc && msg_complete) 
       {
         ROS_INFO("Bad CRC");
         return -1;
@@ -232,18 +244,18 @@ protected:
   int writeMessage(const std::string &topic, const std::vector<uint8_t> &msg)
   {
     boost::system::error_code ignored_error;
-    blocking_write(msg.data(), msg.size());
+    blocking_write(msg.data(), msg.size(), topic.size());
     return msg.size();
   }
   
   //! @brief Sends a message, breaks it into pieces if necessary (max_size)
-  int blocking_write(const uint8_t* buf, uint32_t size) {
+  int blocking_write(const uint8_t* buf, uint32_t size, uint32_t topic_size) {
     int ret_val = size;
     uint32_t id = msg_sent;
     uint32_t cont = 0; // Counts bytes of real info (without headers)
     boost::system::error_code ignored_error;
     
-    int total_header_size = header.size() + 11;
+    int total_header_size = header.size() + 11 + topic_size;
     
     memcpy(buf_s, &id, 4);
     try {
