@@ -176,7 +176,6 @@ protected:
         // Find the existing message (if any)
         // We have now a non-header block, try to append it to the existing info
         id = *(uint32_t* ) (msg_chunk.data());
-        int cont_msg = 0;
         ROS_INFO("Received a message that is not a header. ID : %d", (int)id);
         std::list<Message_>::iterator it = msg_list.begin();
       
@@ -194,27 +193,15 @@ protected:
               msg_complete = true;
               topic = it->topic;
               size = it->size;
+              msg_list.erase(it);
+              crc = it->crc;
+              break;
             } else {
               ROS_INFO("Message not completed. Topic %s. Cont_ant = %d. Received = %d", it->topic.c_str(), (int)cont_ant, (int)it->received);
             }
           }
           
-          cont_msg++;
         }
-        
-        
-        if (msg_complete) {
-          // Delete the message from the list
-          std::list<Message_>::iterator it_ = msg_list.begin();
-        
-          for (int cont_2 = 0;it_ != msg_list.end() && cont_2 < cont_msg;cont_2++, it_++) {
-          
-          
-          }
-          if (it_ != msg_list.end())
-            msg_list.erase(it_);
-        }
-        
       }
       
       if (crc16(msg.data(), msg.size()) != crc && msg_complete) 
@@ -228,6 +215,7 @@ protected:
       }
       
       if (msg_complete) {
+        ROS_INFO("Message OK");
         return msg.size();
         
       }

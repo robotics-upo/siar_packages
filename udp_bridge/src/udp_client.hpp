@@ -214,7 +214,7 @@ protected:
     while(ros::ok())
     {
       topic.clear();
-      if(getChunk(topic, buffer) != 0) 
+      if(getChunk(topic, buffer) == -2) 
         continue;
       
       // Deserialize and publish
