@@ -11,7 +11,7 @@
   <arg name="odom_cam_topic" default="/rgbd_odom_node/odom"/>
   
   <!-- Launch web videoserver -->
- <node pkg="udp_bridge" type="udp_server" name="udp_server" output="screen">
+ <node pkg="udp_bridge" type="udp_server" name="udp_server" output="screen" launch-prefix="xterm -e gdb --args">
    <param name="camera_1"  value="$(arg camera_1)"/>
    <param name="camera_2"  value="$(arg camera_2)"/>
    <param name="image_rate" value="$(arg image_rate)"/>
