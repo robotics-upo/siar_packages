@@ -161,6 +161,8 @@ protected:
             
             msg_list.push_back(m);
             
+            ROS_INFO("Message list size: %u", (unsigned int)msg_list.size());
+            
             if (msg_list.size() > max_msgs) 
               msg_list.erase(msg_list.begin()); // If the buffer size is surpassed --> erase the oldest msg
        
@@ -330,7 +332,7 @@ protected:
     {
       // Size of the buffer: msg, header, topicname, 4 of size, 2 of CRC and 1 of end of topic name
       uint32_t size = ros::serialization::Serializer<T>::serializedLength(msg);
-      std::vector<uint8_t> buffer(size + topic.size() + header.size() + 7); 
+      std::vector<uint8_t> buffer(size + topic.size() + header.size() + 11); 
       
       // Insert header and topic name
       memcpy(buffer.data(), header.c_str(), header.size());
