@@ -31,10 +31,11 @@ class UDPManager
 public:
 
   //!Intialize the serial port to the given values
-  UDPManager():max_udp_length(1460),max_topic_length(256), max_msgs(5),msg_sent(0),header("UDPHEAD"),max_length(200000L),running(false) 
+  UDPManager():max_udp_length(1460),max_topic_length(256), max_msgs(5),msg_sent(0),header("UDPHEAD"),start("UDPSTART"),max_length(200000L),max_time(1),running(false) 
   {
 //     ROS_INFO("In UDPManager()");
     buf_s = new uint8_t[max_udp_length];
+    timer_.reset(new boost::asio::deadline_timer(io_service));
   }
   
   //!Default destructor
@@ -104,8 +105,30 @@ protected:
     bool header_found = false;
     try 
     {
-      size_t len = socket_ptr->receive_from(boost::asio::buffer(msg_chunk.data(), max_udp_length), sender_endpoint);
-      if (len > header.size()) 
+      bad_read = true;
+      socket_ptr->async_receive_from(
+      boost::asio::buffer(msg_chunk.data(), max_udp_length), sender_endpoint,
+      boost::bind(&UDPManager::handle_receive_from, this,
+      boost::asio::placeholders::error,
+      boost::asio::placeholders::bytes_transferred));
+
+      timer_->expires_from_now(boost::posix_time::seconds(max_time));
+      timer_->async_wait(boost::bind(&UDPManager::cancel, this));
+      
+      if (bad_read) {
+        return -3; // Cont expired or error in transmission
+      }
+      
+      bool is_start = false;
+      
+      if (len == start.size()) {
+        std::string possible_start((const char *)msg_chunk.data(), start.size());
+        if (start == possible_start) {
+          ROS_INFO("Ignoring start message");
+          is_start = true;
+        }
+      } 
+      if (len > header.size() && !is_start) 
       { 
         // Check if a new message has arrived
         std::string possible_header((const char *)msg_chunk.data(), header.size());
@@ -129,10 +152,10 @@ protected:
           i += 4;
           id = *(uint32_t* ) (msg_chunk.data() + i);
           i += 4;
-          ROS_INFO ("Got a message: len = %d, size = %u. id = %d, Topic: %s", (int)len, size, (int)id, topic.c_str());
+//           ROS_INFO ("Got a message: len = %d, size = %u. id = %d, Topic: %s", (int)len, size, (int)id, topic.c_str());
             
           if (size > max_length) {
-            ROS_INFO("Max message length exceeded. Dropping");
+//             ROS_INFO("Max message length exceeded. Dropping");
             return -1;
           }
           msg.resize(size);
@@ -146,10 +169,10 @@ protected:
           for (; i < len; i++, cont++) {
             msg[cont] = msg_chunk[i];
           }
-          ROS_INFO("Cont: %d \t Size: %d", (int)cont, (int)size);
+//           ROS_INFO("Cont: %d \t Size: %d", (int)cont, (int)size);
           if (abs(cont - size) < 2) {
             // All the data has been retrieved --> return a non-negative number
-            ROS_INFO("Got a message composed by one datagram. Topic = %s. Size = %d", topic.c_str(), (int)size);
+//             ROS_INFO("Got a message composed by one datagram. Topic = %s. Size = %d", topic.c_str(), (int)size);
             msg_complete = true;
           } else {
             Message_ m;
@@ -171,12 +194,12 @@ protected:
         }
       }
       
-      if (!header_found)  // Not a header --> the message is not the first of one topic
+      if (!header_found && !is_start)  // Not a header --> the message is not the first of one topic
       {
         // Find the existing message (if any)
         // We have now a non-header block, try to append it to the existing info
         id = *(uint32_t* ) (msg_chunk.data());
-        ROS_INFO("Received a message that is not a header. ID : %d", (int)id);
+//         ROS_INFO("Received a message that is not a header. ID : %d", (int)id);
         std::list<Message_>::iterator it = msg_list.begin();
       
         for (;it != msg_list.end();it++) {
@@ -197,7 +220,7 @@ protected:
               crc = it->crc;
               break;
             } else {
-              ROS_INFO("Message not completed. Topic %s. Cont_ant = %d. Received = %d", it->topic.c_str(), (int)cont_ant, (int)it->received);
+//               ROS_INFO("Message not completed. Topic %s. Cont_ant = %d. Received = %d", it->topic.c_str(), (int)cont_ant, (int)it->received);
             }
           }
           
@@ -228,12 +251,38 @@ protected:
     return 0;
   }
   
+  void handle_receive_from(const boost::system::error_code& err,
+      size_t length)
+  {
+    if (err)
+    {
+      bad_read = true;
+    }
+    else
+    {
+      bad_read = false;
+      len = length;
+    }
+    timer_ -> cancel();
+  }
+  
+  void cancel()
+  {
+    bad_read = true;
+    socket_ptr->cancel();
+  }
+  
   //!Write a complete message. If congestion is detected --> blocks transmission (if not secure)
   int writeMessage(const std::string &topic, const std::vector<uint8_t> &msg)
   {
     boost::system::error_code ignored_error;
     blocking_write(msg.data(), msg.size(), topic.size());
     return msg.size();
+  }
+  
+  size_t simple_write(const uint8_t* buf, uint32_t size) {
+    boost::system::error_code ignored_error;
+    return socket_ptr->send_to(boost::asio::buffer(buf, size), remote_endpoint, 0, ignored_error);
   }
   
   //! @brief Sends a message, breaks it into pieces if necessary (max_size)
@@ -362,8 +411,8 @@ protected:
   virtual void readThread() = 0;
   
   //! UDP stuff 
-  int max_udp_length, max_topic_length;
-  int max_msgs; // Max messages in msg_list
+  const int max_udp_length, max_topic_length;
+  const int max_msgs; // Max messages in msg_list
   int port;
   uint32_t msg_sent;
   boost::shared_ptr<udp::socket> socket_ptr;
@@ -375,13 +424,18 @@ protected:
   boost::thread readThreadHandler;
   boost::mutex time_mutex;
   
-  //! Header 
-  std::string header;
+  //! Header and start strings
+  const std::string header, start;
   
-  uint32_t max_length;
+  const uint32_t max_length;
+  const int max_time;
   
   //! Running flag
   bool running;
+  bool bad_read;
+  size_t len;
+  
+  boost::shared_ptr<boost::asio::deadline_timer> timer_;
 };
 
 

@@ -189,8 +189,7 @@ virtual bool startSession()
 
     // Start comms TODO: Wait for server response?
 //     ROS_INFO("Starting comms 2");
-    boost::array<char, 1> send_buf  = { 0 };
-    socket_ptr->send_to(boost::asio::buffer(send_buf), remote_endpoint);
+    socket_ptr->send_to(boost::asio::buffer(start.data(), start.size()), remote_endpoint);
 //     ROS_INFO("Comms started");
   }
   catch (std::exception &e) 
@@ -214,7 +213,7 @@ protected:
     while(ros::ok())
     {
       topic.clear();
-      if(getChunk(topic, buffer) == -2) 
+      if(getChunk(topic, buffer) != 0) 
         continue;
       
       // Deserialize and publish

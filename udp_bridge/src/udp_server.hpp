@@ -146,12 +146,27 @@ public:
   virtual bool startSession() {
     try
     {
-      boost::array<char, 1> recv_buf;
+      std::vector<uint8_t> buffer;
+      buffer.resize(max_udp_length);
       socket_ptr.reset( new udp::socket(io_service, udp::endpoint(udp::v4(), port)) );
       
       boost::system::error_code error;
       ROS_INFO("Waiting for the client");
-      socket_ptr->receive_from(boost::asio::buffer(recv_buf), remote_endpoint, 0, error);
+      
+      std::string s;
+      
+      while (s != start) {
+        size_t len = socket_ptr->receive_from(boost::asio::buffer(buffer, max_udp_length), remote_endpoint, 0, error);
+        
+        if (len == start.size()) {
+          std::string s;
+          s.resize(len);
+          for (size_t i = 0; i < len; i++) {
+            s.at(i) = buffer[i];
+          }
+          
+        }
+      }
       ROS_INFO("Client found!");
       
       if (error && error != boost::asio::error::message_size) 
