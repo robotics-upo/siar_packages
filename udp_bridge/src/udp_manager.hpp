@@ -113,9 +113,12 @@ protected:
       boost::asio::placeholders::bytes_transferred));
 
       timer_->expires_from_now(boost::posix_time::seconds(max_time));
-      timer_->async_wait(boost::bind(&UDPManager::cancel, this));
+      ROS_INFO("Waiting for timer");
+      timer_->wait();
+      ROS_INFO("Timer expired");
       
       if (bad_read) {
+        socket_ptr->cancel();
         return -3; // Cont expired or error in transmission
       }
       
@@ -262,15 +265,16 @@ protected:
     {
       bad_read = false;
       len = length;
+      ROS_INFO("Received a message of length: %d", (int)len);
     }
     timer_ -> cancel();
   }
   
-  void cancel()
-  {
-    bad_read = true;
-    socket_ptr->cancel();
-  }
+//   void cancel()
+//   {
+//     bad_read = true;
+//     socket_ptr->cancel();
+//   }
   
   //!Write a complete message. If congestion is detected --> blocks transmission (if not secure)
   int writeMessage(const std::string &topic, const std::vector<uint8_t> &msg)
