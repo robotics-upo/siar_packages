@@ -159,12 +159,12 @@ public:
         size_t len = socket_ptr->receive_from(boost::asio::buffer(buffer, max_udp_length), remote_endpoint, 0, error);
         
         if (len == start.size()) {
-          std::string s;
+
           s.resize(len);
           for (size_t i = 0; i < len; i++) {
             s.at(i) = buffer[i];
           }
-          
+          ROS_INFO("About to start a session. Received: %s", s.c_str());
         }
       }
       ROS_INFO("Client found!");
