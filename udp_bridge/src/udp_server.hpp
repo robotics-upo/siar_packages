@@ -289,12 +289,17 @@ protected:
     std::vector<uint8_t> buffer;
     buffer.reserve(max_length);
     
-    while(ros::ok())
+    while(ros::ok() && running)
     {
       // Read one message from serial port
       topic.clear();
-      if(getChunk(topic, buffer) < 0) 
+      int result = getChunk(topic, buffer);
+      if(result < 0) {
+        if (result == -3) 
+          running = false;
         continue;
+      }
+        
       
       // Deserialize and publish
       if (topic == allCamerasTopic) {
