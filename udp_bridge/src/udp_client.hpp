@@ -179,8 +179,11 @@ virtual bool startSession()
 {
   try
   {
+    msg_list.clear();
+    msg_sent = 0;
     ROS_INFO("Starting comms. Ip = %s. Port = %d", ip_address.c_str(), port);
     udp::resolver resolver(io_service);
+    timer_.reset(new boost::asio::deadline_timer(io_service));
     udp::resolver::query query(udp::v4(), ip_address.c_str(), boost::to_string(port).c_str());
     remote_endpoint = *resolver.resolve(query);
 
@@ -200,6 +203,8 @@ virtual bool startSession()
     
   return true;
 }
+
+
   
   
 protected:
@@ -210,11 +215,17 @@ protected:
     std::vector<uint8_t> buffer;
     buffer.reserve(max_length);
     
-    while(ros::ok())
+    socket_ptr->send_to(boost::asio::buffer(start.data(), start.size()), remote_endpoint);
+    
+    while(ros::ok() && running)
     {
       topic.clear();
-      if(getChunk(topic, buffer) != 0) 
+      int result = getChunk(topic, buffer);
+      if(result < 0) {
+        if (result == -3) // Timeout
+          running = false;
         continue;
+      }
       
       // Deserialize and publish
       if(topic == imageTopic) 

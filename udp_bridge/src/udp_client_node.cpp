@@ -11,9 +11,19 @@ int main( int argc, char **argv)
   {
     ROS_INFO("In udp client node");
     // Setup udp client node
-    UDPClient client;
+    UDPClient *client = new UDPClient;
     // ROS spin forever
-    ros::spin();
+    while (ros::ok()) {
+      if (client->isRunning()) {
+        ros::spinOnce();
+      } else {
+        sleep(5);
+        delete client;
+        client = new UDPClient;
+      }
+      
+    }
+    delete client;
   }    
   catch (std::exception& e)
   {

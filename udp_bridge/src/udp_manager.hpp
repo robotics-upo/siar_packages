@@ -31,11 +31,10 @@ class UDPManager
 public:
 
   //!Intialize the serial port to the given values
-  UDPManager():max_udp_length(1460),max_topic_length(256), max_msgs(5),msg_sent(0),header("UDPHEAD"),start("UDPSTART"),max_length(200000L),max_time(1),running(false) 
+  UDPManager():max_udp_length(1460),max_topic_length(256), max_msgs(5),msg_sent(0),header("UDPHEAD"),start("UDPSTART"),max_length(200000L),max_time(10),running(false) 
   {
 //     ROS_INFO("In UDPManager()");
     buf_s = new uint8_t[max_udp_length];
-    timer_.reset(new boost::asio::deadline_timer(io_service));
   }
   
   //!Default destructor
@@ -105,7 +104,9 @@ protected:
     bool header_found = false;
     try 
     {
+      timeout = false;
       bad_read = true;
+      received = false;
       socket_ptr->async_receive_from(
       boost::asio::buffer(msg_chunk.data(), max_udp_length), sender_endpoint,
       boost::bind(&UDPManager::handle_receive_from, this,
@@ -113,13 +114,24 @@ protected:
       boost::asio::placeholders::bytes_transferred));
 
       timer_->expires_from_now(boost::posix_time::seconds(max_time));
-      ROS_INFO("Waiting for timer");
-      timer_->wait();
-      ROS_INFO("Timer expired");
+      timer_->async_wait(boost::bind(&UDPManager::handle_wait, this, boost::asio::placeholders::error));
       
-      if (bad_read) {
-        socket_ptr->cancel();
+       io_service.reset(); 
+       while (io_service.run_one() && !timeout && !received)
+       {
+        if (timeout)
+          socket_ptr->cancel();
+        else if (received)
+          timer_->cancel();
+       }
+      
+      
+      if ( timeout) {
         return -3; // Cont expired or error in transmission
+      }
+      
+      if (bad_read && received) {
+        return -4;
       }
       
       bool is_start = false;
@@ -219,8 +231,8 @@ protected:
               msg_complete = true;
               topic = it->topic;
               size = it->size;
-              msg_list.erase(it);
               crc = it->crc;
+              msg_list.erase(it);
               break;
             } else {
 //               ROS_INFO("Message not completed. Topic %s. Cont_ant = %d. Received = %d", it->topic.c_str(), (int)cont_ant, (int)it->received);
@@ -257,6 +269,8 @@ protected:
   void handle_receive_from(const boost::system::error_code& err,
       size_t length)
   {
+    
+    received = true;
     if (err)
     {
       bad_read = true;
@@ -267,14 +281,19 @@ protected:
       len = length;
       ROS_INFO("Received a message of length: %d", (int)len);
     }
-    timer_ -> cancel();
+//     timer_ -> cancel();
   }
   
-//   void cancel()
-//   {
-//     bad_read = true;
+  void handle_wait(const boost::system::error_code& error) // Result of operation
+  {
+    if (!error) {
+    
+    
+      timeout = true;
+      ROS_INFO("UDPBRIDGE --> Timeout");
 //     socket_ptr->cancel();
-//   }
+    }
+  }
   
   //!Write a complete message. If congestion is detected --> blocks transmission (if not secure)
   int writeMessage(const std::string &topic, const std::vector<uint8_t> &msg)
@@ -436,7 +455,7 @@ protected:
   
   //! Running flag
   bool running;
-  bool bad_read;
+  bool bad_read, timeout, received;
   size_t len;
   
   boost::shared_ptr<boost::asio::deadline_timer> timer_;
