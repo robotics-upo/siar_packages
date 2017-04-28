@@ -215,7 +215,7 @@ protected:
     std::vector<uint8_t> buffer;
     buffer.reserve(max_length);
     
-    socket_ptr->send_to(boost::asio::buffer(start.data(), start.size()), remote_endpoint);
+    
     
     while(ros::ok() && running)
     {
@@ -226,6 +226,7 @@ protected:
           running = false;
         continue;
       }
+      socket_ptr->send_to(boost::asio::buffer(start.data(), start.size()), remote_endpoint);
       
       // Deserialize and publish
       if(topic == imageTopic) 

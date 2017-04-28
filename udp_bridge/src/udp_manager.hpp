@@ -187,7 +187,7 @@ protected:
 //           ROS_INFO("Cont: %d \t Size: %d", (int)cont, (int)size);
           if (abs(cont - size) < 2) {
             // All the data has been retrieved --> return a non-negative number
-//             ROS_INFO("Got a message composed by one datagram. Topic = %s. Size = %d", topic.c_str(), (int)size);
+            ROS_INFO("Got a message composed by one datagram. Topic = %s. Size = %d", topic.c_str(), (int)size);
             msg_complete = true;
           } else {
             Message_ m;
@@ -241,11 +241,12 @@ protected:
           
         }
       }
-      
-      if (crc16(msg.data(), msg.size()) != crc && msg_complete) 
-      {
-        ROS_INFO("Bad CRC");
-        return -1;
+      if (msg_complete) {
+        if (crc16(msg.data(), msg.size()) != crc && msg_complete) 
+        {
+          ROS_INFO("Bad CRC");
+          return -1;
+        }
       }
       
       if (!msg_complete) {
