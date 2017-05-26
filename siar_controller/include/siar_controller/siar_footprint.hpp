@@ -14,6 +14,8 @@ class SiarFootprint {
 public:
   SiarFootprint(double cellsize = 0.02, double length = 0.8, double width = 0.56, double wheel_width = 0.06, bool simplified = false);
   
+  SiarFootprint(ros::NodeHandle &pn);
+  
   ~SiarFootprint();
   
   FootprintType getFootprint(double x, double y, double yaw);
@@ -29,6 +31,8 @@ public:
 protected:  
   double m_cellsize;
   
+  void init(bool simplified = true);
+  
   // Base footprint image
 //   cv::Mat *footprint;
 
@@ -38,21 +42,45 @@ protected:
   
 };
 
+SiarFootprint::SiarFootprint(ros::NodeHandle& pn)
+{
+  if (!pn.getParam("cellsize", m_cellsize)) {
+    m_cellsize = 0.02;
+  }
+  if (!pn.getParam("length", m_length)) {
+    m_length = 0.8;
+  }
+  if (!pn.getParam("width", m_width)) {
+    m_width = 0.56;
+  }
+  bool simplified = true;
+  if (!pn.getParam("simple_footprint", simplified))
+    simplified = true;
+  
+  init(simplified);
+}
+
+
 SiarFootprint::SiarFootprint(double cellsize, double length , double width, double wheel_width, bool simplified):
 m_length(length),m_width(width), m_wheel_width(wheel_width), m_cellsize(cellsize)
 {
+  init(simplified);
+}
+
+void SiarFootprint::init(bool simplified) 
+{
   // Construct original_grid. 1 --> Metadata
   
-  int n_width = ceil(width/cellsize);
-  int n_cel_wheel = ceil(m_wheel_width/cellsize);
+  int n_width = ceil(m_width/m_cellsize);
+  int n_cel_wheel = ceil(m_wheel_width/m_cellsize);
   
   // Add points
-  double x = -length/2.0;
+  double x = -m_length/2.0;
   geometry_msgs::Point p;
-  for (int i = 0; x < length/2.0; x += cellsize, i++) {
-    double y = -width/2.0;
+  for (int i = 0; x < m_length/2.0; x += m_cellsize, i++) {
+    double y = -m_width/2.0;
     p.x = x;
-    for (int j = 0; y < width/2.0; y += cellsize, j++) {
+    for (int j = 0; y < m_width/2.0; y += m_cellsize, j++) {
       if (i == 0) {
         p.y = y;
         footprint_p_2.push_back(p);
@@ -65,9 +93,9 @@ m_length(length),m_width(width), m_wheel_width(wheel_width), m_cellsize(cellsize
       }
     }
   }
-  double y = -width/2.0;
-  p.x = x - cellsize;
-  for (int j = 0; y < width/2.0; y += cellsize, j++) {
+  double y = -m_width/2.0;
+  p.x = x - m_cellsize;
+  for (int j = 0; y < m_width/2.0; y += m_cellsize, j++) {
     p.y = y;
     footprint_p_2.push_back(p);
   }  

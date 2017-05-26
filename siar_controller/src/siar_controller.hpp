@@ -19,7 +19,7 @@
 
 #include <visualization_msgs/MarkerArray.h>
 
-#include "command_evaluator.hpp"
+#include "siar_controller/command_evaluator.hpp"
 
 #include <stdlib.h>
 #include <ctime>
@@ -157,12 +157,7 @@ void SiarController::getParameters(ros::NodeHandle& pn)
   
   pn.param("use_dynamic_reconfigure", use_dynamic_reconfigure, false);
   
-  // Model parameters
-  pn.param("a_max", model.a_max, 0.5);
-  pn.param("a_max_theta", model.a_max_theta, 1.0);
-  pn.param("v_max", model.v_max, 0.2);
-  pn.param("omega_max", model.theta_dot_max, 0.4);
-  pn.param("v_min", model.v_min, 0.05);
+  model = RobotCharacteristics(pn);
   
   double r_l, r_w, w_w;
   pn.param("robot_longitude", r_l, 0.78);

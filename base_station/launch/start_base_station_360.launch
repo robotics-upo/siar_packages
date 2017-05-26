@@ -18,8 +18,10 @@
   </include>
   
   <!-- Communication stuff -->
-  <include file="$(find udp_bridge)/launch/udp_client.launch">
+  
+  <include file="$(find udp_bridge)/launch/udp_client360.launch">
     <arg name="ip_address" value="$(arg ip_address)"/>
+    
   </include>
   
   <!-- Point cloud generation -->
