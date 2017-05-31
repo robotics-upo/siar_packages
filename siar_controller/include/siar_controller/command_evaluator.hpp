@@ -17,11 +17,31 @@ namespace siar_controller {
     double theta_dot_max;
     double a_max_theta;
     double v_min;
+    
+    RobotCharacteristics () {
+      a_max = 1.0;
+      a_max_theta = 1.0;
+      theta_dot_max = 1.0;
+      v_max = 0.5;
+      v_min = 0.05;
+    }
+    
+    // Model parameters
+    RobotCharacteristics (ros::NodeHandle &pn) 
+    {
+      pn.param("a_max", a_max, 0.5);
+      pn.param("a_max_theta", a_max_theta, 1.0);
+      pn.param("v_max", v_max, 0.2);
+      pn.param("omega_max", theta_dot_max, 0.4);
+      pn.param("v_min", v_min, 0.05);
+    }
   };
   
   class CommandEvaluator {
   public:
     CommandEvaluator(double w_dist, double w_safe, double T, const RobotCharacteristics &model, double delta_T = 0.1, SiarFootprint *footprint_p = NULL);
+    
+    CommandEvaluator(ros::NodeHandle &pn);
     
     //! @brief Sets the parameters into the evaluator
     //! @param footprint_p --> has the parameters for width, length and wheel_width
@@ -40,7 +60,9 @@ namespace siar_controller {
                               visualization_msgs::Marker &m);
     
     //! @brief Same as EvaluateTrajectory, but when a collision is detected, it returns the minimum command without velocity that holds the same trajectory (same radius of curvature)
-    double evaluateTrajectoryMinVelocity(const geometry_msgs::Twist& v_ini, geometry_msgs::Twist& v_command, const geometry_msgs::Twist& operator_command, const nav_msgs::OccupancyGrid& alt_map, visualization_msgs::Marker& m);
+    double evaluateTrajectoryMinVelocity(const geometry_msgs::Twist& v_ini, geometry_msgs::Twist& v_command, 
+                                         const geometry_msgs::Twist& operator_command, const nav_msgs::OccupancyGrid& alt_map, 
+                                         visualization_msgs::Marker& m);
     
     //! @brief Destructor
     ~CommandEvaluator();
@@ -95,6 +117,18 @@ CommandEvaluator::CommandEvaluator(double w_dist, double w_safe, double T, const
   
   setParameters(w_dist, w_safe, T, model, delta_T, footprint_p);
 }
+
+CommandEvaluator::CommandEvaluator(ros::NodeHandle& pn):footprint(NULL)
+{
+  
+  pn.param("w_dist", m_w_dist, 1.0);
+  pn.param("w_safe", m_w_safe, 1.0);
+  pn.param("delta_T", m_delta_T, 0.2);
+  pn.param("T", m_T, 3.0);
+  footprint_params = new SiarFootprint(pn);
+}
+
+
 
 void CommandEvaluator::setParameters(double w_dist, double w_safe, double T, const RobotCharacteristics &model, double delta_T, SiarFootprint *footprint_p) {
   m_w_dist = w_dist;

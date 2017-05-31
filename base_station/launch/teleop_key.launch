@@ -1,0 +1,11 @@
+<!--
+-->
+<launch>
+
+  # Input arguments
+  <node name="teleop" type="turtlebot_teleop_key" pkg="turtlebot_teleop" output="screen">
+    <remap from="/teleop/cmd_vel" to="user_cmd_vel"/>
+  </node>
+  
+
+</launch>

@@ -1,4 +1,4 @@
-#include "../siar_footprint.hpp"
+#include "siar_controller/siar_footprint.hpp"
 #include <ros/ros.h>
 #include <visualization_msgs/Marker.h>
 

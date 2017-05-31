@@ -1,0 +1,25 @@
+{
+  translate_joy: true,
+  linear_velocity_axis: 1,
+  angular_velocity_axis: 0,
+  auto_button: 3,
+  slow_button: 5,
+  max_velocity_button: 7,
+  panic_button: 2,
+  start_button: 9,
+  reverse_button: 0,
+  back_button: 8,
+  new: { 
+    linear_velocity_axis: 1,
+    angular_velocity_axis: 0,
+    auto_button: 3,
+    slow_button: 5,
+    max_velocity_button: 4,
+    panic_button: 1,
+    start_button: 7,
+    reverse_button: 2,
+    back_button: 6
+  }
+}
+
+ 
