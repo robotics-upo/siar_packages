@@ -8,15 +8,18 @@ int main( int argc, char **argv)
   ros::NodeHandle nh;
   try
   {
+    UDPServer *server;
     while (ros::ok()) 
     {
-      UDPServer server;
+      server = new UDPServer;
       ros::Rate r(100.0);
-      while (server.isRunning()) 
+      while (server->isRunning()) 
       {
         ros::spinOnce();
         r.sleep();
       }
+      delete server;
+      sleep(1);
     }
   }
   catch (std::exception& e)
