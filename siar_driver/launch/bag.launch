@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <launch>
 
-<node pkg="rosbag" type="record" name="rosbag_raposa" args="record -o /home/siar/siar /tf /odom /odom_ticks /arduimu_v3/imu /cmd_vel /cmd_arm 
+<node pkg="rosbag" type="record" name="rosbag_raposa" args="record -o /home/siar/siar /tf /odom /odom_ticks /arduimu_v3/imu /cmd_vel 
         /front/depth_registered/camera_info 
         /front/depth_registered/image_raw/compressedDepth
 /front/depth_registered/image_raw/compressedDepth/parameter_descriptions
@@ -12,21 +12,25 @@
 /back/depth_registered/image_raw/compressedDepth/parameter_descriptions
 /back/depth_registered/image_raw/compressedDepth/parameter_updates /back/rgb/camera_info /back/rgb/image_raw/compressed /back/rgb/image_raw/compressed/parameter_descriptions /back/rgb/image_raw/compressed/parameter_updates
         
-        /front_down/depth_registered/image_raw/compressedDepth
-        /front_down/depth_registered/camera_info  
-/front_down/depth_registered/image_raw/compressedDepth/parameter_descriptions
-/front_down/depth_registered/image_raw/compressedDepth/parameter_updates 
-        /front_down/rgb/camera_info /front_down/rgb/image_raw/compressed 
-        /front_down/rgb/image_raw/compressed/parameter_descriptions 
-        /front_down/rgb/image_raw/compressed/parameter_updates 
+        /front_left/depth_registered/image_raw/compressedDepth
+        /front_left/depth_registered/camera_info  
+/front_left/depth_registered/image_raw/compressedDepth/parameter_descriptions
+/front_left/depth_registered/image_raw/compressedDepth/parameter_updates
+      
+      /front_right/depth_registered/image_raw/compressedDepth
+        /front_right/depth_registered/camera_info  
+/front_right/depth_registered/image_raw/compressedDepth/parameter_descriptions
+/front_right/depth_registered/image_raw/compressedDepth/parameter_updates 
         
-        /back_down/depth_registered/camera_info  
-        /back_down/depth_registered/image_raw/compressedDepth
-/back_down/depth_registered/image_raw/compressedDepth/parameter_descriptions
-/back_down/depth_registered/image_raw/compressedDepth/parameter_updates 
-        /back_down/rgb/camera_info /back_down/rgb/image_raw/compressed 
-        /back_down/rgb/image_raw/compressed/parameter_descriptions 
-        /back_down/rgb/image_raw/compressed/parameter_updates 
+        /back_left/depth_registered/camera_info  
+        /back_left/depth_registered/image_raw/compressedDepth
+/back_left/depth_registered/image_raw/compressedDepth/parameter_descriptions
+/back_left/depth_registered/image_raw/compressedDepth/parameter_updates 
+      
+      /back_right/depth_registered/camera_info  
+        /back_right/depth_registered/image_raw/compressedDepth
+/back_right/depth_registered/image_raw/compressedDepth/parameter_descriptions
+/back_right/depth_registered/image_raw/compressedDepth/parameter_updates 
       
       /up/depth_registered/camera_info  
         /up/depth_registered/image_raw/compressedDepth
@@ -39,10 +43,11 @@
       
       /best_marker /trajectory_marker /costmap_node/costmap
       
-        /scan360
         /rssi_nvip_2400
         /elec_battery_status
         /motor_battery_status
+
+	/operation_mode
         " />   
         
 </launch>

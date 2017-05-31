@@ -54,10 +54,20 @@
   <include file="$(find siar_costmap)/launch/siar_costmap.launch">
     <arg name="obstacle_height" value="$(arg obstacle_height)"/>
     <arg name="resolution" value="$(arg resolution)"/>
+    <arg name="camera_1" value="/front_left"/>
+    <arg name="camera_2" value="/front_right"/>
+    <arg name="camera_3" value="/back_left"/>
+    <arg name="camera_4" value="/back_right"/>
+    <arg name="roi_x" value="5"/>
+    <arg name="roi_w" value="310"/>
+    <arg name="roi_y" value="1"/>
+    <arg name="roi_h" value="238"/>
   </include>
   
   <!-- Comms -->
-  <include file="$(find siar_driver)/launch/comms.launch" if="$(arg comms)"/>
+  <include file="$(find siar_driver)/launch/comms.launch" if="$(arg comms)">
+    <arg name="joy_topic" value="/remote_joy"/>
+  </include>
   
   <!-- Perception -->
   <include file="$(find siar_driver)/launch/perception.launch" if="$(arg perception)"/>

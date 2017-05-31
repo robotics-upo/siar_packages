@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-PKG = 'manhole_labeler'
+PKG = 'manhole_detector'
 import roslib; roslib.load_manifest(PKG)
 import rospy
 import fileinput

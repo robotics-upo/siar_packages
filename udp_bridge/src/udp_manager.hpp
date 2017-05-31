@@ -31,17 +31,17 @@ class UDPManager
 public:
 
   //!Intialize the serial port to the given values
-  UDPManager():max_udp_length(1460),max_topic_length(256), max_msgs(5),msg_sent(0),header("UDPHEAD"),start("UDPSTART"),max_length(200000L),max_time(10),running(false) 
+  UDPManager():max_udp_length(1460),max_topic_length(256), max_msgs(5),msg_sent(0),header("UDPHEAD"),start("UDPSTART"),max_length(200000L),max_time(2),running(false) 
   {
 //     ROS_INFO("In UDPManager()");
-    buf_s = new uint8_t[max_udp_length];
+    buf_s.resize(max_udp_length);
+    timer_.reset(new boost::asio::deadline_timer(io_service));
   }
   
   //!Default destructor
   ~UDPManager()
   {
     endSession();
-    delete[] buf_s;
   }
   
   //!Intialize the serial port to the given values
@@ -318,7 +318,7 @@ protected:
     
     int total_header_size = header.size() + 11 + topic_size;
     
-    memcpy(buf_s, &id, 4);
+    memcpy(buf_s.data(), &id, 4);
     try {
       // Send the first chunk
       int sending_bytes = max_udp_length; // Bytes sent
@@ -333,10 +333,10 @@ protected:
         if ( size - total_header_size - cont < sending_bytes) {
           sending_bytes = size - total_header_size - cont;
         }
-        memcpy(buf_s + 4, &cont, 4);
-        memcpy(buf_s + 8, buf + cont + total_header_size, sending_bytes);
+        memcpy(buf_s.data() + 4, &cont, 4);
+        memcpy(buf_s.data() + 8, buf + cont + total_header_size, sending_bytes);
         
-        socket_ptr->send_to( boost::asio::buffer(buf_s, sending_bytes + 8), remote_endpoint, 0, ignored_error);
+        socket_ptr->send_to( boost::asio::buffer(buf_s.data(), sending_bytes + 8), remote_endpoint, 0, ignored_error);
       }
     } 
     catch (std::exception &e)
@@ -442,7 +442,7 @@ protected:
   boost::shared_ptr<udp::socket> socket_ptr;
   boost::asio::io_service io_service;
   udp::endpoint remote_endpoint;
-  uint8_t *buf_s;
+  std::vector<uint8_t> buf_s;
   
   //! Reading thread handler
   boost::thread readThreadHandler;

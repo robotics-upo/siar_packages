@@ -67,7 +67,7 @@
     <param name="forkDev" value="1.2"/>
     <param name="fork_dist" value="3.0"/>
     
-    <param name="sewer_graph_file" value="$(find sewer_graph)/test/upo_graph"/>
+    <param name="sewer_graph_file" value="$(find sewer_graph)/test/sewer_graph"/>
     
     <remap from="/amcl_sewer_node/initial_pose" to="/initialpose"/>
     
@@ -76,16 +76,16 @@
     
   </node>
     
-  <node name="vis" type="rviz" pkg="rviz" args="-d $(find amcl_sewer)/launch/amcl3d.rviz"/>
+<!--   <node name="vis" type="rviz" pkg="rviz" args="-d $(find amcl_sewer)/launch/amcl3d.rviz"/> -->
   
-  <node name="cnn_laber" type="cnn_detector.py" pkg="manhole_detector" args="/up $(find manhole_detector)/test/model.10-0.9861-0.9578.hdf5">
+  <node name="cnn_laber" type="cnn_detector.py" pkg="manhole_detector" args="/up $(find manhole_detector)/test/model.10-0.9861-0.9578.hdf5" output="screen">
     <param name="thres" value="0.42"/>
   
   </node>
   
-  <node name="ground_truth_laber" type="fake_detector.py" pkg="manhole_detector" args="/up $(find manhole_detector)/test/input_vector_2017-01-17-10_ground_truth" >
-    <remap from="manhole" to="ground_truth"/>
-  </node>
-  
+<!--   <node name="ground_truth_laber" type="fake_detector.py" pkg="manhole_detector" args="/up $(find manhole_detector)/test/input_vector_2017-01-17-10_ground_truth" > -->
+<!--     <remap from="manhole" to="ground_truth"/> -->
+<!--   </node> -->
+<!--    -->
 
 </launch>	

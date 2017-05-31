@@ -59,6 +59,7 @@
 #define SLOW_MULTIPLIER       0.8
 
 #define MAX_JOY_TIME          8.0
+#define JOY_PRIORITY_TIME     5.0
 
 #define MAX_AUTO_MODE         1
 #define MAX_TIME_DECAY        0.98
@@ -104,17 +105,14 @@ int auto_mode = 0;
 int max_auto_mode;
 
 
-ros::Time last_joy_time;
+ros::Time last_joy_time, last_remote_joy_time;
 ros::Publisher reverse_pub;
 ros::Publisher slow_pub;
 ros::Publisher mode_pub;
 
 bool setAutomaticMode(int new_mode);
 
-void joyReceived(const sensor_msgs::Joy::ConstPtr& joy)
-{
-  // First of all, panic mode: if pressed --> the panic mode is activated (TODO: deactivate panic)
-  last_joy_time = ros::Time::now();
+void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
   startPressed = joy->buttons[startButton] == 1;
   panic = panic | (joy->buttons[panicButton] == 1);
   backPressed = joy->buttons[backButton] == 1;
@@ -160,6 +158,21 @@ void joyReceived(const sensor_msgs::Joy::ConstPtr& joy)
     }
   }
 }
+
+void remoteJoyReceived(const sensor_msgs::Joy::ConstPtr& joy) {
+  if ( (ros::Time::now() - last_joy_time).toSec() > JOY_PRIORITY_TIME) {
+    last_remote_joy_time = ros::Time::now();
+    interpretJoy(joy);
+  }
+}
+
+void joyReceived(const sensor_msgs::Joy::ConstPtr& joy)
+{
+  // First of all, panic mode: if pressed --> the panic mode is activated (TODO: deactivate panic)
+  last_joy_time = ros::Time::now();
+  interpretJoy(joy);
+}
+  
 
 
 void sendCmdVel(double linearVelocity, double angularVelocity, ros::Publisher& vel_pub)
@@ -207,8 +220,10 @@ int main(int argc, char** argv)
   pn.param<double>("max_linear_velocity",maxLinearVelocity,MAX_LINEAR_VELOCITY);
   pn.param<double>("max_angular_velocity",maxAngularVelocity,MAX_ANGULAR_VELOCITY);
 
-  double max_joy_time;
+  double max_joy_time, joy_priority_time;
   pn.param<double>("max_joy_time", max_joy_time, MAX_JOY_TIME);
+  pn.param<double>("joy_priority_time", joy_priority_time, JOY_PRIORITY_TIME);
+  
   
   pn.param<double>("slow_multipier", slow_multiplier, SLOW_MULTIPLIER);
   
@@ -221,7 +236,8 @@ int main(int argc, char** argv)
   slow_pub = pn.advertise<std_msgs::Bool>("/slow_motion", 1);
   mode_pub = pn.advertise<std_msgs::Int8>("/operation_mode", 1 );
   
-  ros::Subscriber joy_sub = n.subscribe<sensor_msgs::Joy>("/joy", 5, joyReceived);		
+  ros::Subscriber joy_sub = n.subscribe<sensor_msgs::Joy>("/joy", 5, joyReceived);
+  ros::Subscriber remote_joy_sub = n.subscribe<sensor_msgs::Joy>("/remote_joy", 5, remoteJoyReceived);
 
   ros::Rate rate(freq);
   ros::Rate panicRate(panicFreq);
@@ -259,7 +275,9 @@ int main(int argc, char** argv)
 	first_start = false;
 	ROS_INFO("The show has started, please have fun.");
       }
-      if ((ros::Time::now() - last_joy_time).toSec() > max_joy_time ) {
+      if ((ros::Time::now() - last_remote_joy_time).toSec() > max_joy_time &&
+        last_remote_joy_time.toSec() > last_joy_time.toSec()
+      ) {
         currentAngularVelocity *= max_time_decay;
         currentLinearVelocity *= max_time_decay;
       } 

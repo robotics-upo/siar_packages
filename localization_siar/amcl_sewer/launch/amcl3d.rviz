@@ -150,19 +150,9 @@ Visualization Manager:
         {}
       Queue Size: 100
       Value: true
-    - Alpha: 0.7
-      Blocks: 3
-      Class: rviz_plugins/AerialMapDisplay
-      Draw Behind: false
-      Dynamically reload: true
+    - Class: rviz_plugins/AerialMapDisplay
       Enabled: true
-      Frame Convention: XYZ -> ENU
       Name: AerialMapDisplay
-      Object URI: https://a.tiles.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}.jpg?access_token=pk.eyJ1IjoiY2h1cnIiLCJhIjoiY2l6dHQzZWJyMDFnZjMzbnA1cDR4MWV3cCJ9.r-YuBsl8JXSBQ_UXTOeSYA
-      Robot frame: map
-      Topic: /gps/fix
-      Value: true
-      Zoom: 18
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -226,5 +216,5 @@ Window Geometry:
   Views:
     collapsed: false
   Width: 1301
-  X: 65
-  Y: 24
+  X: 55
+  Y: 14
