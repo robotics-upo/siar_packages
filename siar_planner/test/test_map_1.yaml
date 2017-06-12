@@ -1,5 +1,5 @@
-image: rva_world_final.png
-resolution: 0.1
+image: test_map_1.png
+resolution: 0.02
 origin: [-5.25, -5.0, 0.0]
 occupied_thresh: 0.65
 free_thresh: 0.196

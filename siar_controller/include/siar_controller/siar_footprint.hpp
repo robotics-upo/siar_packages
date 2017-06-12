@@ -21,7 +21,7 @@ public:
   FootprintType getFootprint(double x, double y, double yaw);
   FootprintType getFootprintCollision(double x, double y, double yaw);
   
-  void addPoints(double x, double y, double yaw, visualization_msgs::Marker &m, int id = 0, bool init = false);
+  void addPoints(double x, double y, double yaw, visualization_msgs::Marker &m, int id = 0, bool init = false, const std::string link = "/base_link");
 //   void printFootprintCollision(double x, double y, double yaw, ros::Publisher pub, int id = 0);
   
 //   inline cv::Mat *getOriginalFootprint() {return footprint;}
@@ -53,6 +53,7 @@ SiarFootprint::SiarFootprint(ros::NodeHandle& pn)
   if (!pn.getParam("width", m_width)) {
     m_width = 0.56;
   }
+  pn.param("wheel_width", m_wheel_width, 0.075);
   bool simplified = true;
   if (!pn.getParam("simple_footprint", simplified))
     simplified = true;
@@ -132,10 +133,10 @@ FootprintType SiarFootprint::getFootprintCollision(double x, double y, double ya
   return footprint_rot_2;
 }
 
-void SiarFootprint::addPoints(double x, double y, double th, visualization_msgs::Marker &m, int id, bool init) {
+void SiarFootprint::addPoints(double x, double y, double th, visualization_msgs::Marker &m, int id, bool init, const std::string link) {
   std::vector<geometry_msgs::Point> fp = getFootprint(x, y, th);
   if (init) {
-    m.header.frame_id = "/base_link";
+    m.header.frame_id = link;
     m.header.stamp = ros::Time::now();
     m.ns = "footprint";
     m.action = visualization_msgs::Marker::ADD;
