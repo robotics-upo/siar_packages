@@ -21,6 +21,10 @@ public:
   //! @return Negative --> collision. Positive --> Arc's longitude
   double integrate(AStarState &st, geometry_msgs::Twist &cmd, double T, bool relaxed = false, bool one_wheel = true);
   
+  //! @brief Integrates the model and returns the cost associated with 
+  //! @return Negative --> collision. Positive --> Arc's longitude
+  double integrate(visualization_msgs::Marker& m, AStarState& st, geometry_msgs::Twist& cmd, double T, bool relaxed, bool one_wheel = false);
+  
   virtual geometry_msgs::Twist generateRandomCommand();
   
   inline bool isInit() const {return map_init;}
@@ -31,6 +35,15 @@ public:
     bool ret_val;
     m_ce.applyFootprint(st.state[0], st.state[1], st.state[2], m_world, ret_val);
     return ret_val;
+  }
+  
+  inline double getMinWheel() const {
+    return m_ce.getMinWheel();
+  }
+  
+  inline void setMinWheel(double v) {
+    
+    m_ce.setMinWheel(v);
   }
   
 protected:
@@ -66,6 +79,12 @@ void AStarModel::occupancyGridCallback(nav_msgs::OccupancyGridConstPtr msg)
 }
 
 double AStarModel::integrate(AStarState& st, geometry_msgs::Twist& cmd, double T, bool relaxed, bool one_wheel)
+{
+  return integrate(m, st, cmd, T, relaxed, one_wheel);
+}
+
+
+double AStarModel::integrate(visualization_msgs::Marker& m, AStarState& st, geometry_msgs::Twist& cmd, double T, bool relaxed, bool one_wheel)
 {
   geometry_msgs::Twist v_ini;
   v_ini.linear.x = m_ce.getCharacteristics().v_max;

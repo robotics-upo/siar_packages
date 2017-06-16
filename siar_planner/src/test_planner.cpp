@@ -58,14 +58,16 @@ int main(int argc, char** argv) {
   ros::Time t1 = ros::Time::now();
   if (cost > 0.0) {
     
-    ROS_INFO("Path calculated. Expended time: %f", (t1 - t).toSec());
+    ROS_INFO("Path calculated. Expended time: %f. Cost: %f", (t1 - t).toSec(), cost);
     
-    test_pub.publish(a.getPathMarker(path));
-  } else {
-    visualization_msgs::Marker m = a.getModel().testIntegration(init, true);
+    visualization_msgs::Marker m = a.getPathMarker(path);
     m.header.frame_id = "/map";
-    ROS_INFO("Points: %d", (int) m.points.size());
     test_pub.publish(m);
+  } else {
+//     visualization_msgs::Marker m = a.getModel().testIntegration(init, true);
+//     m.header.frame_id = "/map";
+//     ROS_INFO("Points: %d", (int) m.points.size());
+//     test_pub.publish(m);
     ROS_INFO("Could not get a path in %f seconds", (t1 - t).toSec());
   }
   

@@ -10,6 +10,8 @@
 
 #include "visualization_msgs/Marker.h"
 
+#include <functions/functions.h>
+
 #include <ros/ros.h>
 
 class AStar
@@ -50,8 +52,8 @@ protected:
   
   bool isSameCell(const AStarState& s1, const AStarState& s2) const;
   
-  int K, n_iter;
-  double delta_t, cellsize_m, cellsize_rad;
+  int K, n_iter, n_rounds;
+  double delta_t, cellsize_m, cellsize_rad, cost_weight;
   
   std::unordered_set<int> closedSet;
   std::unordered_set<int> openSet;
@@ -63,18 +65,38 @@ protected:
   std::random_device rd;
   std::mt19937 gen;
   std::uniform_real_distribution<> dis;
+  
+  // Sets to test
+  bool file_test_set_init;
+  std::vector <geometry_msgs::Twist> test_set_forward, test_set_backward;
+  std::vector <geometry_msgs::Twist> file_test_set_forward, file_test_set_backward;
+  double wheel_decrease;
+  bool optimize;
+  
+  
+  //! @brief Retrieves the file_test_set_forward and backward from file (the filename is specified in the configuration)
+  bool initializeTestSetFromFile(const std::string& velocityset_filename, int n_interpol = 1, double mult = 1.0);
+  
+  //! @brief Adds a velocity to the forward test, the same velocity with opposite angular velocity. Then does the same to backward test but changing the sign of v.x
+  void addVelocityToTestSets(const geometry_msgs::Twist &v, std::vector<geometry_msgs::Twist> &set_forward, std::vector<geometry_msgs::Twist> &set_backward);
 };
 
 AStar::AStar(ros::NodeHandle &nh, ros::NodeHandle &pnh):m(nh, pnh), gen(rd()), dis(0,1)
 {
-  if (!pnh.getParam("K", K)) {
+  if (!pnh.getParam("K", K)) { // Number of random commands
     K = 4;
   }
   if (!pnh.getParam("n_iter", n_iter)) {
     n_iter = 1000;
   }
+  if (!pnh.getParam("n_rounds", n_rounds)) {
+    n_rounds = 6;
+  }
   if (!pnh.getParam("delta_t", delta_t)) {
     delta_t = 0.5;
+  }
+  if (!pnh.getParam("wheel_decrease", wheel_decrease)) {
+    wheel_decrease = 0.05;
   }
   if (!pnh.getParam("cellsize_m", cellsize_m)) {
     cellsize_m = 0.2;
@@ -93,6 +115,24 @@ AStar::AStar(ros::NodeHandle &nh, ros::NodeHandle &pnh):m(nh, pnh), gen(rd()), d
   
   if (!pnh.getParam("goal_gap_rad", goal_gap_rad)) {
     goal_gap_rad = cellsize_rad;
+  }
+  if (!pnh.getParam("cost_weight", cost_weight)) {
+    cost_weight = 1e-2;
+  }
+  if (!pnh.getParam("optimize", optimize)) {
+    optimize = true;
+    
+  }
+  ROS_INFO("n_iter = %d \t K: %d \t Cost weight: %f", n_iter, K, cost_weight);
+  
+  file_test_set_init = false;
+  std::string velocity_file;
+  if (pnh.getParam("velocity_file", velocity_file)) {
+    
+    file_test_set_init = initializeTestSetFromFile(velocity_file);
+   ROS_INFO("Velocity file: %s", velocity_file.c_str());
+    if (file_test_set_init)
+      ROS_INFO("Initialized the file test set");
   }
 }
 
@@ -156,11 +196,12 @@ double AStar::getPath(AStarState start, AStarState goal, std::list<AStarNode>& p
   start_node.gScore = 0;
   start_node.fScore = heuristic_cost(start_node,goal_node);  
   
-  int cont = 0;
+  
   
   openSet.insert(start_id);
   int relax = 0;
-  while (ret_val < 0.0 && allow_relaxation && relax < 3) {
+  while (allow_relaxation && relax < n_rounds) {
+    int cont = 0;
     while (cont < n_iter && !openSet.empty()) {
       
       // Get node ID with minimum cost
@@ -173,7 +214,7 @@ double AStar::getPath(AStarState start, AStarState goal, std::list<AStarNode>& p
       
       AStarNode* current_node = &nodes[current_id];    
       
-      if (isGoal(goal_id, current_node->st)) {
+      if (isGoal(goal_id, current_node->st) && (current_node->fScore < ret_val || ret_val < 0.0)) {
         // Retrieve path
         path.clear();
         ret_val = current_node->fScore;
@@ -182,10 +223,11 @@ double AStar::getPath(AStarState start, AStarState goal, std::list<AStarNode>& p
           current_node = current_node->parent;
           path.push_front(*current_node);
         }
-        return current_node->fScore;
+      } else if (!isGoal(goal_id, current_node->st)) {
+        expandNode(current_id, relax);
       }
       // Expands the graph from the current node --> Draws edges according to the inputs  
-      expandNode(current_id, relax);
+      
       openSet.erase(current_id);          
       closedSet.insert(current_id);
       for (auto it = current_node->neighbors.begin(); it != current_node->neighbors.end(); ++it) {
@@ -205,20 +247,35 @@ double AStar::getPath(AStarState start, AStarState goal, std::list<AStarNode>& p
         }
         neighbor_node.parent = current_node;
         neighbor_node.gScore = tentative_gScore;
-        neighbor_node.fScore = tentative_gScore + heuristic_cost(neighbor_node, goal_node);
+        neighbor_node.fScore = cost_weight * tentative_gScore + heuristic_cost(neighbor_node, goal_node);
         
       }
       cont++;
     }
     relax++; // If no solution is found --> try with relaxation (if configured so)
-    if (allow_relaxation && ret_val < 0.0)
+    if (allow_relaxation)
     {
+      if (ret_val > 0.0) {
+        cost_weight *= 5; 
+        ROS_INFO("Iteration %d. Solution found --> new cost weight: %f. Min cost: %f", relax, cost_weight, ret_val);
+        if (!optimize) {
+          return ret_val;
+        }
+      } else {
+        double m_w = m.getMinWheel() - ((relax > 1)?wheel_decrease:0);
+        n_iter += 100;
+        m_w = (m_w < 0.25)?0.25:m_w;
+        m.setMinWheel(m_w);
+        ROS_INFO("Iteration %d. Cont = %d. No solution --> decreasing min wheel to %f", relax, cont, m_w);
+      }
       // Open the nodes for relaxation!
-      for (auto it = closedSet.begin(); it != closedSet.end(); it++) {
+      for (auto it = closedSet.begin(); it != closedSet.end(); ) {
         int id = *it;
+        it++;
         closedSet.erase(id);
         openSet.insert(id);
       }
+      ROS_INFO("Openset size = %d",(int) openSet.size());
     }
   }  
   return ret_val;
@@ -234,20 +291,31 @@ void AStar::expandNode(int base_id, int relaxation_mode)
 {
   AStarNode &n = nodes[base_id];
   
+  test_set_backward = file_test_set_backward;
+  test_set_forward = file_test_set_forward;
+  
   for (int i = 0; i < K; i++) {
-    AStarState st = n.st;
     geometry_msgs::Twist command = m.generateRandomCommand();
-    double cost = m.integrate(st, command, delta_t, relaxation_mode == 1, false); // If relaxation_mode = 0 --> no wheels. =1 --> one wheel, = 2 two wheels
+    addVelocityToTestSets(command, test_set_forward, test_set_backward);
+  }
+  
+//   std::copy(test_set_backward.begin(), test_set_backward.end(),
+//           std::back_insert_iterator<std::vector<geometry_msgs::Twist> >(test_set_forward));
+  
+  for (auto it = test_set_forward.begin(); it != test_set_forward.end(); it++) {
+    AStarState st = n.st;
+    geometry_msgs::Twist &command = *it;
+    
+    double cost = m.integrate(st, command, delta_t, relaxation_mode >= 1, false); // If relaxation_mode >= 1 --> allow two wheels
     
     if (cost < 0.0) {
       // Collision
       // Update??
-      ROS_INFO("Detected collision. State: %s.\t Command: %f, %f", st.state.toString().c_str(), command.linear.x, command.angular.z);
+//       ROS_INFO("Detected collision. State: %s.\t Command: %f, %f", st.state.toString().c_str(), command.linear.x, command.angular.z);
     } else {
       // Add the vertex to the graph
       int neighID = addNode(st, command.linear.x, command.angular.z);
       addEdge(base_id, neighID, cost);
-      
     }
   }
 }
@@ -258,19 +326,20 @@ int AStar::getBestNode(int mode)
   int ret_val = -1;
   double candidate;
   for (auto it = openSet.begin(); it != openSet.end(); ++it) {
-    if (mode == 2) {
-      candidate = nodes.at(*it).fScore - (dis(gen)*0.0005 + 0.9995)*nodes.at(*it).gScore;
+    if (mode == 0) {
+      candidate = nodes.at(*it).fScore;
       if (m.isCollision(nodes[*it].st))
         continue;
 //       candidate = nodes.at(*it).fScore;
     }
     else {
-      if (m.isCollision(nodes[*it].st) && mode != 1)
-        if (mode == 1)
-          candidate += 10000; // Collision penalty
-        else
-          continue;
-      candidate = nodes.at(*it).fScore ;
+      candidate = nodes.at(*it).fScore;
+//       if (m.isCollision(nodes[*it].st) && mode != 1)
+//         if (mode == 1)
+//           candidate += 10000; // Collision penalty
+//         else
+//           continue;
+      
       
     }
     if (candidate < min) {
@@ -386,18 +455,89 @@ visualization_msgs::Marker AStar::getPathMarker(const std::list< AStarNode >& pa
 {
   visualization_msgs::Marker ret;
   
-  for (auto it = path.begin(); it != path.end(); it++) {
-    geometry_msgs::Twist command;
-    command.linear.x = it->command_lin;
-    command.angular.z = it->command_ang;
-    AStarState st = it->st;
-    m.integrate(st, command, 1.0, true);
-    ret = m.testIntegration(st, true, false);
+  int cont = 0;
+  AStarState st;
+  for (auto it = path.begin(); it != path.end(); it++, cont++) {
+    if (cont > 0) {
+      st = (--it)->st;
+      it++;
+    
+      geometry_msgs::Twist command;
+      command.linear.x = it->command_lin;
+      command.angular.z = it->command_ang;
+    
+      m.integrate(ret, st, command, 1.0, true);
+    }
   }
   
   return ret;
 }
 
+
+// Test sets:
+
+bool AStar::initializeTestSetFromFile(const std::string& velocityset_filename, int n_interpol, double mult)
+{
+  file_test_set_init = true;
+  file_test_set_forward.clear();
+  file_test_set_backward.clear();
+  
+  std::vector<std::vector <double> > M;
+  
+  geometry_msgs::Twist v, v_ant, v_new;
+  v.linear.x = v.linear.y = v.linear.z = 0.0;
+  v.angular.x = v.angular.y = v.angular.z = 0.0;
+  
+  bool loaded = functions::getMatrixFromFile(velocityset_filename, M);
+  if (loaded) 
+  {
+    for ( auto vec : M )
+    {
+      if (vec.size() < 2)
+        continue;
+      
+      v.linear.x = vec.at(0) * mult;
+      v.angular.z = vec.at(1) * mult;
+      
+      ROS_INFO("File test set. Forward Command %d. vx = %f. v_theta = %f", (int)file_test_set_forward.size(), v.linear.x, v.angular.z);
+      addVelocityToTestSets(v, file_test_set_forward, file_test_set_backward);
+      
+      if (file_test_set_forward.size() > 1) {
+        // Perform n_interpols
+        v_new = v_ant;
+        double inc_x = (v.linear.x - v_ant.linear.x) / (double)(n_interpol + 1);
+        double inc_z = (v.angular.z - v_ant.angular.z) / (double)(n_interpol + 1);
+        for (int i = 1; i <= n_interpol; i++) {
+          v_new.linear.x += inc_x;
+          v_new.angular.z += inc_z;
+          addVelocityToTestSets(v_new, file_test_set_forward, file_test_set_backward);
+        }
+      }
+      
+      v_ant = v;
+      
+    }
+  }
+  return loaded;
+}
+
+void AStar::addVelocityToTestSets(const geometry_msgs::Twist& v1, std::vector< geometry_msgs::Twist >& set_forward, std::vector< geometry_msgs::Twist >& set_backward)
+{
+  geometry_msgs::Twist v = v1;
+  // First forward velocities
+  set_forward.push_back(v);
+  if (fabs(v.angular.z) > 1e-10) {
+    v.angular.z *= -1.0;
+    set_forward.push_back(v);
+  }
+  // Then backward ones
+  v.linear.x *= -1.0;
+  set_backward.push_back(v);
+  if (fabs(v.angular.z) > 1e-10) {
+    v.angular.z *= -1.0;
+    set_backward.push_back(v);
+  }
+}
 
 
 #endif

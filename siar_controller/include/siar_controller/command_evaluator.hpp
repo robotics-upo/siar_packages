@@ -108,12 +108,18 @@ namespace siar_controller {
                                      const nav_msgs::OccupancyGrid &alt_map, 
                                      bool &collision, bool only_one_wheel);
     
+    double getMinWheel() const {return min_wheel;}
+    
+    void setMinWheel(double v) {min_wheel = v;}
+    
+    
   protected:
     double m_T; // Lookahead time
     double m_delta_T; // Timestep
 //     double m_divRes, origin_x, origin_y;
 //     int width;
     int positive_obs, negative_obs;
+    double min_wheel;
     
     double m_w_dist, m_w_safe; // Different weights. Respectively: Distance to commanded velocity, safety, collision penalty
     
@@ -175,6 +181,7 @@ CommandEvaluator::CommandEvaluator(ros::NodeHandle& pn):m_model(pn),footprint(NU
   pn.param("T", m_T, 3.0);
   pn.param("positive_obs", positive_obs, 127);
   pn.param("negative_obs", negative_obs, -128);
+  pn.param("min_wheel", min_wheel, 0.2); // Minimum fragment of the wheel that has to be without obstacle to be collision-free (in relaxed mode)
   footprint_params = new SiarFootprint(pn);
   
   ROS_INFO("Created the evaluater. Positive obstacle: %d", positive_obs);
@@ -395,10 +402,10 @@ int CommandEvaluator::applyFootprint(double x, double y, double th,
   int index;
   for (unsigned int i = 0; i < fp.size() && !collision; i++) {
     
-    index = point2index(fp.at(i).x, fp.at(i).y, alt_map);
+    index = point2index(fp[i].x, fp[i].y, alt_map);
 //     ROS_INFO("Point2index(%f,%f) = %d,%d. Value = %d", fp.at(i).x, fp.at(i).y,index/alt_map.info.width, index%alt_map.info.width, alt_map.data[index]);
     
-    if (index > alt_map.data.size() || index < 0) {
+    if (index < 0) {
       continue;
     }
     if (alt_map.data[index] == positive_obs || (alt_map.data[index] == negative_obs && !apply_collision)) 
@@ -426,27 +433,37 @@ int CommandEvaluator::applyFootprintRelaxed(double x, double y, double th,
   
   bool right_wheel = false;
   bool left_wheel = false;
-  for (unsigned int i = 0; i < fp.size() && !collision; i++) {
+  int size = fp.size();
+  int cont_left = size / 2;
+  int cont_right = size / 2;
+  for (unsigned int i = 0; i < size && !collision; i++) {
     
-    index = point2index(fp.at(i).x, fp.at(i).y, alt_map);
+    index = point2index(fp[i].x, fp[i].y, alt_map);
 //     ROS_INFO("Point2index(%f,%f) = %d,%d. Value = %d", fp.at(i).x, fp.at(i).y,index/alt_map.info.width, index%alt_map.info.width, alt_map.data[index]);
     
-    if (index > alt_map.data.size() || index < 0) {
+    if (index < 0) {
       continue;
     }
     if (alt_map.data[index] == positive_obs || alt_map.data[index] == negative_obs) {
-      if (orig.at(i).y > 0.0) {
+      if (orig[i].y > 0.0) {
         left_wheel = true;
+        cont_left--;
       } else {
         right_wheel = true;
+        cont_right--;
       }
       if (only_one_wheel) {
         collision = left_wheel && right_wheel; // Collision detected! (if applying the collision map, only consider positive obstacles)
       }
-    }
+    } 
     
     ret_val += abs(alt_map.data[index]); // TODO: check index and coordinate transform
     
+  }
+  collision |= ( (double)cont_left / (double)size * 2.0 ) < min_wheel;
+  collision |= ( (double)cont_right / (double)size * 2.0 ) < min_wheel;
+  if (collision) {
+//     ROS_INFO("CommandEvaluator::applyFootprintRelaxed --> COLLISION. Cont_left: %d \t Cont_right: %d \t fp size: %d", cont_left, cont_right, (int)fp.size());
   }
   
   return ret_val;
