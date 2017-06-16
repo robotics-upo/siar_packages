@@ -6,8 +6,14 @@
 #include <nav_msgs/OccupancyGrid.h>
 #include <boost/math/special_functions/sign.hpp>
 #include <math.h>
+#include <functions/RealVector.h>
 
 #include "siar_footprint.hpp"
+
+
+#ifndef MAP_IDX
+#define MAP_IDX(sx, i, j) ((sx) * (j) + (i))
+#endif
 
 namespace siar_controller {
   
@@ -55,14 +61,25 @@ namespace siar_controller {
     //! @param operator_command User's commanded velocity (to evaluate the cost of the difference v_command and operator_command)
     //! @param alt_map Perceived altitude map of the environment
     //! @param m (out) Marker that can be used for representing the trajectory in RViz.
-    double evualateTrajectory(const geometry_msgs::Twist& v_ini, const geometry_msgs::Twist& v_command, 
+    double evaluateTrajectory(const geometry_msgs::Twist& v_ini, const geometry_msgs::Twist& v_command, 
                               const geometry_msgs::Twist& operator_command, const nav_msgs::OccupancyGrid& alt_map,
-                              visualization_msgs::Marker &m);
+                              visualization_msgs::Marker &m, double x = 0.0, double y = 0.0, double th = 0.0);
     
     //! @brief Same as EvaluateTrajectory, but when a collision is detected, it returns the minimum command without velocity that holds the same trajectory (same radius of curvature)
     double evaluateTrajectoryMinVelocity(const geometry_msgs::Twist& v_ini, geometry_msgs::Twist& v_command, 
                                          const geometry_msgs::Twist& operator_command, const nav_msgs::OccupancyGrid& alt_map, 
-                                         visualization_msgs::Marker& m);
+                                         visualization_msgs::Marker& m, double x = 0.0, double y = 0.0, double th = 0.0);
+    
+    //! @brief Simulates the trajectory during T and generates a cost according to the cost map
+    //! @retval -1.0 --> Collision  . If not collision --> cost of the trajectory (related to risk and difference with respect the user command)
+    //! @param v_ini Initial velocity of the vehicle
+    //! @param v_command  Effective Command which has to be tested
+    //! @param operator_command User's commanded velocity (to evaluate the cost of the difference v_command and operator_command)
+    //! @param alt_map Perceived altitude map of the environment
+    //! @param m (out) Marker that can be used for representing the trajectory in RViz.
+    double evaluateTrajectoryRelaxed(const geometry_msgs::Twist& v_ini, const geometry_msgs::Twist& v_command, 
+                              const geometry_msgs::Twist& operator_command, const nav_msgs::OccupancyGrid& alt_map,
+                              visualization_msgs::Marker &m, double x = 0.0, double y = 0.0, double th = 0.0, bool only_one_wheel = true);
     
     //! @brief Destructor
     ~CommandEvaluator();
@@ -70,19 +87,47 @@ namespace siar_controller {
     //! @brief Gets the characteristics of the model
     inline RobotCharacteristics getCharacteristics() const {return m_model;}
     
+    inline SiarFootprint *getFootprint() {return footprint;}
+    
+    void initializeFootprint(const nav_msgs::OccupancyGrid& alt_map);
+    
+    inline functions::RealVector getLastState() const {return last_state;}
+    
+     //! @brief Applies the footprint in the altitude map
+    //! @param x X coord
+    //! @param y Y coord
+    //! @param th Theta angle
+    //! @param alt_map The altitude map
+    //! @param collision (Out parameter) Will become true if a collision is detected
+    //! @param apply_collision If false, the wheel part of the footprint is used. If true, the collision part is used (and only positive obstacles are considered)
+    int applyFootprint(double x, double y, double th, 
+                       const nav_msgs::OccupancyGrid &alt_map, 
+                       bool &collision, bool apply_collision = false);
+    
+    int applyFootprintRelaxed(double x, double y, double th, 
+                                     const nav_msgs::OccupancyGrid &alt_map, 
+                                     bool &collision, bool only_one_wheel);
+    
+    double getMinWheel() const {return min_wheel;}
+    
+    void setMinWheel(double v) {min_wheel = v;}
     
     
   protected:
     double m_T; // Lookahead time
     double m_delta_T; // Timestep
-    double m_divRes, origin_x, origin_y;
-    int width;
+//     double m_divRes, origin_x, origin_y;
+//     int width;
+    int positive_obs, negative_obs;
+    double min_wheel;
     
     double m_w_dist, m_w_safe; // Different weights. Respectively: Distance to commanded velocity, safety, collision penalty
     
     RobotCharacteristics m_model;
     
     SiarFootprint *footprint, *footprint_params;
+    
+    functions::RealVector last_state;
     
     
     //! @brief Actualizes the value of linear and angular velocities according to the model of the vehicle
@@ -95,20 +140,29 @@ namespace siar_controller {
         w = std::min(com.angular.z, w + m_model.a_max_theta * dt * boost::math::sign(com.angular.z - w));
       }
     
-    //! @brief Applies the footprint in the altitude map
-    //! @param x X coord
-    //! @param y Y coord
-    //! @param th Theta angle
-    //! @param alt_map The altitude map
-    //! @param collision (Out parameter) Will become true if a collision is detected
-    //! @param apply_collision If false, the wheel part of the footprint is used. If true, the collision part is used (and only positive obstacles are considered)
-    int applyFootprint(double x, double y, double th, 
-                       const nav_msgs::OccupancyGrid &alt_map, 
-                       bool &collision, bool apply_collision = false);
+   
     
-    inline int point2index(double x, double y)
+    
+    inline int point2index(double x, double y, const nav_msgs::OccupancyGrid &alt_map)
         {
-                return ((int)((x - origin_x)*m_divRes) + 1)*width - (int)((y - origin_y)*m_divRes);
+          int ret_val;
+          
+          if (alt_map.info.origin.orientation.w > 0.9999) {
+//           int ret_val = (int) ( ((x - alt_map.info.origin.position.x)/alt_map.info.resolution)*alt_map.info.width) + (int) (alt_map.height - (y - alt_map.info.origin.position.y)/alt_map.info.resolution);
+            int i = (x - alt_map.info.origin.position.x)/alt_map.info.resolution;
+//           int j = alt_map.info.height - (y - alt_map.info.origin.position.y)/alt_map.info.resolution;
+            int j = (y - alt_map.info.origin.position.y)/alt_map.info.resolution;
+            ret_val = MAP_IDX(alt_map.info.width, i, j);
+          } else {
+            // From siar costmap
+            ret_val = (int)(((x-alt_map.info.origin.position.x)/alt_map.info.resolution + 1)*alt_map.info.width) - (int)((y - alt_map.info.origin.position.y)/ alt_map.info.resolution);
+          }
+          
+          if (ret_val >= alt_map.info.width*alt_map.info.height) {
+            ret_val = -1;
+          }
+          
+          return ret_val;
         }
   };
 
@@ -118,14 +172,19 @@ CommandEvaluator::CommandEvaluator(double w_dist, double w_safe, double T, const
   setParameters(w_dist, w_safe, T, model, delta_T, footprint_p);
 }
 
-CommandEvaluator::CommandEvaluator(ros::NodeHandle& pn):footprint(NULL)
+CommandEvaluator::CommandEvaluator(ros::NodeHandle& pn):m_model(pn),footprint(NULL)
 {
   
   pn.param("w_dist", m_w_dist, 1.0);
   pn.param("w_safe", m_w_safe, 1.0);
   pn.param("delta_T", m_delta_T, 0.2);
   pn.param("T", m_T, 3.0);
+  pn.param("positive_obs", positive_obs, 127);
+  pn.param("negative_obs", negative_obs, -128);
+  pn.param("min_wheel", min_wheel, 0.2); // Minimum fragment of the wheel that has to be without obstacle to be collision-free (in relaxed mode)
   footprint_params = new SiarFootprint(pn);
+  
+  ROS_INFO("Created the evaluater. Positive obstacle: %d", positive_obs);
 }
 
 
@@ -146,15 +205,12 @@ CommandEvaluator::~CommandEvaluator()
   delete footprint_params;
 }
 
-double CommandEvaluator::evualateTrajectory(const geometry_msgs::Twist& v_ini, const geometry_msgs::Twist& v_command, 
+double CommandEvaluator::evaluateTrajectory(const geometry_msgs::Twist& v_ini, const geometry_msgs::Twist& v_command, 
                                             const geometry_msgs::Twist& operator_command, const nav_msgs::OccupancyGrid& alt_map,
-                                            visualization_msgs::Marker &m)
+                                            visualization_msgs::Marker &m, double x, double y, double th)
 {
   double dt = m_delta_T;
-  int steps = m_T / m_delta_T;
-  double x=0.0, y=0.0, th=0.0;
- 
-  
+  int steps = m_T / m_delta_T;  
 
   double lv = v_ini.linear.x;
   double av = v_ini.angular.z;
@@ -167,24 +223,7 @@ double CommandEvaluator::evualateTrajectory(const geometry_msgs::Twist& v_ini, c
   int cont_footprint = 0;
   
   // Initialize the footprint if needed:
-  if (footprint == NULL) {
-      ROS_INFO("Getting footprint. Resolution: %f", alt_map.info.resolution);
-    if (footprint_params == NULL)
-       // TODO: CONFIGURABLE FOR VARIABLE WIDTH PROTOTYPE
-      footprint = new SiarFootprint(alt_map.info.resolution);
-    else
-      footprint = new SiarFootprint(alt_map.info.resolution, footprint_params->m_length, footprint_params->m_width, footprint_params->m_wheel_width, true);
-      
-    m_divRes = 1.0 / alt_map.info.resolution;
-   
-    ROS_INFO("Alt map: height = %d \t width = %d", alt_map.info.height, alt_map.info.width);
-    origin_x = alt_map.info.height * alt_map.info.resolution /2.0;
-    origin_y = alt_map.info.width * alt_map.info.resolution /2.0;
-    origin_x *= -1;
-    origin_y *= -1;
-    width = alt_map.info.width;
-    ROS_INFO("Origin : %f, %f", origin_x, origin_y);
-  }
+  initializeFootprint(alt_map);
 
   bool collision = false;
   for(int i = 0; i <= steps && !collision; i++)
@@ -211,15 +250,20 @@ double CommandEvaluator::evualateTrajectory(const geometry_msgs::Twist& v_ini, c
     m.color.g = 0.0;
     return -1.0;
   }
+  
+  last_state.resize(3);
+  last_state[0] = x;
+  last_state[1] = y;
+  last_state[2] = th;
     
   return ret;
 }
 
-double CommandEvaluator::evaluateTrajectoryMinVelocity(const geometry_msgs::Twist& v_ini, geometry_msgs::Twist& v_command, const geometry_msgs::Twist& operator_command, const nav_msgs::OccupancyGrid& alt_map, visualization_msgs::Marker& m)
+double CommandEvaluator::evaluateTrajectoryMinVelocity(const geometry_msgs::Twist& v_ini, geometry_msgs::Twist& v_command, const geometry_msgs::Twist& operator_command, 
+                                                       const nav_msgs::OccupancyGrid& alt_map, visualization_msgs::Marker& m, double x, double y, double th)
 {
   double dt = m_delta_T;
   int steps = m_T / m_delta_T;
-  double x=0.0, y=0.0, th=0.0;
  
   double lv = v_ini.linear.x;
   double av = v_ini.angular.z;
@@ -232,24 +276,7 @@ double CommandEvaluator::evaluateTrajectoryMinVelocity(const geometry_msgs::Twis
   int cont_footprint = 0;
   
   // Initialize the footprint if needed:
-  if (footprint == NULL) {
-      ROS_INFO("Getting footprint. Resolution: %f", alt_map.info.resolution);
-    if (footprint_params == NULL)
-       // TODO: CONFIGURABLE FOR VARIABLE WIDTH PROTOTYPE
-      footprint = new SiarFootprint(alt_map.info.resolution);
-    else
-      footprint = new SiarFootprint(alt_map.info.resolution, footprint_params->m_length, footprint_params->m_width, footprint_params->m_wheel_width, true);
-      
-    m_divRes = 1.0 / alt_map.info.resolution;
-   
-    ROS_INFO("Alt map: height = %d \t width = %d", alt_map.info.height, alt_map.info.width);
-    origin_x = alt_map.info.height * alt_map.info.resolution /2.0;
-    origin_y = alt_map.info.width * alt_map.info.resolution /2.0;
-    origin_x *= -1;
-    origin_y *= -1;
-    width = alt_map.info.width;
-    ROS_INFO("Origin : %f, %f", origin_x, origin_y);
-  }
+  initializeFootprint(alt_map);
 
   bool collision = false;
   double acc_dist = 0.0;
@@ -283,7 +310,6 @@ double CommandEvaluator::evaluateTrajectoryMinVelocity(const geometry_msgs::Twis
     
     
     if (fabs(v_x) < m_model.v_min) { // Check the minimum velocity
-      
       m.color.r = 1.0;
       m.color.g = 0.0;
       return -1.0;
@@ -293,9 +319,69 @@ double CommandEvaluator::evaluateTrajectoryMinVelocity(const geometry_msgs::Twis
       v_command.linear.x = v_x;
     }
   }
+  
+  last_state.resize(3);
+  last_state[0] = x;
+  last_state[1] = y;
+  last_state[2] = th;
     
   return ret;
 }
+
+double CommandEvaluator::evaluateTrajectoryRelaxed(const geometry_msgs::Twist& v_ini, const geometry_msgs::Twist& v_command, 
+                                                   const geometry_msgs::Twist& operator_command, const nav_msgs::OccupancyGrid& alt_map, 
+                                                   visualization_msgs::Marker& m, double x, double y, double th, bool only_one_wheel)
+{
+  double dt = m_delta_T;
+  int steps = m_T / m_delta_T;  
+
+  double lv = v_ini.linear.x;
+  double av = v_ini.angular.z;
+  
+//   if (pub) {
+//     ROS_INFO("Evaluate trajectory: dt = %f \tsteps=%d \tv_ini_x = %f\t th_dot_ini = %f", m_delta_T, steps, lv, av);
+//     ROS_INFO("v_command_x = %f\t th_dot_command = %f", v_command.linear.x, v_command.angular.z);
+//     ROS_INFO("v_max = %f\t a_max = %f", m_model.v_max, m_model.a_max);
+//   }
+  int cont_footprint = 0;
+  
+  // Initialize the footprint if needed:
+  initializeFootprint(alt_map);
+
+  bool collision = false;
+  for(int i = 0; i <= steps && !collision; i++)
+  {
+    computeNewVelocity(lv, av, dt, v_command);
+    
+    // Integrate the model
+    double lin_dist = lv * dt;
+    th = th + (av * dt);
+    x = x + lin_dist*cos(th); // Euler 1
+    y = y + lin_dist*sin(th); 
+    
+    // Represent downsampled
+    if (i % 5 == 0) 
+      footprint->addPoints(x, y, th, m, 0, i == 0);
+    
+    // Actualize the cost
+    cont_footprint += applyFootprintRelaxed(x, y, th, alt_map, collision, only_one_wheel);
+  }
+  
+  double ret = cont_footprint * m_w_safe + m_w_dist * sqrt(pow(x - operator_command.linear.x * m_T, 2.0) + y*y);
+  if (collision) {
+    m.color.r = 1.0;
+    m.color.g = 0.0;
+    return -1.0;
+  }
+  
+  last_state.resize(3);
+  last_state[0] = x;
+  last_state[1] = y;
+  last_state[2] = th;
+    
+  return ret;
+}
+
 
 
 int CommandEvaluator::applyFootprint(double x, double y, double th, 
@@ -316,13 +402,13 @@ int CommandEvaluator::applyFootprint(double x, double y, double th,
   int index;
   for (unsigned int i = 0; i < fp.size() && !collision; i++) {
     
-    index = point2index(fp.at(i).x, fp.at(i).y);
+    index = point2index(fp[i].x, fp[i].y, alt_map);
 //     ROS_INFO("Point2index(%f,%f) = %d,%d. Value = %d", fp.at(i).x, fp.at(i).y,index/alt_map.info.width, index%alt_map.info.width, alt_map.data[index]);
     
-    if (index > alt_map.data.size() || index < 0) {
+    if (index < 0) {
       continue;
     }
-    if (alt_map.data[index] == 127 || (alt_map.data[index] == -127 && !apply_collision)) 
+    if (alt_map.data[index] == positive_obs || (alt_map.data[index] == negative_obs && !apply_collision)) 
       collision = true; // Collision detected! (if applying the collision map, only consider positive obstacles)
     
     ret_val += abs(alt_map.data[index]); // TODO: check index and coordinate transform
@@ -331,6 +417,83 @@ int CommandEvaluator::applyFootprint(double x, double y, double th,
   
   return ret_val;
 }
+
+int CommandEvaluator::applyFootprintRelaxed(double x, double y, double th, 
+                                     const nav_msgs::OccupancyGrid &alt_map, 
+                                     bool &collision, bool only_one_wheel)
+{
+  int ret_val = 0;
+  
+//   ROS_INFO("Getting rotated footprint (%f,%f,%f)",x,y,th);
+  FootprintType fp = footprint->getFootprint(x, y, th);
+  FootprintType orig = footprint->getFootprint(0, 0 , 0);
+  collision = false;
+  
+  int index;
+  
+  bool right_wheel = false;
+  bool left_wheel = false;
+  int size = fp.size();
+  int cont_left = size / 2;
+  int cont_right = size / 2;
+  for (unsigned int i = 0; i < size && !collision; i++) {
+    
+    index = point2index(fp[i].x, fp[i].y, alt_map);
+//     ROS_INFO("Point2index(%f,%f) = %d,%d. Value = %d", fp.at(i).x, fp.at(i).y,index/alt_map.info.width, index%alt_map.info.width, alt_map.data[index]);
+    
+    if (index < 0) {
+      continue;
+    }
+    if (alt_map.data[index] == positive_obs || alt_map.data[index] == negative_obs) {
+      if (orig[i].y > 0.0) {
+        left_wheel = true;
+        cont_left--;
+      } else {
+        right_wheel = true;
+        cont_right--;
+      }
+      if (only_one_wheel) {
+        collision = left_wheel && right_wheel; // Collision detected! (if applying the collision map, only consider positive obstacles)
+      }
+    } 
+    
+    ret_val += abs(alt_map.data[index]); // TODO: check index and coordinate transform
+    
+  }
+  collision |= ( (double)cont_left / (double)size * 2.0 ) < min_wheel;
+  collision |= ( (double)cont_right / (double)size * 2.0 ) < min_wheel;
+  if (collision) {
+//     ROS_INFO("CommandEvaluator::applyFootprintRelaxed --> COLLISION. Cont_left: %d \t Cont_right: %d \t fp size: %d", cont_left, cont_right, (int)fp.size());
+  }
+  
+  return ret_val;
+}
+
+void CommandEvaluator::initializeFootprint(const nav_msgs::OccupancyGrid& alt_map)
+{
+  if (footprint == NULL) {
+      ROS_INFO("Getting footprint. Resolution: %f", alt_map.info.resolution);
+    if (footprint_params == NULL)
+       // TODO: CONFIGURABLE FOR VARIABLE WIDTH PROTOTYPE
+      footprint = new SiarFootprint(alt_map.info.resolution);
+    else
+      footprint = new SiarFootprint(alt_map.info.resolution, footprint_params->m_length, footprint_params->m_width, footprint_params->m_wheel_width, true);
+      
+//     m_divRes = 1.0 / alt_map.info.resolution;
+   
+    ROS_INFO("Alt map: height = %d \t width = %d", alt_map.info.height, alt_map.info.width);
+//     origin_x = alt_map.info.height * alt_map.info.resolution /2.0;
+//     origin_y = alt_map.info.width * alt_map.info.resolution /2.0;
+    
+//     origin_x *= -1;
+//     origin_y *= -1;
+//     origin_x = alt_map.info.origin.position.x;
+//     origin_y = alt_map.info.origin.position.y;
+//     width = alt_map.info.width;
+//     ROS_INFO("Origin : %f, %f", origin_x, origin_y);
+  }
+}
+
 
   
 }

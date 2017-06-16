@@ -23,8 +23,6 @@
 /**                                                                    */
 /***********************************************************************/
 
-//! TODO: All (see what is necessary)
-
 #ifndef _SIAR_SERIAL_H_
 #define _SIAR_SERIAL_H_
 

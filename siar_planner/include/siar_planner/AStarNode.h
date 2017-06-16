@@ -5,6 +5,8 @@ struct AStarNode
 {
   int id;
   AStarState st;
+  double command_lin;
+  double command_ang;
   std::unordered_map<int,double> neighbors;
   double gScore;
   double fScore;

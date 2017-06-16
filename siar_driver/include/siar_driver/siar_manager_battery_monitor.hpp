@@ -283,7 +283,6 @@ inline bool SiarManagerBatteryMonitor::getIMD(double& imdl, double& imdr)
   return ret_val;
 }
 
-// Updates all but the odometry? 
 inline bool SiarManagerBatteryMonitor::update()
 {
   bool ret_val = true;

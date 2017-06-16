@@ -98,7 +98,7 @@ protected:
   //! @brief Initializes the discrete_test_set_forward and discrete_test_set_backward according to the configuration information
   void initializeDiscreteTestSet();
   //! @brief Retrieves the file_test_set_forward and backward from file (the filename is specified in the configuration)
-  void initializeTestSetFromFile(const std::string &velocityset_filename, int n_interpol = 1);
+  void initializeTestSetFromFile(const std::string &velocityset_filename, int n_interpol = 1, double mult = 1.0);
   
   bool file_test_set_init;
   std::vector <geometry_msgs::Twist> discrete_test_set_forward, discrete_test_set_backward;
@@ -186,10 +186,15 @@ void SiarController::getParameters(ros::NodeHandle& pn)
   std::string velocityset_filename;
   pn.param("velocityset_filename", velocityset_filename, std::string("velocityset_file"));
   
+  // Perform interpolation between consecutive velocity fields
   int n_interpols = 2;
   pn.getParam("n_interpols", n_interpols);
   file_test_set_init = false;
-  initializeTestSetFromFile(velocityset_filename, n_interpols);
+  // Adjust the velocity and other date according to v_mult
+  pn.param("v_mult", _conf.v_mult, 1.0);
+  initializeTestSetFromFile(velocityset_filename, n_interpols, _conf.v_mult);
+  _conf.delta_T /= _conf.v_mult;
+  _conf.T_hor /= _conf.v_mult;
   
   config_init_ = true;
 }
@@ -408,7 +413,7 @@ std::vector< geometry_msgs::Twist > SiarController::getAccelTestSet(double x)
   return ret;
 }
 
-void SiarController::initializeTestSetFromFile(const std::string& velocityset_filename, int n_interpol)
+void SiarController::initializeTestSetFromFile(const std::string& velocityset_filename, int n_interpol, double mult)
 {
   if (!file_test_set_init) {
     file_test_set_init = true;
@@ -429,8 +434,8 @@ void SiarController::initializeTestSetFromFile(const std::string& velocityset_fi
         if (vec.size() < 2)
           continue;
         
-        v.linear.x = vec.at(0);
-        v.angular.z = vec.at(1);
+        v.linear.x = vec.at(0) * mult;
+        v.angular.z = vec.at(1) * mult;
         
         ROS_INFO("File test set. Forward Command %d. vx = %f. v_theta = %f", (int)file_test_set_forward.size(), v.linear.x, v.angular.z);
         addVelocityToTestSets(v, file_test_set_forward, file_test_set_backward);
@@ -502,7 +507,7 @@ void SiarController::initializeDiscreteTestSet()
 void SiarController::evaluateAndActualizeBest(const geometry_msgs::Twist& cmd_vel, const geometry_msgs::Twist &v_ini)
 {
   if (operation_mode == 1) 
-    curr_cost = cmd_eval->evualateTrajectory(v_ini, curr_cmd, cmd_vel, last_map, m);
+    curr_cost = cmd_eval->evaluateTrajectory(v_ini, curr_cmd, cmd_vel, last_map, m);
   else 
     curr_cost = cmd_eval->evaluateTrajectoryMinVelocity(v_ini, curr_cmd, cmd_vel, last_map, m);
     

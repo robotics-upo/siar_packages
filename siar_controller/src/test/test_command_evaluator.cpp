@@ -102,7 +102,7 @@ int main(int argc, char **argv) {
   
   
   visualization_msgs::Marker m;
-  cout << "Evaluating trajectory. Result = " << eval.evualateTrajectory(vel_ini, vel, vel, oc, m);
+  cout << "Evaluating trajectory. Result = " << eval.evaluateTrajectory(vel_ini, vel, vel, oc, m);
   cout << endl;
   
   ROS_INFO("Publishing marker. N_points = %d", (int)m.points.size());

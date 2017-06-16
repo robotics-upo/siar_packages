@@ -21,12 +21,14 @@ public:
   FootprintType getFootprint(double x, double y, double yaw);
   FootprintType getFootprintCollision(double x, double y, double yaw);
   
-  void addPoints(double x, double y, double yaw, visualization_msgs::Marker &m, int id = 0, bool init = false);
+  void addPoints(double x, double y, double yaw, visualization_msgs::Marker &m, int id = 0, bool init = false, const std::string link = "/base_link");
 //   void printFootprintCollision(double x, double y, double yaw, ros::Publisher pub, int id = 0);
   
 //   inline cv::Mat *getOriginalFootprint() {return footprint;}
   
   double m_length, m_width, m_wheel_width;
+  
+  size_t size, size_2;
 
 protected:  
   double m_cellsize;
@@ -53,6 +55,7 @@ SiarFootprint::SiarFootprint(ros::NodeHandle& pn)
   if (!pn.getParam("width", m_width)) {
     m_width = 0.56;
   }
+  pn.param("wheel_width", m_wheel_width, 0.075);
   bool simplified = true;
   if (!pn.getParam("simple_footprint", simplified))
     simplified = true;
@@ -101,6 +104,8 @@ void SiarFootprint::init(bool simplified)
   }  
   footprint_rot = footprint_p;
   footprint_rot_2 = footprint_p_2;
+  size = footprint_p.size();
+  size_2 = footprint_p_2.size();
 }
 
 SiarFootprint::~SiarFootprint()
@@ -112,9 +117,11 @@ SiarFootprint::~SiarFootprint()
 FootprintType SiarFootprint::getFootprint(double x, double y, double yaw)
 {
   /// Compute a rotation matrix with respect to the center of the image
-  for (unsigned int i = 0; i < footprint_p.size();i++) {
-    footprint_rot.at(i).x = x + footprint_p.at(i).x * cos(yaw) - footprint_p.at(i).y * sin(yaw);
-    footprint_rot.at(i).y = y + footprint_p.at(i).x * sin(yaw) + footprint_p.at(i).y * cos(yaw);
+  double cos_yaw = cos(yaw);
+  double sin_yaw = sin(yaw);
+  for (unsigned int i = 0; i < size;i++) {
+    footprint_rot[i].x = x + footprint_p[i].x * cos_yaw - footprint_p[i].y * sin_yaw;
+    footprint_rot[i].y = y + footprint_p[i].x * sin_yaw + footprint_p[i].y * cos_yaw;
   }
   
   return footprint_rot;
@@ -124,24 +131,26 @@ FootprintType SiarFootprint::getFootprint(double x, double y, double yaw)
 FootprintType SiarFootprint::getFootprintCollision(double x, double y, double yaw)
 {
   /// Compute a rotation matrix with respect to the center of the image
-  for (unsigned int i = 0; i < footprint_p_2.size();i++) {
-    footprint_rot_2.at(i).x = x + footprint_p_2.at(i).x * cos(yaw) - footprint_p_2.at(i).y * sin(yaw);
-    footprint_rot_2.at(i).y = y + footprint_p_2.at(i).x * sin(yaw) + footprint_p_2.at(i).y * cos(yaw);
+  double cos_yaw = cos(yaw);
+  double sin_yaw = sin(yaw);
+  for (unsigned int i = 0; i < size_2;i++) {
+    footprint_rot_2[i].x = x + footprint_p_2[i].x * cos_yaw - footprint_p_2[i].y * sin_yaw;
+    footprint_rot_2[i].y = y + footprint_p_2[i].x * sin_yaw + footprint_p_2[i].y * cos_yaw;
   }
   
   return footprint_rot_2;
 }
 
-void SiarFootprint::addPoints(double x, double y, double th, visualization_msgs::Marker &m, int id, bool init) {
+void SiarFootprint::addPoints(double x, double y, double th, visualization_msgs::Marker &m, int id, bool init, const std::string link) {
   std::vector<geometry_msgs::Point> fp = getFootprint(x, y, th);
   if (init) {
-    m.header.frame_id = "/base_link";
+    m.header.frame_id = link;
     m.header.stamp = ros::Time::now();
     m.ns = "footprint";
     m.action = visualization_msgs::Marker::ADD;
     m.pose.orientation.w = 1.0;
     m.id = id;
-    m.points.clear();
+//     m.points.clear();
     m.type = visualization_msgs::Marker::POINTS;
   // POINTS markers use x and y scale for width/height respectively
     m.scale.x = m_cellsize;
@@ -154,9 +163,9 @@ void SiarFootprint::addPoints(double x, double y, double th, visualization_msgs:
   FootprintType footprint = getFootprint(x, y, th);
   geometry_msgs::Point p;
   
-  for (unsigned int i = 0;i < footprint.size(); i++) {
-    p.x = footprint.at(i).x;
-    p.y = footprint.at(i).y;
+  for (unsigned int i = 0;i < size; i++) {
+    p.x = footprint[i].x;
+    p.y = footprint[i].y;
     p.z = 0.0;
     
     m.points.push_back(p);

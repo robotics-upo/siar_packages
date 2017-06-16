@@ -25,8 +25,6 @@
 /***********************************************************************/
 
 
-// TODO: All conversion giraff--> raposa
-
 #ifndef _SIAR_MANAGER_H_
 #define _SIAR_MANAGER_H_
 
