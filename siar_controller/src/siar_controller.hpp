@@ -172,7 +172,7 @@ void SiarController::getParameters(ros::NodeHandle& pn)
   pn.param("delta_T", _conf.delta_T, 0.2);
   pn.param("T", _conf.T, 0.1);
   
-  cmd_eval = new CommandEvaluator(_conf.w_dist, _conf.w_safe, _conf.T_hor, model, _conf.delta_T, p); // TODO: insert the footprint related data (now only default values)
+  
   
   pn.param("n_lin", _conf.n_lin, 3);
   pn.param("n_ang", _conf.n_ang, 12);
@@ -195,6 +195,8 @@ void SiarController::getParameters(ros::NodeHandle& pn)
   initializeTestSetFromFile(velocityset_filename, n_interpols, _conf.v_mult);
   _conf.delta_T /= _conf.v_mult;
   _conf.T_hor /= _conf.v_mult;
+  
+  cmd_eval = new CommandEvaluator(_conf.w_dist, _conf.w_safe, _conf.T_hor, model, _conf.delta_T, p); // TODO: insert the footprint related data (now only default values)
   
   config_init_ = true;
 }
