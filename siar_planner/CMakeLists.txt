@@ -16,11 +16,11 @@ find_package(catkin REQUIRED COMPONENTS
   nav_msgs
   roscpp
   siar_controller
+  genmsg actionlib_msgs actionlib
 )
 
-## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
-
+add_action_files(DIRECTORY action FILES PassFork.action)
+generate_messages(DEPENDENCIES actionlib_msgs)
 
 ###################################
 ## catkin specific configuration ##
@@ -64,6 +64,7 @@ include_directories(
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(test_planner src/test_planner.cpp)
+add_executable(siar_planner_node src/siar_planner_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -74,8 +75,12 @@ add_executable(test_planner src/test_planner.cpp)
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 add_dependencies(test_planner ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(siar_planner_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(test_planner
+  ${catkin_LIBRARIES}
+)
+target_link_libraries(siar_planner_node
   ${catkin_LIBRARIES}
 )
