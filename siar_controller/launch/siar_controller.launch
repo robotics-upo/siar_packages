@@ -1,10 +1,14 @@
 <?xml version="1.0"?>
 <launch>
  
+    
   <node name="siar_controller" pkg="siar_controller" type="siar_controller_node" output="screen">
-    <remap from="/cmd_vel_in" to="/user_cmd_vel"/>
-    <remap from="/cmd_vel_out" to="/cmd_vel"/>
-    <remap from="/altitude_map" to="/costmap_node/costmap"/>
-  </node>
+      <remap from="/cmd_vel_in" to="/user_cmd_vel"/>
+      <remap from="/cmd_vel_out" to="/cmd_vel"/>
+      <remap from="/altitude_map" to="/costmap_node/costmap"/>
+      
+      <rosparam file="$(find siar_controller)/cfg/siar_controller.yaml" command="load"  /> 
+      <param name="velocityset_filename" value="$(find siar_controller)/cfg/velocityset_2"/>
+    </node>
   
 </launch>

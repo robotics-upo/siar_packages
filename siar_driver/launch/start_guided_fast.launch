@@ -17,6 +17,7 @@
   <arg name="publish_tf" default="false"/>
   <arg name="obstacle_height" default="0.075"/>
   <arg name="resolution" default ="0.025"/>
+  <arg name="velocity_file" default="velocityset_0.5"/>
   
   <!-- Bring up the raposa node and the imu if desired -->
   <node name="siar_node" pkg="siar_driver" type="siar_node" output="screen">
@@ -49,7 +50,7 @@
       <remap from="/altitude_map" to="/costmap_node/costmap"/>
      
       <rosparam file="$(find siar_controller)/cfg/siar_controller_fast.yaml" command="load"  /> 
-      <param name="velocityset_filename" value="$(find siar_controller)/cfg/velocityset_fast"/>
+      <param name="velocityset_filename" value="$(find siar_controller)/cfg/$(arg velocity_file)"/>
     </node>
   <include file="$(find siar_costmap)/launch/siar_costmap.launch">
     <arg name="obstacle_height" value="$(arg obstacle_height)"/>
