@@ -181,7 +181,7 @@ CommandEvaluator::CommandEvaluator(ros::NodeHandle& pn):m_model(pn),footprint(NU
   pn.param("delta_T", m_delta_T, 0.2);
   pn.param("T", m_T, 3.0);
   pn.param("positive_obs", positive_obs, 127);
-  pn.param("negative_obs", negative_obs, -128);
+  pn.param("negative_obs", negative_obs, -127);
   pn.param("min_wheel", min_wheel, 0.2); // Minimum fragment of the wheel that has to be without obstacle to be collision-free (in relaxed mode)
   pn.param("allow_only_negative", allow_only_negative, false); // If true --> the track is only allow to enter into negative obstacles
   footprint_params = new SiarFootprint(pn);
