@@ -333,6 +333,7 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
   best_cmd = cmd_vel;
   best_cmd.linear.x = 0.0;
   
+  
   // Get test set (different options available)
   std::vector<geometry_msgs::Twist> test_set;
   if (operation_mode != 0) {
@@ -508,10 +509,8 @@ void SiarController::initializeDiscreteTestSet()
 
 void SiarController::evaluateAndActualizeBest(const geometry_msgs::Twist& cmd_vel, const geometry_msgs::Twist &v_ini)
 {
-  if (operation_mode == 1) 
-    curr_cost = cmd_eval->evaluateTrajectory(v_ini, curr_cmd, cmd_vel, last_map, m);
-  else 
-    curr_cost = cmd_eval->evaluateTrajectoryMinVelocity(v_ini, curr_cmd, cmd_vel, last_map, m);
+  m.points.clear();
+  curr_cost = cmd_eval->evaluateTrajectory(v_ini, curr_cmd, cmd_vel, last_map, m);
     
   if (curr_cost < lowest_cost && curr_cost >= 0.0) {
     best_cmd = curr_cmd;
