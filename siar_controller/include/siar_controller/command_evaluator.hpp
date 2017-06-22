@@ -116,8 +116,8 @@ namespace siar_controller {
   protected:
     double m_T; // Lookahead time
     double m_delta_T; // Timestep
-//     double m_divRes, origin_x, origin_y;
-//     int width;
+    double m_divRes, origin_x, origin_y;
+    int width; bool rotate; int total_points;
     int positive_obs, negative_obs;
     double min_wheel;
     bool allow_only_negative;
@@ -141,25 +141,34 @@ namespace siar_controller {
         w = std::min(com.angular.z, w + m_model.a_max_theta * dt * boost::math::sign(com.angular.z - w));
       }
     
-   
+    inline void setParams(const nav_msgs::OccupancyGrid &alt_map) {
+      rotate = alt_map.info.origin.orientation.w < 0.9999; 
+      origin_x = alt_map.info.origin.position.x;
+      origin_y = alt_map.info.origin.position.y;
+      m_divRes = 1.0 / alt_map.info.resolution;
+      width = alt_map.info.width;
+      total_points = alt_map.info.height * width;
+//       if (rotate)
+//         ROS_INFO("Set params: Rotated map");
+//       else 
+//         ROS_INFO("Set params: Straight map");
+    }
     
     
-    inline int point2index(double x, double y, const nav_msgs::OccupancyGrid &alt_map)
+    inline int point2index(double x, double y)
         {
           int ret_val;
           
-          if (alt_map.info.origin.orientation.w > 0.9999) {
-//           int ret_val = (int) ( ((x - alt_map.info.origin.position.x)/alt_map.info.resolution)*alt_map.info.width) + (int) (alt_map.height - (y - alt_map.info.origin.position.y)/alt_map.info.resolution);
-            int i = (x - alt_map.info.origin.position.x)/alt_map.info.resolution;
-//           int j = alt_map.info.height - (y - alt_map.info.origin.position.y)/alt_map.info.resolution;
-            int j = (y - alt_map.info.origin.position.y)/alt_map.info.resolution;
-            ret_val = MAP_IDX(alt_map.info.width, i, j);
+          if (!rotate) {
+            int i = (x - origin_x)*m_divRes;
+            int j = (y - origin_y)*m_divRes;
+            ret_val = MAP_IDX(width, i, j);
           } else {
             // From siar costmap
-            ret_val = (int)(((x-alt_map.info.origin.position.x)/alt_map.info.resolution + 1)*alt_map.info.width) - (int)((y - alt_map.info.origin.position.y)/ alt_map.info.resolution);
+            ret_val =  ((int)((x-origin_x)*m_divRes))*width + width - (int)((y+origin_y)*m_divRes); //(int)(((x-origin_x)*m_divRes + 1)*width) - (int)((y - origin_y)*m_divRes);
           }
           
-          if (ret_val >= alt_map.info.width*alt_map.info.height) {
+          if (ret_val >= total_points) {
             ret_val = -1;
           }
           
@@ -171,6 +180,9 @@ CommandEvaluator::CommandEvaluator(double w_dist, double w_safe, double T, const
 {
   
   setParameters(w_dist, w_safe, T, model, delta_T, footprint_p);
+  positive_obs = 127;
+  negative_obs = -127;
+  ROS_INFO("Created the evaluater. Positive obstacle: %d", positive_obs);
 }
 
 CommandEvaluator::CommandEvaluator(ros::NodeHandle& pn):m_model(pn),footprint(NULL)
@@ -199,6 +211,7 @@ void CommandEvaluator::setParameters(double w_dist, double w_safe, double T, con
   m_model = model;
   delete footprint_params;
   footprint_params = footprint_p;
+  ROS_INFO("Command Evaluator::Set parameters --> w_dist = %f\t w_safe=%f\t T=%f\t D_T=%f", w_dist, w_safe, T, delta_T);
 }
 
 CommandEvaluator::~CommandEvaluator()
@@ -213,6 +226,8 @@ double CommandEvaluator::evaluateTrajectory(const geometry_msgs::Twist& v_ini, c
 {
   double dt = m_delta_T;
   int steps = m_T / m_delta_T;  
+  
+  setParams(alt_map);
 
   double lv = v_ini.linear.x;
   double av = v_ini.angular.z;
@@ -239,7 +254,7 @@ double CommandEvaluator::evaluateTrajectory(const geometry_msgs::Twist& v_ini, c
     y = y + lin_dist*sin(th); 
     
     // Represent downsampled
-    if (i % 5 == 0) 
+    if (i % 10 == 0) 
       footprint->addPoints(x, y, th, m, 0, i == 0);
     
     // Actualize the cost
@@ -269,6 +284,8 @@ double CommandEvaluator::evaluateTrajectoryMinVelocity(const geometry_msgs::Twis
  
   double lv = v_ini.linear.x;
   double av = v_ini.angular.z;
+  setParams(alt_map);
+  
   
 //   if (pub) {
 //     ROS_INFO("Evaluate trajectory: dt = %f \tsteps=%d \tv_ini_x = %f\t th_dot_ini = %f", m_delta_T, steps, lv, av);
@@ -340,6 +357,8 @@ double CommandEvaluator::evaluateTrajectoryRelaxed(const geometry_msgs::Twist& v
   double lv = v_ini.linear.x;
   double av = v_ini.angular.z;
   
+  setParams(alt_map);
+  
 //   if (pub) {
 //     ROS_INFO("Evaluate trajectory: dt = %f \tsteps=%d \tv_ini_x = %f\t th_dot_ini = %f", m_delta_T, steps, lv, av);
 //     ROS_INFO("v_command_x = %f\t th_dot_command = %f", v_command.linear.x, v_command.angular.z);
@@ -397,14 +416,14 @@ int CommandEvaluator::applyFootprint(double x, double y, double th,
   if (!apply_collision)
     fp = footprint->getFootprint(x, y, th);
   else
-    fp = footprint->getFootprintCollision(x, y, th);
+    return 0;
   
   collision = false;
   
   int index;
   for (unsigned int i = 0; i < fp.size() && !collision; i++) {
     
-    index = point2index(fp[i].x, fp[i].y, alt_map);
+    index = point2index(fp[i].x, fp[i].y);
 //     ROS_INFO("Point2index(%f,%f) = %d,%d. Value = %d", fp.at(i).x, fp.at(i).y,index/alt_map.info.width, index%alt_map.info.width, alt_map.data[index]);
     
     if (index < 0) {
@@ -440,7 +459,7 @@ int CommandEvaluator::applyFootprintRelaxed(double x, double y, double th,
   int cont_right = size / 2;
   for (unsigned int i = 0; i < size && !collision; i++) {
     
-    index = point2index(fp[i].x, fp[i].y, alt_map);
+    index = point2index(fp[i].x, fp[i].y);
 //     ROS_INFO("Point2index(%f,%f) = %d,%d. Value = %d", fp.at(i).x, fp.at(i).y,index/alt_map.info.width, index%alt_map.info.width, alt_map.data[index]);
     
     if (index < 0) {
