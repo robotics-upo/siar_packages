@@ -29,6 +29,12 @@ public:
   
   inline bool isInit() const {return map_init;}
   
+  inline std::string getFrameID() const {
+    if (map_init) {
+      return m_world.header.frame_id;
+    }
+  }
+  
   visualization_msgs::Marker getMarker(AStarState &st, int id = 0); 
   
   inline bool isCollision(AStarState &st) {
@@ -124,7 +130,7 @@ visualization_msgs::Marker AStarModel::getMarker(AStarState& st, int id)
   visualization_msgs::Marker m;
   
   if (m_ce.getFootprint() != NULL) {
-    m_ce.getFootprint()->addPoints(st.state[0], st.state[1], st.state[2], m, id, true, "/map");
+    m_ce.getFootprint()->addPoints(st.state[0], st.state[1], st.state[2], m, id, true, m_world.header.frame_id);
   } else {
     ROS_ERROR("AStarModel::getMarker: --> Footprint is not initialized");
   }

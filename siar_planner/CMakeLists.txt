@@ -14,6 +14,7 @@ set(CMAKE_BUILD_TYPE Release)
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   nav_msgs
+  visualization_msgs
   roscpp
   siar_controller
   genmsg actionlib_msgs actionlib
