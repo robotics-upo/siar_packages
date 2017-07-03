@@ -248,6 +248,33 @@ public:
     return false;
   }
   
+  visualization_msgs::Marker getPosMarker(const std::string &ref_frame, int id = 3, double scale = 3.0) {
+    float mX, mY, mA, devX, devY, devA;
+    computeDev(mX, mY, mA, devX, devY, devA);
+    visualization_msgs::Marker pos;
+    pos.header.frame_id = ref_frame;
+    pos.header.stamp = ros::Time::now();
+    pos.ns = "sewer_graph";
+    pos.action = visualization_msgs::Marker::ADD;
+    pos.pose.orientation.w = 1.0;
+    pos.id = id;
+    pos.type = visualization_msgs::Marker::SPHERE_LIST;
+    pos.color.b = 1.0;
+    pos.color.a = 1.0;
+    pos.scale.x = scale;
+    pos.scale.y = scale;
+    pos.scale.z = scale;
+    
+    geometry_msgs::Point p;
+    p.x = mX;
+    p.y = mY;
+    p.z = 0.0;
+    
+    
+    pos.points.push_back(p);
+    return pos;
+  }
+  
   void publishParticles()
   {
     static int seq = 0;
@@ -287,7 +314,9 @@ private:
     std::vector<visualization_msgs::Marker> markers = s_g->getMarkers(m_globalFrameId);
     for (unsigned int i = 0; i < markers.size();i++) {
       m_graphPub.publish(markers[i]);
+      
     }
+    m_graphPub.publish(getPosMarker(m_globalFrameId));
   }
 
   void initialPoseReceived(const geometry_msgs::PoseWithCovarianceStampedConstPtr& msg)

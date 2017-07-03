@@ -271,7 +271,7 @@ void SewerGraph::addKMLStyle(kmldom::DocumentPtr& doc) const
 }
 
 std::vector<visualization_msgs::Marker> SewerGraph::getMarkers(std::string ref_frame) const {
-  visualization_msgs::Marker points, forks;
+  visualization_msgs::Marker points, forks, lines;
   points.header.frame_id = ref_frame;
   points.header.stamp = ros::Time::now();
   points.ns = "sewer_graph";
@@ -287,20 +287,34 @@ std::vector<visualization_msgs::Marker> SewerGraph::getMarkers(std::string ref_f
   forks.pose.orientation.w = 1.0;
   forks.id = 1;
   forks.type = visualization_msgs::Marker::POINTS;
+  
+  lines.header.frame_id = ref_frame;
+  lines.header.stamp = ros::Time::now();
+  lines.ns = "sewer_graph";
+  lines.action = visualization_msgs::Marker::ADD;
+  lines.pose.orientation.w = 1.0;
+  lines.id = 2;
+  lines.type = visualization_msgs::Marker::LINE_LIST;
 
   // POINTS markers use x and y scale for width/height respectively
   points.scale.x = 2;
   points.scale.y = 2;
   forks.scale.x = 2;
   forks.scale.y = 2;
+  lines.scale.x = 0.75;
+  lines.scale.y = 0.75;
 
   // Manholes are green, forks red
   points.color.g = 1.0;
   points.color.a = 1.0;
   forks.color.r = 1.0;
   forks.color.a = 1.0;
+  lines.color.r = 1.0;
+  lines.color.g = 1.0;
+  lines.color.b = 1.0;
+  lines.color.a = 0.7;
 
-  geometry_msgs::Point p;
+  geometry_msgs::Point p, p1;
   
   for (unsigned int i = 0; i < nVertices(); i++) {
     SewerVertex v = getVertexContent(i);
@@ -316,21 +330,24 @@ std::vector<visualization_msgs::Marker> SewerGraph::getMarkers(std::string ref_f
   // TODO: Represent edges
   
   
-//   std::list<int> n = vertices[i].getNeighbours();
-//   std::list<int>::iterator it = n.begin();
-//   for (;it != n.end(); it++) {
-//     int j = *it;
-//     ostringstream os_2;
-//     os_2 << "Edge from " << i << " to " << j;
-//     EarthLocation to = getVertexContent(j).e;
-//     doc->add_feature(from.getKMLLine(os_2.str(), to, factory));
+    std::list<int> n = vertices[i].getNeighbours();
+    std::list<int>::iterator it = n.begin();
     
-    
+    for (;it != n.end(); it++) {
+      v = getVertexContent(*it);
+      p1.x = v.x;
+      p1.y = v.y;
+      p1.z = 0.0;
+      lines.points.push_back(p);
+      lines.points.push_back(p1);
+    }
   }
   
   std::vector<visualization_msgs::Marker> ret;
+  ret.push_back(lines);
   ret.push_back(points);
   ret.push_back(forks);
+  
   
   return ret;
 }
