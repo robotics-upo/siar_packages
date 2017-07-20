@@ -6,7 +6,7 @@ This localization system is presented in the paper "RGBD-based Robot Localizatio
 
 The video attachment to the paper in HD can be found at:
 
-- https://www.youtube.com/watch?v=LHX4IV81O0o
+-  https://youtu.be/N_tUhdBN7Z4
 
 The bags for reproducing the presented experiments can be found at:
 
