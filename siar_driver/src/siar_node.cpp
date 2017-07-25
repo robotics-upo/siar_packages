@@ -34,15 +34,13 @@
 #include <robot_state_publisher/robot_state_publisher.h>
 #include <kdl_parser/kdl_parser.hpp>
 #include "siar_driver/siar_manager.hpp"
-#include "siar_driver/siar_manager_two_boards.hpp"
-#include "siar_driver/siar_manager_one_board.hpp"
-#include "siar_driver/siar_manager_battery_monitor.hpp"
+#include "siar_driver/siar_manager_width_adjustment.hpp"
 
 #define FREQ		50.0
 #define FREQ_IMU	150.0
 #define VEL_TIMEOUT 	  0.7
 
-SiarManager *siar = NULL;
+SiarManagerWidthAdjustment *siar = NULL;
 
 ros::Time cmd_vel_time;
 double vel_timeout;
@@ -52,6 +50,8 @@ void cmdVelReceived(const geometry_msgs::Twist::ConstPtr& cmd_vel)
   cmd_vel_time = ros::Time::now();
   siar->setVelocity(cmd_vel->linear.x,cmd_vel->angular.z);
 }
+
+siar_driver::SiarStatus siar_state;
 
 int main(int argc, char** argv)
 {
@@ -68,7 +68,6 @@ int main(int argc, char** argv)
 
     // Note: Please check the devices of the SIAR and set the params accordingly
     pn.param<std::string>("siar_device_1", siar_port_1, "/dev/serial/by-id/usb-FTDI_MM232R_USB_MODULE_board2-if00-port0");
-    pn.param<std::string>("siar_device_2", siar_port_2, "/dev/serial/by-id/usb-FTDI_MM232R_USB_MODULE_FTHE3VLD-if00-port0");
     pn.param<std::string>("battery_device", battery_port, "/dev/serial/by-id/usb-FTDI_MM232R_USB_MODULE_FTGT8JO-if00-port0");
     pn.param<std::string>("joy_device", joy_port, "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A602XIGF-if00-port0");
 
@@ -82,7 +81,6 @@ int main(int argc, char** argv)
     pn.param<std::string>("base_ticks_id", base_ticks_id, "/base_ticks");
     pn.param<std::string>("odom_frame_id", odom_frame_id, "/odom");
     pn.param<bool>("use_imu", use_imu, true);
-    pn.param<bool>("two_boards", two_boards, true);
     pn.param<double>("vel_timeout", vel_timeout, VEL_TIMEOUT);
 
     double freq, freq_imu;
@@ -104,16 +102,9 @@ int main(int argc, char** argv)
     
     SiarConfig siar_config;
     try {
-      if (two_boards) {
-        // For backward compatibility the option with two boards have been kept. Not maintained though.
-	siar = new SiarManagerTwoBoards(siar_port_1, siar_port_2, joy_port, siar_config);
-        ROS_INFO("Connected to SIAR One Board OK");
-      } else {
-// 	siar = new SiarManagerOneBoard(siar_port_1, joy_port, siar_config); Backward compatibility --> version of the SIAR driver without battery measurement
-        siar = new SiarManagerBatteryMonitor(siar_port_1, joy_port, battery_port, siar_config);
-        
-        ROS_INFO("Connected to SIAR with battery monitor OK");
-      }
+      siar = new SiarManagerWidthAdjustment(siar_port_1, joy_port, battery_port, siar_config);
+      
+      ROS_INFO("Connected to SIAR with battery monitor OK");
       
       if (use_imu) {
 	siar->setIMU(freq_imu);
@@ -124,8 +115,6 @@ int main(int argc, char** argv)
     }
     
     siar->setVelocity(0.0 ,0.0);
-    SiarState siar_state;
-    
     cmd_vel_time = ros::Time::now() - ros::Duration(vel_timeout);
 
     // Save the proper fields
@@ -158,18 +147,19 @@ int main(int argc, char** argv)
       odom.header.frame_id = odom_frame_id;
       odom_pub.publish(odom);
       
-      // then , we'll publish the transforms over tf
-      odom_trans.transform.rotation = siar_state.odom.pose.pose.orientation;
-      odom_trans.transform.translation.x = siar_state.odom.pose.pose.position.x;
-      odom_trans.transform.translation.y = siar_state.odom.pose.pose.position.y;
-      odom_trans.transform.translation.z = siar_state.odom.pose.pose.position.z;
-      odom_trans.header.frame_id = odom_frame_id;
-      odom_trans.child_frame_id = base_frame_id;
-      odom_trans.header.stamp = ros::Time::now();
+      if (publish_tf) {
+        // then , we'll publish the transforms over tf
+        odom_trans.transform.rotation = siar_state.odom.pose.pose.orientation;
+        odom_trans.transform.translation.x = siar_state.odom.pose.pose.position.x;
+        odom_trans.transform.translation.y = siar_state.odom.pose.pose.position.y;
+        odom_trans.transform.translation.z = siar_state.odom.pose.pose.position.z;
+        odom_trans.header.frame_id = odom_frame_id;
+        odom_trans.child_frame_id = base_frame_id;
+        odom_trans.header.stamp = ros::Time::now();
       
-      // Publish the odometry TF and odom message
-      if (publish_tf)
+        // Publish the odometry TF
         tf_broadcaster.sendTransform(odom_trans);
+      }
     }
   }
   catch(SiarManagerException e) {

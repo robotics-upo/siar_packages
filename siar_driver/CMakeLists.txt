@@ -24,12 +24,15 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
   FILES
   SiarBatteryMonitor.msg
+  SiarPowerSupply.msg
+  SiarStatus.msg
 )
 
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
   DEPENDENCIES
   std_msgs
+  nav_msgs
 )
 
 

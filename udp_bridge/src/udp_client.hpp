@@ -10,7 +10,7 @@
 #include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/Joy.h>
 #include <sensor_msgs/PointCloud2.h>
-#include <siar_driver/SiarBatteryMonitor.h>
+#include <siar_driver/SiarStatus.h>
 #include <std_msgs/UInt32.h>
 #include <std_msgs/Bool.h>
 
@@ -29,12 +29,12 @@ private:
   std::string camera_1, camera_2;
   std::string camTopic, camTopic_2, depthCamTopic, depthCamTopic_2;
   std::string allCamerasTopic, publishDepthTopic, joyTopic, rssi_topic, slowTopic;
-  std::string motor_battery_topic, elec_battery_topic, point_topic;
+  std::string point_topic, siar_status_topic;
   
   // ROS stuff
   ros::Publisher image_pub, odom_pub, odom_pub_2, image_pub_2, depth_pub, depth_pub_2;
   ros::Publisher cam_pub, cam_pub_2, depth_cam_pub, depth_cam_pub_2;
-  ros::Publisher rssi_pub, motor_battery_pub, elec_battery_pub, point_pub;
+  ros::Publisher rssi_pub, siar_status_pub, point_pub;
   
   ros::Subscriber publish_depth_sub, all_cameras_sub, joy_sub, slow_sub;
   ros::NodeHandle nh;
@@ -85,10 +85,8 @@ public:
       odom_frame_id = "/odom";
     if (!lnh.getParam("rssi_topic", rssi_topic))
       rssi_topic = "/rssi_nvip_2400";
-    if (!lnh.getParam("motor_battery_topic", motor_battery_topic))
-      motor_battery_topic = "/motor_battery_status";
-    if (!lnh.getParam("elec_battery_topic", elec_battery_topic))
-      elec_battery_topic = "/elec_battery_status";
+    if (!lnh.getParam("siar_status_topic", siar_status_topic))
+      siar_status_topic = "/siar_status";
     if (!lnh.getParam("joy_topic", joyTopic))
       joyTopic = "/joy";
     if (!lnh.getParam("point_cloud_topic", point_topic))
@@ -105,8 +103,7 @@ public:
     depth_pub = nh.advertise<sensor_msgs::CompressedImage>(depthTopic, 1);
     depth_pub_2 = nh.advertise<sensor_msgs::CompressedImage>(depthTopic_2, 1);
     rssi_pub = nh.advertise<rssi_get::Nvip_status>(rssi_topic, 1);
-    motor_battery_pub = nh.advertise<siar_driver::SiarBatteryMonitor>(motor_battery_topic, 1);
-    elec_battery_pub = nh.advertise<siar_driver::SiarBatteryMonitor>(elec_battery_topic, 1);
+    siar_status_pub = nh.advertise<siar_driver::SiarBatteryMonitor>(siar_status_topic, 1);
     point_pub = nh.advertise<sensor_msgs::PointCloud2>(point_topic, 1);
     
     camTopic = camera_1 + "/rgb/camera_info";
@@ -128,7 +125,6 @@ public:
     if (!lnh.getParam("translate_joy", translate_joy))
       translate_joy = false;
     if (translate_joy)  {
-      ROS_INFO("HERE");
       if (!lnh.getParam("start_button", startButton))
         startButton = 0;
       if (!lnh.getParam("new/start_button", newStartButton))
@@ -165,7 +161,6 @@ public:
         newLinearAxis = 0;
       if (!lnh.getParam("new/angular_axis", newAngularAxis)) {
         newAngularAxis = 0;
-        ROS_INFO("HERE2");
       }
     }
     
@@ -344,15 +339,10 @@ protected:
         ROS_INFO("Deserializing and publishing topic %s", topic.c_str());
         deserializePublish<rssi_get::Nvip_status>(buffer.data(), buffer.size(), rssi_pub);
       }
-      if(topic == motor_battery_topic)
+      if(topic == siar_status_topic)
       {
         ROS_INFO("Deserializing and publishing topic %s", topic.c_str());
-        deserializePublish<siar_driver::SiarBatteryMonitor>(buffer.data(), buffer.size(), motor_battery_pub);
-      }
-      if (topic == elec_battery_topic)
-      {
-        ROS_INFO("Deserializing and publishing topic %s", topic.c_str());
-        deserializePublish<siar_driver::SiarBatteryMonitor>(buffer.data(), buffer.size(), elec_battery_pub);
+        deserializePublish<siar_driver::SiarStatus>(buffer.data(), buffer.size(), siar_status_pub);
       }
       if (topic == point_topic)
       {
