@@ -12,6 +12,9 @@
 #include <tf/tf.h>
 #include <tf/transform_listener.h>
 
+//! @class This class takes as inputs a desired 2D pose (with yaw) or a desired direction in the fork and tries to get a path
+//! TODO: output a sequence of cmd_vel!! 
+
 class SiarPlannerActionServer 
 {
 public:
