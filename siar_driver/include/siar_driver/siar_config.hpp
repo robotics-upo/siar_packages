@@ -50,10 +50,25 @@ public:
   double estimated_diag;
   
   // Robot commands
-  unsigned char set_vel, get_enc, hard_stop;
+  unsigned char set_vel, get_enc; // Velocity motor
+  unsigned char hard_stop, get_hard_stop, get_hard_time, set_hard_time; // Hard stop stuff
+  unsigned char set_lin_vel, set_lin_pos, get_lin_pos, get_lin_pot; // Linear motor
+  unsigned char get_fan, set_fan, get_fw; // Fan & FW
   
   // Battery monitor commands
   unsigned char get_voltage, get_inst_curr, get_integ_curr, get_battery_level;
+  unsigned int set_lights;
+  unsigned int set_aux_pin_direction;
+  unsigned int set_aux_pin_values;
+  unsigned char set_herculex_torque;
+  unsigned char set_herculex_position;
+  unsigned char set_herculex_clear_status;
+  unsigned char get_herculex_status;
+  unsigned char get_herculex_torque;
+  unsigned char get_herculex_position;
+  unsigned char get_herculex_temp;
+  unsigned char get_power_supply;
+  unsigned char get_aux_pin_values;
   
   SiarConfig(const std::string &filename = "");
   
@@ -78,7 +93,7 @@ bool SiarConfig::saveConfig(const std::string& filename)
 void SiarConfig::setDefaultConfig()
 {
   half_axis_distance = 0.2;
-  diag_wheels = 0.4;
+  diag_wheels = 0.4; // TODO: In the width adjusted the diag wheels will not be constant --> Get the maximum and minimum diagonals and interpolate!
   radius = 0.085; // 0.085 is the distance from the robot center to the ground
   ticks_revolution = 32250; // See the document API_summary_SiarNG_motors_2015.pdf
   peri_wheel = 2 * M_PI * radius; // Perimeter of the wheel
@@ -89,7 +104,7 @@ void SiarConfig::setDefaultConfig()
   meters_tick_r_b = meters_tick_r;
   estimated_diag = diag_wheels;
   
-  // TODO: From calibration
+  // TODO: From calibration --> calibrate new prototype
   meters_tick_l = 1 / 250293.0;
   meters_tick_r = 1 / 250395.0;
   meters_tick_l_b = 1 / 254055.0;
@@ -111,13 +126,48 @@ void SiarConfig::setDefaultConfig()
   angular_sat = Saturate<>(0.3);
   vel_int_sat = Saturate<int>(1100);
   
-  set_vel = (unsigned char)0x56; // See Raposa manual (SIAR commands have equal command chars)
+  // Motor board
+  
+  set_vel = (unsigned char)0x56; // Followed the C# code by Carlos Marques (Jul 2017)
+  set_lin_vel = (unsigned char)0x31;
+  set_lin_pos = (unsigned char)0x30;
+  set_hard_time = (unsigned char)0x58;
+  hard_stop = (unsigned char)0x57;
+  set_fan = (unsigned char)0x53;
+  
   get_enc = (unsigned char)0x4A;
-  hard_stop = (unsigned char)0x57; 
+  get_lin_pos = (unsigned char)0x32;
+  get_lin_pot = (unsigned char)0x33;
+  get_hard_stop = (unsigned char)0x59;
+  get_hard_time = (unsigned char)0x58;
+  get_fan = (unsigned char)0x54;
+  
+  // Common
+  get_fw = (unsigned char)0x20;
+  
+  // Electronic board TODO: Update with the new version of the width adjustment
+  
+  set_herculex_torque = (unsigned char)0x30;
+  set_herculex_position = (unsigned char)0x31;
+  set_herculex_clear_status = (unsigned char)0x32;
+  
+  get_herculex_status = (unsigned char)0x40;
+  get_herculex_torque = (unsigned char)0x41;
+  get_herculex_position = (unsigned char)0x42;
+  get_herculex_temp = (unsigned char)0x43;
+  
+  get_power_supply = (unsigned char)0x51;
   get_voltage = (unsigned char)0x52;
   get_inst_curr = (unsigned char)0x53;
   get_integ_curr = (unsigned char)0x54;
   get_battery_level = (unsigned char)0x55;
+  get_aux_pin_values = (unsigned char)0x56;
+  
+  
+  set_lights = (unsigned char)0x60;
+  set_aux_pin_direction = (unsigned char)0x61;
+  set_aux_pin_values = (unsigned char)0x62;
+  
 }
 
 #endif

@@ -4,3 +4,4 @@
 /opt/ros/indigo/include
 /home/chur/test_ws/devel/include
 /home/chur/test_ws/src/siar_packages/siar_planner/include
+/home/chur/test_ws/src/siar_packages/siar_driver/include

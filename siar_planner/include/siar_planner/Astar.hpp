@@ -214,19 +214,19 @@ double AStar::getPath(AStarState start, AStarState goal, std::list<AStarNode>& p
   
   openSet.insert(start_id);
   int relax = 0;
-  while (allow_relaxation && relax < n_rounds) {
+  while (allow_relaxation && relax < n_rounds) { // n_rounds is the number of tries (in each try the allowed part of the wheel in the gutter grows)
     int cont = 0;
-    while (cont < n_iter && !openSet.empty()) {
+    while (cont < n_iter && !openSet.empty()) { // n_iter Max. number of nodes to expand for each round
       
       // Get node ID with minimum cost
-      int current_id = getBestNode(relax);
+      int current_id = getBestNode(relax); // if relax > 0 --> we would allow a fraction of wheel in the gutter
       
       if (current_id < 0) {
         std::cerr << "ID < 0 --> Openset empty" << std::endl;
         break;
       }
       
-      AStarNode* current_node = &nodes[current_id];    
+      AStarNode* current_node = &nodes[current_id];
       
       if (isGoal(goal_id, current_node->st) && (current_node->fScore < ret_val || ret_val < 0.0)) {
         // Retrieve path

@@ -45,6 +45,7 @@
 #include "siar_config.hpp"
 #include "arduimu_v3/imu.hpp"
 #include <nav_msgs/Odometry.h>	
+#include "siar_driver/SiarStatus.h"
 
 //-- HEADERS ----------------------------------------------------------------------------
 
@@ -59,20 +60,6 @@ class SiarManagerException:public std::exception
 	  
   private:
   std::string message;
-};
-
-//! \struct SiarState Gather all relevant state variables of the Siar
-struct SiarState
-{
-  bool is_stopped;
-  double linear_velocity, x, y;
-  nav_msgs::Odometry odom;
-  
-  int64_t front_left_ticks, front_right_ticks; // Sumatory of ticks of front wheels
-  int64_t middle_left_ticks, middle_right_ticks; // Sumatory of ticks of middle wheels
-  int64_t back_left_ticks, back_right_ticks; // Sumatory of ticks of back wheels
-  
-  timespec last_update;
 };
 
 //! @class SiarManager                                                          */
@@ -121,7 +108,7 @@ class SiarManager
   
 
   //! @brief accessor to the state of Siar
-  const SiarState &getState() const {return state;}
+  const siar_driver::SiarStatus &getState() const {return state;}
 
   //! @brief Sets the IMU with a determinate updating rate
   //! @retval true The IMU was opened successfully
@@ -138,7 +125,7 @@ class SiarManager
   
   protected:
   SiarConfig _config;
-  SiarState state;
+  siar_driver::SiarStatus state;
   
   bool first_odometry;
   

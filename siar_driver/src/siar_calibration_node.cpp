@@ -29,7 +29,7 @@
 #include <std_msgs/Float32.h>
 #include <sensor_msgs/Joy.h>
 #include "siar_driver/siar_config.hpp"
-#include <siar_driver/siar_manager_one_board.hpp>
+#include <siar_driver/siar_manager_width_adjustment.hpp>
 
 ///////////////////////////////////////////////////
 // Default values for actions and buttons        //
@@ -89,13 +89,16 @@ int main(int argc, char** argv)
   
   std::string siar_port_1("/dev/serial/by-id/usb-FTDI_MM232R_USB_MODULE_FTHE3VLD-if00-port0");
   std::string joy_port("/dev/serial/by-id/usb-FTDI_MM232R_USB_MODULE_board2-if00-port0");
+  std::string battery_port;
+  
+  pn.param<std::string>("battery_device", battery_port, "/dev/serial/by-id/usb-FTDI_MM232R_USB_MODULE_FTGT8JO-if00-port0");
   SiarConfig siar_config;
-  SiarState st;
+  siar_driver::SiarStatus st;
   
   SiarManager *siar = NULL;
   
   try {
-    siar = new SiarManagerOneBoard(siar_port_1, joy_port, siar_config);
+    siar = new SiarManagerWidthAdjustment(siar_port_1, joy_port, battery_port, siar_config);
     ROS_INFO("Connected to Siar OK");
   } catch (exception &e) {
     ROS_ERROR("Could not connect to Siar. Exiting.\n");

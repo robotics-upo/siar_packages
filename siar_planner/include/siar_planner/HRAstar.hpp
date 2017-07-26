@@ -8,6 +8,8 @@
 #include "siar_planner/AStarNode.h"
 #include "siar_planner/AStarModel.hpp"
 
+// TODO: End implementation
+
 class AStar
 {
 public:
