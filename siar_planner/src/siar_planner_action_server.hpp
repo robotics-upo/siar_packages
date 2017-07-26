@@ -26,7 +26,8 @@ protected:
   typedef actionlib::SimpleActionServer<siar_planner::PassForkAction> PFActionServer;
   PFActionServer PFActionServer_;
   ros::Subscriber reverse_sub, goal_sub; // Also the commands can be sent as a regular topic (without action server)
-  ros::Publisher cmd_vel_pub, path_pub; // Will command the commanded velocity of the plan
+  ros::Publisher cmd_vel_pub, path_pub; // Will command the commanded velocity of the 
+  ros::Publisher graph_pub;
   
   // Planner
   AStar a_star;
@@ -54,6 +55,10 @@ a_star(nh, pnh),reverse(false)
 {
   //register the goal and feeback callbacks
 //   PFActionServer_.registerPreemptCallback(boost::bind(&SiarPlannerActionServer::preemptCB, this, _1));
+  
+  // Publishers
+  path_pub = nh.advertise<visualization_msgs::Marker>("path_marker", 2, true);
+  graph_pub = nh.advertise<visualization_msgs::Marker>("graph_marker", 2, true);
 
   // Subscribers
   reverse_sub = nh.subscribe("/reverse", 1, &SiarPlannerActionServer::reverseCB, this);
@@ -76,6 +81,8 @@ void SiarPlannerActionServer::passFork(const siar_planner::PassForkGoal_< std::a
 
 void SiarPlannerActionServer::calculatePath(const geometry_msgs::PoseStamped &pose) {
   AStarState start, goal;
+  ros::Time t0, t1;
+  t0 = ros::Time::now();
   start.state.push_back(0);start.state.push_back(0);start.state.push_back(0);
   
   goal.state.push_back(pose.pose.position.x);
@@ -88,9 +95,14 @@ void SiarPlannerActionServer::calculatePath(const geometry_msgs::PoseStamped &po
   goal.state.push_back(yaw);
   
   std::list<AStarNode> path;
-  a_star.getPath(start, goal, path);
+  double cost = a_star.getPath(start, goal, path);
+  
+  t1 = ros::Time::now();
+  ROS_INFO("Path calculated. Cost = %f.\t Expended time: %f", cost, (t1 - t0).toSec());
+  
   visualization_msgs::Marker m = a_star.getPathMarker(path);
   path_pub.publish(m);
+  graph_pub.publish(a_star.getGraphMarker());
 }
 
 void SiarPlannerActionServer::goalCB(const geometry_msgs::PoseStamped_< std::allocator< void > >::ConstPtr& msg)

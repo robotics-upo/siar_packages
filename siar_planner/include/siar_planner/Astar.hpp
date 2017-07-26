@@ -72,6 +72,8 @@ protected:
   std::vector <geometry_msgs::Twist> file_test_set_forward, file_test_set_backward;
   double wheel_decrease;
   bool optimize;
+  double limit_exploration;
+  double last_wheel;
   
   
   //! @brief Retrieves the file_test_set_forward and backward from file (the filename is specified in the configuration)
@@ -79,6 +81,7 @@ protected:
   
   //! @brief Adds a velocity to the forward test, the same velocity with opposite angular velocity. Then does the same to backward test but changing the sign of v.x
   void addVelocityToTestSets(const geometry_msgs::Twist &v, std::vector<geometry_msgs::Twist> &set_forward, std::vector<geometry_msgs::Twist> &set_backward);
+  bool checkExplorationBounds(const AStarState& st);
 };
 
 AStar::AStar(ros::NodeHandle &nh, ros::NodeHandle &pnh):m(nh, pnh), gen(rd()), dis(0,1)
@@ -109,6 +112,10 @@ AStar::AStar(ros::NodeHandle &nh, ros::NodeHandle &pnh):m(nh, pnh), gen(rd()), d
     allow_relaxation = true;
   }
   
+  if (!pnh.getParam("last_wheel", last_wheel)) {
+    last_wheel = 0.1;
+  }
+  
   if (!pnh.getParam("goal_gap_m", goal_gap_m)) {
     goal_gap_m = cellsize_m;
   }
@@ -123,6 +130,12 @@ AStar::AStar(ros::NodeHandle &nh, ros::NodeHandle &pnh):m(nh, pnh), gen(rd()), d
     optimize = true;
     
   }
+  if (!pnh.getParam("limit_exploration", limit_exploration)) {
+    
+    limit_exploration = 1.3;
+  }
+  
+  
   ROS_INFO("n_iter = %d \t K: %d \t Cost weight: %f", n_iter, K, cost_weight);
   
   file_test_set_init = false;
@@ -196,6 +209,7 @@ double AStar::getPath(AStarState start, AStarState goal, std::list<AStarNode>& p
   start_node.gScore = 0;
   start_node.fScore = heuristic_cost(start_node,goal_node);  
   
+  double original_m_w_ = m.getMinWheel();
   
   
   openSet.insert(start_id);
@@ -264,7 +278,7 @@ double AStar::getPath(AStarState start, AStarState goal, std::list<AStarNode>& p
       } else {
         double m_w = m.getMinWheel() - ((relax > 1)?wheel_decrease:0);
         n_iter += 100;
-        m_w = (m_w < 0.25)?0.25:m_w;
+        m_w = (m_w < last_wheel)?last_wheel:m_w;
         m.setMinWheel(m_w);
         ROS_INFO("Iteration %d. Cont = %d. No solution --> decreasing min wheel to %f", relax, cont, m_w);
       }
@@ -277,7 +291,9 @@ double AStar::getPath(AStarState start, AStarState goal, std::list<AStarNode>& p
       }
       ROS_INFO("Openset size = %d",(int) openSet.size());
     }
-  }  
+    
+  } 
+  m.setMinWheel(original_m_w_); // Restore the original min wheel
   return ret_val;
 }
 
@@ -330,26 +346,23 @@ int AStar::getBestNode(int mode)
       candidate = nodes.at(*it).fScore;
       if (m.isCollision(nodes[*it].st))
         continue;
-//       candidate = nodes.at(*it).fScore;
     }
     else {
       candidate = nodes.at(*it).fScore;
-//       if (m.isCollision(nodes[*it].st) && mode != 1)
-//         if (mode == 1)
-//           candidate += 10000; // Collision penalty
-//         else
-//           continue;
-      
-      
     }
     if (candidate < min) {
-      min = candidate;
-      ret_val = *it;
+      // Check if it exceeds the exploration bounds:
+      if (checkExplorationBounds(nodes[*it].st)) {
+	min = candidate;
+	ret_val = *it;
+	
+      }
     }
   }
   
   return ret_val;
 }
+
 
 int AStar::getCellID(const AStarState& st) const
 {
@@ -389,7 +402,7 @@ bool AStar::isSameCell(const AStarState& s1, const AStarState& s2) const
 visualization_msgs::Marker AStar::getGraphMarker()
 {
   visualization_msgs::Marker m;
-  m.header.frame_id = "/map";
+  m.header.frame_id = this->m.getFrameID();
   m.header.stamp = ros::Time::now();
   m.ns = "astar";
   m.action = visualization_msgs::Marker::ADD;
@@ -537,6 +550,20 @@ void AStar::addVelocityToTestSets(const geometry_msgs::Twist& v1, std::vector< g
     v.angular.z *= -1.0;
     set_backward.push_back(v);
   }
+}
+
+bool AStar::checkExplorationBounds(const AStarState &st)
+{
+  bool ret_val = true;
+  
+  if (limit_exploration > 0.0) {
+//     ROS_INFO("Check exploration bounds: m.getWorldMaxX = %f\t st.state[0] = %f", m.getWorldMaxY(), st.state[1]);
+//     ROS_INFO("Check exploration bounds: m.getWorldMaxY = %f\t st.state[1] = %f\t limit_exploration = %f", m.getWorldMaxY(), st.state[1], limit_exploration);
+    ret_val = fabs(st.state[0]) < m.getWorldMaxX() * limit_exploration;
+    ret_val &= fabs(st.state[1]) < m.getWorldMaxY() * limit_exploration;
+  }
+    
+  return ret_val;
 }
 
 

@@ -52,6 +52,13 @@ public:
     m_ce.setMinWheel(v);
   }
   
+  inline double getWorldMaxX() const{
+    return m_world.info.resolution * m_world.info.height * 0.5;
+  }
+  inline double getWorldMaxY() const{
+    return m_world.info.resolution * m_world.info.width * 0.5;
+  }
+  
 protected:
   nav_msgs::OccupancyGrid m_world;
   siar_controller::CommandEvaluator m_ce;
