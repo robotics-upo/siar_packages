@@ -48,8 +48,8 @@
       <remap from="/cmd_vel_out" to="/cmd_vel"/>
       <remap from="/altitude_map" to="/costmap_node/costmap"/>
       
-      <rosparam file="$(find siar_controller)/cfg/siar_controller.yaml" command="load"  /> 
-      <param name="velocityset_filename" value="$(find siar_controller)/cfg/velocityset_extra"/>
+      <rosparam file="$(find siar_controller)/cfg/siar_controller_fast.yaml" command="load"  /> 
+      <param name="velocityset_filename" value="$(find siar_controller)/cfg/velocityset_0.5"/>
     </node>
   <include file="$(find siar_costmap)/launch/siar_costmap.launch">
     <arg name="obstacle_height" value="$(arg obstacle_height)"/>
@@ -58,6 +58,8 @@
     <arg name="camera_2" value="/front_right"/>
     <arg name="camera_3" value="/back_left"/>
     <arg name="camera_4" value="/back_right"/>
+    <arg name="camera_5" value="/back"/>
+    <arg name="camera_6" value="/front"/>
     <arg name="roi_x" value="5"/>
     <arg name="roi_w" value="310"/>
     <arg name="roi_y" value="1"/>
