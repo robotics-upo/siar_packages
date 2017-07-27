@@ -26,6 +26,7 @@ add_message_files(
   SiarBatteryMonitor.msg
   SiarPowerSupply.msg
   SiarStatus.msg
+  SiarArmCommand.msg
 )
 
 ## Generate added messages and services with any dependencies listed here

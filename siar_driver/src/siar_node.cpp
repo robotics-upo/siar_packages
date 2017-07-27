@@ -30,11 +30,13 @@
 #include <sensor_msgs/Imu.h>
 #include <std_msgs/Float32.h>
 #include <std_msgs/Int16.h>
+#include <std_msgs/Int8.h>
 #include <boost/bind.hpp>
 #include <robot_state_publisher/robot_state_publisher.h>
 #include <kdl_parser/kdl_parser.hpp>
 #include "siar_driver/siar_manager.hpp"
 #include "siar_driver/siar_manager_width_adjustment.hpp"
+#include "siar_driver/SiarArmCommand.h"
 
 #define FREQ		50.0
 #define FREQ_IMU	150.0
@@ -44,6 +46,25 @@ SiarManagerWidthAdjustment *siar = NULL;
 
 ros::Time cmd_vel_time;
 double vel_timeout;
+
+using siar_driver::SiarArmCommand;
+
+void commandArmReceived(const siar_driver::SiarArmCommand::ConstPtr& arm_cmd) {
+  for (int i = 0; i < N_HERCULEX; i++) {
+    siar->setHerculexPosition(i, arm_cmd->joint_values, arm_cmd->command_time);
+  }
+}
+
+void setArmState(const std_msgs::Int8::ConstPtr &val) {
+  int new_state;
+  switch (val->data) {
+    case 0:
+      
+    
+  }
+  
+}
+
 
 void cmdVelReceived(const geometry_msgs::Twist::ConstPtr& cmd_vel)
 {
@@ -57,7 +78,7 @@ int main(int argc, char** argv)
 {
   double dt;
 
-  // Pointers to be freed, here!
+  // Pointers to be freed, here or global! (outside of try)
   try
   {
     ros::init(argc, argv, "SiarNode");
@@ -94,6 +115,7 @@ int main(int argc, char** argv)
     dt = 1.0 / freq; // Do not forget the dt :)
     ros::Publisher odom_pub = pn.advertise<nav_msgs::Odometry>(odom_frame_id, 5);
     ros::Subscriber cmd_vel_sub = n.subscribe<geometry_msgs::Twist>("/cmd_vel",1,cmdVelReceived);
+    ros::Subscriber cmd_arm_sub = n.subscribe<SiarArmCommand>("/cmd_arm",1,commandArmReceived);
     ros::Time current_time,last_time;
     last_time = ros::Time::now();
     cmd_vel_time = ros::Time::now();
@@ -104,7 +126,7 @@ int main(int argc, char** argv)
     try {
       siar = new SiarManagerWidthAdjustment(siar_port_1, joy_port, battery_port, siar_config);
       
-      ROS_INFO("Connected to SIAR with battery monitor OK");
+      ROS_INFO("Connected to SIAR width adjustment OK");
       
       if (use_imu) {
 	siar->setIMU(freq_imu);
