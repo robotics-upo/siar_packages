@@ -24,12 +24,15 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
   FILES
   SiarBatteryMonitor.msg
+  SiarPowerSupply.msg
+  SiarStatus.msg
 )
 
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
   DEPENDENCIES
   std_msgs
+  nav_msgs
 )
 
 
@@ -60,7 +63,7 @@ add_executable(siar_teleop_joy src/siar_teleop_joy.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-add_dependencies(siar_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(siar_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} siar_driver_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(siar_node

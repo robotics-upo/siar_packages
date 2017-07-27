@@ -30,11 +30,11 @@
     <param name="initial_y_dev" value="0.5" />
     <param name="initial_a_dev" value="0.2" />
     
-    <param name="edgeDev" value="3.6"/>
+    <param name="edgeDev" value="1.0"/>
     <param name="manholeThres" value="0.075"/>
     <param name="manholeDev" value="0.6" />
     <param name="min_manhole_detected" value="2"/>
-    <param name="forkDev" value="6.2"/>
+    <param name="forkDev" value="1.5"/>
     <param name="fork_dist" value="3.0"/>
     
     <param name="sewer_graph_file" value="$(find sewer_graph)/test/upo_graph_complex"/>

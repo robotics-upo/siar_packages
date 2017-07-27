@@ -9,7 +9,7 @@
 #include <sensor_msgs/CompressedImage.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <rssi_get/Nvip_status.h>
-#include <siar_driver/SiarBatteryMonitor.h>
+#include <siar_driver/SiarStatus.h>
 #include <std_msgs/UInt32.h>
 #include <std_msgs/Bool.h>
 #include "cycle.hpp"
@@ -29,22 +29,22 @@ class UDPServer : public UDPManager
 private:
 
   // ROS params
-  double odomRate, imageRate, depthRate, batteryRate, rssiRate, point_rate;
+  double odomRate, imageRate, depthRate, siar_status_rate, rssiRate, point_rate;
   std::string odomTopic, imageTopic, imageTopic_2, depthTopic, depthTopic_2;
   std::string allCamerasTopic, publishDepthTopic, joyTopic, rssi_topic, point_topic;
-  std::string motor_battery_topic, elec_battery_topic, slowTopic;
+  std::string siar_status_topic, slowTopic;
   std::string camera_1, camera_2;
   int jpeg_quality, min_quality;
   bool quality_set, quality_set_2;
   
   // Subscriber rates
   Cycle odomCycle, imageCycle, imageCycle_2, depthCycle, depthCycle_2, rssiCycle;
-  Cycle elecBatteryCycle, motorBatteryCycle, pointCycle;
+  Cycle siarStatusCycle, pointCycle;
   
   // Publishers and subscribers
   ros::Publisher publish_depth_pub, all_cameras_pub, joy_pub, slow_pub;
   ros::Subscriber odom_sub, image_sub, image_sub_2, depth_sub, depth_sub_2, rssi_sub;
-  ros::Subscriber  motor_battery_sub, elec_battery_sub, point_sub;
+  ros::Subscriber  siar_status_sub, point_sub;
   ros::NodeHandle nh;
   
 public:
@@ -77,12 +77,10 @@ public:
       rssi_topic = "/rssi_nvip_2400";
     if (!lnh.getParam("rssi_rate", rssiRate))
       rssiRate = 1.0;
-    if (!lnh.getParam("motor_battery_topic", motor_battery_topic))
-      motor_battery_topic = "/motor_battery_status";
-    if (!lnh.getParam("elec_battery_topic", elec_battery_topic))
-      elec_battery_topic = "/elec_battery_status";
-    if (!lnh.getParam("battery_rate", batteryRate))
-      batteryRate = 0.2;
+    if (!lnh.getParam("siar_status_topic", siar_status_topic))
+      siar_status_topic = "/siar_status";
+    if (!lnh.getParam("siar_status_rate", siar_status_rate))
+      siar_status_rate = 5;
     if (!lnh.getParam("point_cloud_topic", point_topic))
       point_topic = "/rgbd_odom_node/point_cloud";
     if (!lnh.getParam("point_cloud_rate", point_rate))
@@ -118,10 +116,8 @@ public:
     depthCycle_2.init(depthRate);
     rssi_sub = nh.subscribe(rssi_topic, 1, &UDPServer::rssiCallback, this);
     rssiCycle.init(rssiRate);
-    motor_battery_sub = nh.subscribe(motor_battery_topic, 1, &UDPServer::motorBatteryCallback, this);
-    motorBatteryCycle.init(batteryRate);
-    elec_battery_sub = nh.subscribe(elec_battery_topic, 1, &UDPServer::elecBatteryCallback, this);
-    elecBatteryCycle.init(batteryRate);
+    siar_status_sub = nh.subscribe(siar_status_topic, 1, &UDPServer::siarStatusCallback, this);
+    siarStatusCycle.init(siar_status_rate);
     point_sub = nh.subscribe(point_topic, 1, &UDPServer::pointCallback, this);
     pointCycle.init(point_rate);
     
@@ -259,29 +255,17 @@ protected:
     serializeWrite<rssi_get::Nvip_status>(rssi_topic, *msg); 
   } 
   
-  void motorBatteryCallback(const siar_driver::SiarBatteryMonitor::ConstPtr& msg)
+  void siarStatusCallback(const siar_driver::SiarStatus::ConstPtr& msg)
   {
     // Check if it is time for sending new data 
-    if(!motorBatteryCycle.newCycle())
+    if(!siarStatusCycle.newCycle())
     {
       return;
     }
     // Check for quality set
     // Serialize msg and write over UDP
-    serializeWrite<siar_driver::SiarBatteryMonitor>(motor_battery_topic, *msg); 
+    serializeWrite<siar_driver::SiarStatus>(siar_status_topic, *msg); 
   }
-  
-  void elecBatteryCallback(const siar_driver::SiarBatteryMonitor::ConstPtr& msg)
-  {
-    // Check if it is time for sending new data 
-    if(!elecBatteryCycle.newCycle())
-    {
-      return;
-    }
-    // Check for quality set
-    // Serialize msg and write over UDP
-    serializeWrite<siar_driver::SiarBatteryMonitor>(elec_battery_topic, *msg); 
-  } 
   
   void readThread()
   {
