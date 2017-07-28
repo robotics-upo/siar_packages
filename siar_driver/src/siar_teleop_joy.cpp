@@ -29,6 +29,7 @@
 #include <std_msgs/Float32.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/Int8.h>
+#include <std_msgs/UInt8.h>
 #include <sensor_msgs/Joy.h>
 #include <stdlib.h>
 
@@ -52,6 +53,11 @@
 #define START_BUTTON          9
 #define BACK_BUTTON           8
 #define REVERSE_BUTTON        0
+// New buttons ARM and width
+#define ARM_TORQUE_BUTTON     4
+#define WIDTH_AXIS            2
+// --END NEW BUTTONS ---
+
 #define MAX_LINEAR_VELOCITY   1.0
 #define MAX_ANGULAR_VELOCITY  1.5707963
 
@@ -85,6 +91,10 @@ int maxVelocityButton;
 int slowButton;
 int auto_button;
 
+int arm_torque_button;
+int width_vel_axis;
+uint8_t arm_torque = 0; // Current state of arm_torque
+
 //////////////////////////////////
 
 double currentLinearVelocity  = 0.0;
@@ -109,6 +119,9 @@ ros::Time last_joy_time, last_remote_joy_time;
 ros::Publisher reverse_pub;
 ros::Publisher slow_pub;
 ros::Publisher mode_pub;
+
+ros::Publisher width_vel_pub;
+ros::Publisher arm_torque_pub;
 
 bool setAutomaticMode(int new_mode);
 
@@ -137,6 +150,8 @@ void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
   {
     currentLinearVelocity = 0.0;
     currentAngularVelocity = 0.0;
+    
+    // TODO: Extend panic to width and arm!!!
   } 
   else
   {
@@ -156,6 +171,15 @@ void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
       slow_mode = !slow_mode;
       publishSlow = true;
     }
+    
+    
+    if (joy->buttons[arm_torque_button]) {
+      arm_torque++;
+      if (arm_torque > 2) {
+        arm_torque = 0;
+      }
+    }
+    
   }
 }
 
@@ -217,6 +241,9 @@ int main(int argc, char** argv)
   pn.param<int>("slow_button", slowButton, SLOW_BUTTON);
   pn.param<int>("turbo_button", maxVelocityButton, MAX_VELOCITY_BUTTON);
   
+  pn.param<int>("width_vel_axis", width_vel_axis, WIDTH_AXIS);
+  pn.param<int>("arm_torque_button", arm_torque_button, ARM_TORQUE_BUTTON);
+  
   pn.param<double>("max_linear_velocity",maxLinearVelocity,MAX_LINEAR_VELOCITY);
   pn.param<double>("max_angular_velocity",maxAngularVelocity,MAX_ANGULAR_VELOCITY);
 
@@ -235,6 +262,12 @@ int main(int argc, char** argv)
   reverse_pub = pn.advertise<std_msgs::Bool>("/reverse", 1);
   slow_pub = pn.advertise<std_msgs::Bool>("/slow_motion", 1);
   mode_pub = pn.advertise<std_msgs::Int8>("/operation_mode", 1 );
+  
+  // Width and arm
+  width_vel_pub = pn.advertise<std_msgs::Float32>("width_vel", 1);
+  arm_torque_pub = pn.advertise<std_msgs::UInt8>("arm_torque", 1);
+  
+  // ---------END WIDTH ARM ---
   
   ros::Subscriber joy_sub = n.subscribe<sensor_msgs::Joy>("/joy", 5, joyReceived);
   ros::Subscriber remote_joy_sub = n.subscribe<sensor_msgs::Joy>("/remote_joy", 5, remoteJoyReceived);

@@ -30,7 +30,7 @@
 #include <sensor_msgs/Imu.h>
 #include <std_msgs/Float32.h>
 #include <std_msgs/Int16.h>
-#include <std_msgs/Int8.h>
+#include <std_msgs/UInt8.h>
 #include <boost/bind.hpp>
 #include <robot_state_publisher/robot_state_publisher.h>
 #include <kdl_parser/kdl_parser.hpp>
@@ -46,33 +46,60 @@ SiarManagerWidthAdjustment *siar = NULL;
 
 ros::Time cmd_vel_time;
 double vel_timeout;
+siar_driver::SiarStatus siar_state; // State of SIAR
+
+// -------------- New commands ARM & width -------------------------------//
 
 using siar_driver::SiarArmCommand;
-
-void commandArmReceived(const siar_driver::SiarArmCommand::ConstPtr& arm_cmd) {
-  for (int i = 0; i < N_HERCULEX; i++) {
-    siar->setHerculexPosition(i, arm_cmd->joint_values, arm_cmd->command_time);
-  }
-}
-
-void setArmState(const std_msgs::Int8::ConstPtr &val) {
-  int new_state;
-  switch (val->data) {
-    case 0:
-      
-    
-  }
-  
-}
-
-
 void cmdVelReceived(const geometry_msgs::Twist::ConstPtr& cmd_vel)
 {
   cmd_vel_time = ros::Time::now();
   siar->setVelocity(cmd_vel->linear.x,cmd_vel->angular.z);
 }
 
-siar_driver::SiarStatus siar_state;
+void commandArmReceived(const siar_driver::SiarArmCommand::ConstPtr& arm_cmd) {
+  for (int i = 0; i < N_HERCULEX; i++) {
+    siar->setHerculexPosition(i, arm_cmd->joint_values[i], arm_cmd->command_time);
+  }
+}
+
+void armTorqueReceived(const std_msgs::UInt8::ConstPtr &val) {
+  uint8_t new_state;
+  switch (val->data) {
+    case 0: // Off
+      new_state = 0;
+      break;
+      
+    case 1:     // Break
+      new_state = 0x40;
+      break;
+    
+    default:  // ON
+      new_state = 0x60;
+  }
+  for (int i = 0; i < N_HERCULEX; i++) {
+    siar->setHerculexTorque(i, new_state);
+  }
+}
+
+// TODO: go from [-1, 1] to the useful values in the electronics (better in siar_config?)
+void widthVelReceived(const std_msgs::Float32::ConstPtr &width_vel) {
+  if (fabs(width_vel->data) > 1.0) {
+    ROS_WARN("siar_node::width_vel_received --> Ignoring non-normalized new width");
+  }
+  uint16_t value = 512 + width_vel->data * 100;
+  siar->setLinearVelocity(value);
+}
+
+// TODO: go from [-1, 1] to the useful values in the electronics [0,1024](better in siar_config?)
+void widthPosReceived(const std_msgs::Float32::ConstPtr &width_pos) {
+  if (fabs(width_pos->data) > 1.0) {
+    ROS_WARN("siar_node::width_pos_received --> Ignoring non-normalized new width");
+  }
+  uint16_t value = 512 + width_pos->data * 100;
+  siar->setLinearPosition(value);
+  
+}
 
 int main(int argc, char** argv)
 {
@@ -114,8 +141,14 @@ int main(int argc, char** argv)
     
     dt = 1.0 / freq; // Do not forget the dt :)
     ros::Publisher odom_pub = pn.advertise<nav_msgs::Odometry>(odom_frame_id, 5);
+    
+    // New subscribers (arm, widthvel)
     ros::Subscriber cmd_vel_sub = n.subscribe<geometry_msgs::Twist>("/cmd_vel",1,cmdVelReceived);
-    ros::Subscriber cmd_arm_sub = n.subscribe<SiarArmCommand>("/cmd_arm",1,commandArmReceived);
+    ros::Subscriber cmd_arm_sub = n.subscribe<SiarArmCommand>("/arm_cmd",1,commandArmReceived);
+    ros::Subscriber torque_arm_sub = n.subscribe<std_msgs::UInt8>("/arm_torque",1,armTorqueReceived);
+    ros::Subscriber width_vel_sub = n.subscribe<std_msgs::Float32>("/width_vel", 1, widthVelReceived);
+    ros::Subscriber width_pos_sub = n.subscribe<std_msgs::Float32>("/width_pos", 1, widthPosReceived);
+    
     ros::Time current_time,last_time;
     last_time = ros::Time::now();
     cmd_vel_time = ros::Time::now();
@@ -194,3 +227,4 @@ int main(int argc, char** argv)
   
   return 0;
 }
+
