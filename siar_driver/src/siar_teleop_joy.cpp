@@ -94,6 +94,8 @@ int auto_button;
 int arm_torque_button;
 int width_vel_axis;
 uint8_t arm_torque = 0; // Current state of arm_torque
+int ant_arm_torque_button = 0;
+double ant_width_vel = 0.0;
 
 //////////////////////////////////
 
@@ -172,14 +174,31 @@ void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
       publishSlow = true;
     }
     
-    
-    if (joy->buttons[arm_torque_button]) {
+    // Arm Button
+    int curr_arm_but = joy->buttons[arm_torque_button];
+    if (curr_arm_but && curr_arm_but != ant_arm_torque_button) {
       arm_torque++;
       if (arm_torque > 2) {
         arm_torque = 0;
       }
+      std_msgs::UInt8 msg;
+      msg.data = arm_torque;
+      arm_torque_pub.publish(msg);
     }
+    ant_arm_torque_button = curr_arm_but;
     
+    // Width velocity
+    double width_vel = -joy->axes[width_vel_axis]; // NOTE: the minus is to make the right commands be positive
+    if (fabs(width_vel) > 0.1) {
+      std_msgs::Float32 msg;
+      msg.data = width_vel;
+      width_vel_pub.publish(msg);
+    } else if (fabs(ant_width_vel) > 0.1) {
+      std_msgs::Float32 msg;
+      msg.data = 0.0;
+      width_vel_pub.publish(msg);
+    }
+    ant_width_vel = width_vel;
   }
 }
 
