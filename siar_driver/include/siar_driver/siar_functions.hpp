@@ -29,9 +29,13 @@ public:
   Saturate (T low, T high):_low(low), _high(high) {}
   Saturate (T high = 1.0):_low(-high), _high(high) {}
   
-  inline double apply(T value) const {
+  inline T apply(T value) const {
     T ret_val = (value > _high)?_high:value;
     return (ret_val < _low)?_low:value;
+  }
+  
+  inline T getWidth() const {
+    return _high - _low;
   }
   
   double _low,_high;
