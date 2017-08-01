@@ -18,12 +18,12 @@ uint16 lin_motor_pot
 
 nav_msgs/Odometry odom
 
-uint64 front_left_ticks
-uint64 front_right_ticks
-uint64 middle_left_ticks
-uint64 middle_right_ticks
-uint64 back_left_ticks
-uint64 back_right_ticks
+int64 front_left_ticks
+int64 front_right_ticks
+int64 middle_left_ticks
+int64 middle_right_ticks
+int64 back_left_ticks
+int64 back_right_ticks
 
 float64 x
 float64 y

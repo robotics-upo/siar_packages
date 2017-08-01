@@ -37,4 +37,27 @@ public:
   double _low,_high;
 };
 
+inline uint16_t from_two_bytes(uint8_t b1, uint8_t b2) {
+  uint16_t ret_val = b1;
+  ret_val = ret_val << 8;
+  return ret_val + b2;
+}
+
+inline int16_t from_two_bytes_signed(uint8_t b1, uint8_t b2) {
+  uint16_t aux = from_two_bytes(b1, b2);
+  
+  
+  int16_t ret;
+  if (aux > 32768) {
+    int32_t a;
+    a = -65536 + aux;
+    ret = a;
+  } else {
+    ret = aux;
+  }
+  ROS_INFO("from_two_bytes_signed b1 = %u \t b2=%u \t aux =%u\t ret=%d", b1, b2, aux, ret);
+  
+  return ret;
+}
+
 #endif

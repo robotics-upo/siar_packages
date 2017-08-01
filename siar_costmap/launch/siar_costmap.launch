@@ -94,8 +94,8 @@
     <remap from="cloud1" to="$(arg camera_2)/point_cloud"/>                  # Input cloud 1
     <remap from="cloud2" to="$(arg camera_3)/point_cloud"/>                  # Input cloud 2
     <remap from="cloud3" to="$(arg camera_4)/point_cloud"/>                  # Input cloud 3
-    <remap from="cloud4" to="$(arg camera_5)/point_cloud"/>                  # Input cloud 3
-    <remap from="cloud5" to="$(arg camera_6)/point_cloud"/>                  # Input cloud 3
+    <remap from="cloud4" to="$(arg camera_5)/point_cloud"/>                  # Input cloud 4
+    <remap from="cloud5" to="$(arg camera_6)/point_cloud"/>                  # Input cloud 5
 
 
     <param name="hz" value = "10.0"/>                                                   # Costmap update rate

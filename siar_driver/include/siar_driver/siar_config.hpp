@@ -39,11 +39,13 @@ public:
   DeadZone<> velocity_dead; // Dead zone of the velocity (m/s)
   Saturate<int> vel_int_sat; // Two integer saturators that will help to make the conversion
   DeadZone<> encoders_dead;
-  double arm_length[N_HERCULEX];
+  Saturate<int> lin_pos_sat; // Saturation for the linear motor (width adjustment)
+  Saturate<int> arm_pos_sat[N_HERCULEX]; // Saturation for the arm low-level controller
   
   // Relationships
   
   double half_axis_distance, radius, meters_tick, peri_wheel, ticks_revolution, diag_wheels; // In meters
+  int  max_width_pos;
   
   // Empirical relationships
   double meters_tick_l, meters_tick_r; // Odometry calibration
@@ -64,6 +66,7 @@ public:
   unsigned int set_aux_pin_direction;
   unsigned int set_aux_pin_values;
   unsigned char set_herculex_torque;
+  
   unsigned char set_herculex_position;
   unsigned char set_herculex_clear_status;
   unsigned char get_herculex_status;
@@ -72,6 +75,9 @@ public:
   unsigned char get_herculex_temp;
   unsigned char get_power_supply;
   unsigned char get_aux_pin_values;
+  
+  // Flags
+  bool reverse_right;
   
   SiarConfig(const std::string &filename = "");
   
@@ -95,6 +101,8 @@ bool SiarConfig::saveConfig(const std::string& filename)
 
 void SiarConfig::setDefaultConfig()
 {
+  reverse_right = false;
+  
   half_axis_distance = 0.2;
   diag_wheels = 0.4; // TODO: In the width adjusted the diag wheels will not be constant --> Get the maximum and minimum diagonals and interpolate!
   radius = 0.085; // 0.085 is the distance from the robot center to the ground
@@ -128,6 +136,9 @@ void SiarConfig::setDefaultConfig()
   velocity_sat = Saturate<>(1.12); // Maximum velocity of the SIAR (TODO)
   angular_sat = Saturate<>(0.3);
   vel_int_sat = Saturate<int>(1100);
+  
+  lin_pos_sat = Saturate<int>(0,150);
+  max_width_pos = 60;
   
   // Motor board
   
@@ -172,12 +183,12 @@ void SiarConfig::setDefaultConfig()
   set_aux_pin_values = (unsigned char)0x62;
   
   
-  // Arm lengths and other stuff
-  arm_length[0] = 0.035;
-  arm_length[1] = 0.0475;
-  arm_length[2] = 0.215;
-  arm_length[3] = 0.155;
-  arm_length[4] = 0.08;
+  // Arm lengths and other stuff TODO: necessary? (gonzalo's module)
+//   arm_length[0] = 0.035;
+//   arm_length[1] = 0.0475;
+//   arm_length[2] = 0.215;
+//   arm_length[3] = 0.155;
+//   arm_length[4] = 0.08;
 }
 
 #endif
