@@ -56,6 +56,7 @@
 // New buttons ARM and width
 #define ARM_TORQUE_BUTTON     4
 #define WIDTH_AXIS            2
+#define WIDTH_AXIS_2          3
 // --END NEW BUTTONS ---
 
 #define MAX_LINEAR_VELOCITY   1.0
@@ -92,10 +93,10 @@ int slowButton;
 int auto_button;
 
 int arm_torque_button;
-int width_vel_axis;
+int width_pos_axis, width_pos_axis_2;
 uint8_t arm_torque = 0; // Current state of arm_torque
 int ant_arm_torque_button = 0;
-double ant_width_vel = 0.0;
+double ant_width_pos = 0.0;
 
 //////////////////////////////////
 
@@ -122,7 +123,7 @@ ros::Publisher reverse_pub;
 ros::Publisher slow_pub;
 ros::Publisher mode_pub;
 
-ros::Publisher width_vel_pub;
+ros::Publisher width_pos_pub;
 ros::Publisher arm_torque_pub;
 
 bool setAutomaticMode(int new_mode);
@@ -188,17 +189,15 @@ void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
     ant_arm_torque_button = curr_arm_but;
     
     // Width velocity
-    double width_vel = -joy->axes[width_vel_axis]; // NOTE: the minus is to make the right commands be positive
-    if (fabs(width_vel) > 0.1) {
+    double width_pos = joy->axes[width_pos_axis]; // NOTE: the minus is to make the right commands be positive
+    double width_pos_2 = joy->axes[width_pos_axis_2]; // NOTE: the minus is to make the right commands be positive
+    double norm_sq = width_pos * width_pos + width_pos_2 * width_pos_2;
+    ROS_INFO("Width pos = %f\tWidth pos 2 = %f\tnorm_sq = %f", width_pos, width_pos_2,norm_sq);
+    if (norm_sq > 0.95 && width_pos > -0.05) {
       std_msgs::Float32 msg;
-      msg.data = width_vel;
-      width_vel_pub.publish(msg);
-    } else if (fabs(ant_width_vel) > 0.1) {
-      std_msgs::Float32 msg;
-      msg.data = 0.0;
-      width_vel_pub.publish(msg);
-    }
-    ant_width_vel = width_vel;
+      msg.data = width_pos_2;
+      width_pos_pub.publish(msg);
+    } 
   }
 }
 
@@ -260,7 +259,8 @@ int main(int argc, char** argv)
   pn.param<int>("slow_button", slowButton, SLOW_BUTTON);
   pn.param<int>("turbo_button", maxVelocityButton, MAX_VELOCITY_BUTTON);
   
-  pn.param<int>("width_vel_axis", width_vel_axis, WIDTH_AXIS);
+  pn.param<int>("width_pos_axis", width_pos_axis, WIDTH_AXIS);
+  pn.param<int>("width_pos_axis_2", width_pos_axis_2, WIDTH_AXIS_2);
   pn.param<int>("arm_torque_button", arm_torque_button, ARM_TORQUE_BUTTON);
   
   pn.param<double>("max_linear_velocity",maxLinearVelocity,MAX_LINEAR_VELOCITY);
@@ -277,14 +277,14 @@ int main(int argc, char** argv)
   double max_time_decay;
   pn.param<double>("max_time_decay", max_time_decay, MAX_TIME_DECAY);
 
-  ros::Publisher vel_pub = pn.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
-  reverse_pub = pn.advertise<std_msgs::Bool>("/reverse", 1);
-  slow_pub = pn.advertise<std_msgs::Bool>("/slow_motion", 1);
-  mode_pub = pn.advertise<std_msgs::Int8>("/operation_mode", 1 );
+  ros::Publisher vel_pub = n.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
+  reverse_pub = n.advertise<std_msgs::Bool>("/reverse", 1);
+  slow_pub = n.advertise<std_msgs::Bool>("/slow_motion", 1);
+  mode_pub = n.advertise<std_msgs::Int8>("/operation_mode", 1 );
   
   // Width and arm
-  width_vel_pub = pn.advertise<std_msgs::Float32>("width_vel", 1);
-  arm_torque_pub = pn.advertise<std_msgs::UInt8>("arm_torque", 1);
+  width_pos_pub = n.advertise<std_msgs::Float32>("width_pos", 1);
+  arm_torque_pub = n.advertise<std_msgs::UInt8>("arm_torque", 1);
   
   // ---------END WIDTH ARM ---
   

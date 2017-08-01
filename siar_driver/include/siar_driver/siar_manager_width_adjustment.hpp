@@ -48,7 +48,6 @@
 #include <ros/ros.h>
 
 #define CMD_TIME_OUT 5 // In secs
-#define N_HERCULEX 5      // Number of herculex motors
 #define ___MAX_BUFFER_SIAR___ 256
 
 //-- HEADERS ----------------------------------------------------------------------------
@@ -254,13 +253,15 @@ class SiarManagerWidthAdjustment:public SiarManager
   void reverseReceived(const std_msgs::Bool& reverse);
   
   inline bool checkSum(unsigned char *buffer, int tam) {
-    u_int16_t checksum = (int)buffer[tam - 2] * 0x0100 + (int)buffer[tam - 1] * 0x0001;
+    u_int16_t checksum = from_two_bytes(buffer[tam - 2], buffer[tam - 1]);
     
     u_int16_t bytes_sum = 0;
     for (int i = 0; i < tam - 2;i++) 
     {
       bytes_sum += (u_int16_t) buffer[i];
     }
+    
+//     ROS_ERROR("Checksum = %u           Bytes sum = %u", checksum, bytes_sum);
     return checksum == bytes_sum;
   }
 };
@@ -305,7 +306,7 @@ first_odometry(true), controlled(false), has_joystick(true), bat_cont(0), bat_sk
   } else {
 #ifdef _SIAR_MANAGER_DEBUG_
     _printTime();
-    std::cout << "Connected to Siar board 1"<<std::endl;
+    std::cout << "Connected to Siar board 2"<<std::endl;
 #endif
   }
   
@@ -325,7 +326,7 @@ first_odometry(true), controlled(false), has_joystick(true), bat_cont(0), bat_sk
     std::cerr << "Could not connect to the battery monitoring board.\n";
 #endif
     
-    throw SiarManagerException(joy_serial.getLastError());
+    throw SiarManagerException(battery_serial.getLastError());
   } else {
 #ifdef _SIAR_MANAGER_DEBUG_
     _printTime();
@@ -376,20 +377,16 @@ inline bool SiarManagerWidthAdjustment::getIMD(double& imdl, double& imdr)
   // Ask for odometry in both ports
   bool ret_val = siar_serial_1.write(command, 1);
   
-#ifdef _SIAR_MANAGER_DEBUG_
-//   if (!ret_val) {
-//     std::cout << "Error in write" << std::endl;
-//   } else {
-//     std::cout << "Write OK" << std::endl;
-//   }
-#endif
-  
   int16_t m_left, m_right;
 
-  // Signs change because of IMU ref
-  if (ret_val && siar_serial_1.getResponse(buffer, 16) && !first_odometry) {
-    m_left = -(int16_t)(((unsigned char)buffer[5] << 8) + buffer[6]);
-    m_right =  (int16_t)(((unsigned char)buffer[7] << 8) + buffer[8]);
+  if (ret_val && siar_serial_1.getResponse(buffer, 16))
+    if (checkSum(buffer, 16) && buffer[0] ==_config.get_enc) {
+      if (!first_odometry) {
+        m_left = from_two_bytes_signed(buffer[5], buffer[6]);
+        m_right = -from_two_bytes_signed(buffer[7], buffer[8]);
+      } else {
+        first_odometry = true;
+      }
   }
   
 #ifdef _SIAR_MANAGER_DEBUG_
@@ -441,28 +438,51 @@ inline bool SiarManagerWidthAdjustment::update()
   if (bat_cont >= bat_skip)
   {
     // Actualize battery and power supply data
-    actualizeBatteryStatus();
-    getPowerSupply();
+    if (!actualizeBatteryStatus()) {
+      ROS_ERROR("Could not retrieve the battery status");
+    }
+    if (!getPowerSupply()) {
+      ROS_ERROR("Could not retrieve the power supply status");
+    }
     bat_cont = 0;
     
     // Update arm status
-    getHerculexPosition();
-    getHerculexStatus();
-    getHerculexTemperature();
-    getHerculexTorque();
+    if (!getHerculexPosition()) {
+      ROS_ERROR("Could not retrieve the herculex position");
+    }
+    if (!getHerculexStatus()) {
+      ROS_ERROR("Could not retrieve the herculex status");
+    }
+    if (!getHerculexTemperature()) {
+      ROS_ERROR("Could not retrieve the herculex temperature");
+    }
+    if (!getHerculexTorque()) {
+      ROS_ERROR("Could not retrieve the herculex torque");
+    }
     
     // Update aux pins
-    getAuxPinValues();
+    if (!getAuxPinValues()) {
+      ROS_ERROR("Could not retrieve the aux pins values");
+    }
     
     // Linear motors
-    getLinearMotorPosition(state.lin_motor_pos);
-    getLinearMotorPotentiometer(state.lin_motor_pot);
+    if (!getLinearMotorPosition(state.lin_motor_pos)) {
+      ROS_ERROR("Could not retrieve the motor position");
+    }
+    if (!getLinearMotorPotentiometer(state.lin_motor_pot)) {
+      ROS_ERROR("Could not retrieve the motor potentiometer");
+    }
     
     // 
     bool active;
-    getHardStopStatus(active);
-    state.hard_stop = active?1:0;
-    getHardStopTime(state.hard_stop_time);
+    if (!getHardStopStatus(active)) {
+      ROS_ERROR("Could not retrieve the hard stop status");
+    } else {
+      state.hard_stop = active?1:0;
+    }
+//     if (!getHardStopTime(state.hard_stop_time)) {
+//       ROS_ERROR("Could not retrieve the hard stop time");
+//     }
   }
   
   // Publish state
@@ -496,6 +516,7 @@ inline bool SiarManagerWidthAdjustment::setRawVelocity(int16_t left, int16_t rig
   command[12] = (unsigned char)(right & 0xFF);
   
   // Send it to front and rear board and wait for response
+  siar_serial_1.flush();
   ret_val = siar_serial_1.write(command, 13);
   ret_val = siar_serial_1.getResponse(buffer, 4);
   
@@ -513,11 +534,15 @@ inline bool SiarManagerWidthAdjustment::setVelocity(double linear, double angula
   angular = _config.velocity_sat.apply(angular);
 
   // Following idMind driver --> v_r = (linear - L * angular)    ; v_l = -(linear + L * angular) 
-  double right_speed = (linear - _config.half_axis_distance * angular);
-  double left_speed = -(linear + _config.half_axis_distance * angular);
+  double right_speed = -(linear - _config.half_axis_distance * angular);
+  double left_speed = (linear + _config.half_axis_distance * angular);
   
   left_speed = _config.velocity_sat.apply(left_speed);
   right_speed = _config.velocity_sat.apply(right_speed);
+  
+  if (_config.reverse_right) {
+    right_speed *= -1;
+  }
   
   // Convert from left and right speed velocities to [-1100, 1100]
   // TODO: this is deprecated
@@ -545,6 +570,9 @@ bool SiarManagerWidthAdjustment::calculateOdometry()
   bool ret_val = getIMD(dl, dr);
   
   if (ret_val) {
+    if (_config.reverse_right) {
+      dr *= -1;
+    }
     double dist = ((dl + dr) * 0.5);
     dist = _config.encoders_dead.apply(dist);
     
@@ -629,9 +657,10 @@ bool SiarManagerWidthAdjustment::getJoystickActuate()
 	vel_Rotation = -(int16_t) (((buffer[3]-1)-100)*8);
 	vel_Rotation_out = -(int16_t) (((buffer[3]-1)-100)*10);
 	vel_Forward = -(int16_t) (((buffer[2]-1) -100) *15);
+        
         if (state.reverse) 
           vel_Forward *= -1;
-
+        
 #ifdef _SIAR_MANAGER_DEBUG_
         ROS_INFO("vel_Rotation = %d\tvel_Rotation_out=%dtvel_forward=%d",
                  vel_Rotation, vel_Rotation_out, vel_Forward);
@@ -640,6 +669,11 @@ bool SiarManagerWidthAdjustment::getJoystickActuate()
 	Right_ref = (int16_t)(vel_Forward - vel_Rotation);
 	Left_ref_out = (int16_t)-(vel_Forward + vel_Rotation_out);
 	Right_ref_out = (int16_t)(vel_Forward - vel_Rotation_out);
+        
+        if (_config.reverse_right) {
+          Right_ref *= -1;
+          Right_ref_out *= -1;
+        }
 
 	// Put a dead zone in the joystick controller
 	if (Left_ref > 60) Left_ref = Left_ref - 60;
@@ -679,6 +713,7 @@ bool SiarManagerWidthAdjustment::getJoystickActuate()
 inline bool SiarManagerWidthAdjustment::sendHardStop() 
 {
   bool ret_val = true;
+  siar_serial_1.flush();
   command[0] = _config.hard_stop;
   // Send Hard stop to boards
   ret_val &= siar_serial_1.write(command, 1);
@@ -696,6 +731,8 @@ inline bool SiarManagerWidthAdjustment::setRawVelocityCarlos(int16_t left, int16
     right /= 4;
   }
   
+  siar_serial_1.flush();
+  
   // get the right command
   command[0] = _config.set_vel;
   command[1] = (unsigned char)(left_out >> 8);
@@ -711,6 +748,8 @@ inline bool SiarManagerWidthAdjustment::setRawVelocityCarlos(int16_t left, int16
   command[11] = (unsigned char)(right_out >> 8);
   command[12] = (unsigned char)(right_out & 0xFF);
   
+  
+  
   ret_val = siar_serial_1.write(command, 13);
   ret_val = siar_serial_1.getResponse(buffer, 4);
   
@@ -720,35 +759,48 @@ inline bool SiarManagerWidthAdjustment::setRawVelocityCarlos(int16_t left, int16
 bool SiarManagerWidthAdjustment::actualizeBatteryStatus()
 {
   bool ret_val = true;
-  
+  int tam = 8;
   // Ask for batteries voltage
   ret_val = battery_serial.write(&_config.get_voltage, 1);
-  if (ret_val && battery_serial.getResponse(buffer, 8)) {
-    state.motor_battery.voltage = ((int16_t)(((unsigned char)buffer[1] << 8) + buffer[2]))/10.0;
-    state.elec_battery.voltage = ((int16_t)(((unsigned char)buffer[3] << 8) + buffer[4]))/10.0;
+  if (ret_val && battery_serial.getResponse(buffer, tam)) {
+    ret_val = checkSum(buffer, tam) && buffer[0] == _config.get_voltage;
+    if (ret_val) {
+      state.motor_battery.voltage = (from_two_bytes(buffer[1], buffer[2]))/10.0;
+      state.elec_battery.voltage = (from_two_bytes(buffer[1], buffer[2]))/10.0;
+    }
   }
   
   // Ask for batteries current
   ret_val &= battery_serial.write(&_config.get_inst_curr, 1);
-  if (ret_val && battery_serial.getResponse(buffer, 8)) {
-    state.elec_battery.current = ((int16_t)(((unsigned char)buffer[1] << 8) + buffer[2]))/1000.0;
-    state.motor_battery.current = ((int16_t)(((unsigned char)buffer[3] << 8) + buffer[4]))/1000.0;
+  if (ret_val && battery_serial.getResponse(buffer, tam)) {
+    ret_val = checkSum(buffer, tam) && buffer[0] == _config.get_inst_curr;
+    if (ret_val) {
+      state.elec_battery.current = from_two_bytes(buffer[1], buffer[2])/1000.0;
+      state.motor_battery.current = from_two_bytes(buffer[3], buffer[4])/1000.0;
+    }
   }
   
   // Ask for integrated current
   ret_val &= battery_serial.write(&_config.get_integ_curr, 1);
-  if (ret_val && battery_serial.getResponse(buffer, 8)) {
-    state.elec_battery.integrated_current = ((int16_t)(((unsigned char)buffer[1] << 8) + buffer[2]))/1000.0;
-    state.motor_battery.integrated_current = ((int16_t)(((unsigned char)buffer[3] << 8) + buffer[4]))/1000.0;
+  if (ret_val && battery_serial.getResponse(buffer, tam)) {
+    ret_val = checkSum(buffer, tam) && buffer[0] == _config.get_integ_curr;
+    if (ret_val) {
+      state.elec_battery.integrated_current = from_two_bytes(buffer[1], buffer[2])/1000.0;
+      state.motor_battery.integrated_current = from_two_bytes(buffer[3], buffer[4])/1000.0;
+    }
   }
   
   // Ask for battery level and remaining time
   ret_val &= battery_serial.write(&_config.get_battery_level, 1);
-  if (ret_val && battery_serial.getResponse(buffer, 10)) {
-    state.elec_battery.percentage = buffer[1];
-    state.elec_battery.remaining_time = ((int16_t)(((unsigned char)buffer[2] << 8) + buffer[3]));
-    state.motor_battery.percentage = buffer[4];
-    state.motor_battery.remaining_time = ((int16_t)(((unsigned char)buffer[5] << 8) + buffer[6]));
+  tam = 10;
+  if (ret_val && battery_serial.getResponse(buffer, tam)) {
+    ret_val = checkSum(buffer, tam) && buffer[0] == _config.get_battery_level;
+    if (ret_val) {
+      state.elec_battery.percentage = buffer[1];
+      state.elec_battery.remaining_time = from_two_bytes(buffer[2], buffer[3]);
+      state.motor_battery.percentage = buffer[4];
+      state.motor_battery.remaining_time = from_two_bytes(buffer[5], buffer[6]);
+    }
   }
   
   return ret_val;
@@ -759,17 +811,17 @@ bool SiarManagerWidthAdjustment::actualizeBatteryStatus()
 bool SiarManagerWidthAdjustment::setLinearPosition(u_int16_t value)
 {
   bool ret_val = true;
-  
+  int tam = 4;
   command[0] = _config.set_lin_pos;
   command[1] = value >> 8;
   command[2] = value & 0xFF;
   
   ret_val = siar_serial_1.write(command, 3);
-  ret_val = siar_serial_1.getResponse(buffer, 4);
+  ret_val = siar_serial_1.getResponse(buffer, tam);
   
   // Checksum
   if (ret_val) {
-    ret_val = buffer[0] == _config.set_lin_pos && checkSum(buffer, 4);
+    ret_val = buffer[0] == _config.set_lin_pos && checkSum(buffer, tam);
   }
   
   return ret_val;
@@ -778,16 +830,18 @@ bool SiarManagerWidthAdjustment::setLinearPosition(u_int16_t value)
 bool SiarManagerWidthAdjustment::setLinearVelocity(u_int16_t value)
 {
   bool ret_val = true;
+  int tam = 4;
   command[0] = _config.set_lin_vel;
   command[1] = value >> 8;
   command[2] = value & 0xFF;
+  siar_serial_1.flush();
   
   ret_val = siar_serial_1.write(command, 3);
-  ret_val = siar_serial_1.getResponse(buffer, 4);
+  ret_val = siar_serial_1.getResponse(buffer, tam);
   
   // Checksum
   if (ret_val) {
-    ret_val = checkSum(buffer, 4) && buffer[0] == _config.set_lin_vel;
+    ret_val = checkSum(buffer, tam) && buffer[0] == _config.set_lin_vel;
   }
   
   return ret_val;
@@ -800,6 +854,7 @@ bool SiarManagerWidthAdjustment::setFan(bool on)
   command[0] = _config.set_fan;
   command[1] = on?1:0;
   
+  siar_serial_1.flush();
   ret_val = siar_serial_1.write(command, 2);
   ret_val = siar_serial_1.getResponse(buffer, tam);
   
@@ -819,6 +874,7 @@ bool SiarManagerWidthAdjustment::setHardStopTime(u_int8_t value)
   
   ret_val = siar_serial_1.write(command, 2);
   const int tam = 4;
+  siar_serial_1.flush();
   ret_val = siar_serial_1.getResponse(buffer, tam);
   
   if (ret_val) {
@@ -836,12 +892,12 @@ bool SiarManagerWidthAdjustment::getLinearMotorPosition(u_int16_t& pos)
   
   ret_val = siar_serial_1.write(command, 1);
   const int tam = 6;
+  siar_serial_1.flush();
   ret_val = siar_serial_1.getResponse(buffer, tam);
   
   if (ret_val) {
     ret_val = checkSum(buffer, tam) && buffer[0] == _config.get_lin_pos;
-    pos = (int)buffer[1] << 8 + (int)buffer[2];
-    if (pos > 32767) pos -= 0xFFFF;
+    pos = from_two_bytes(buffer[1], buffer[2]);
   }
   
   return ret_val;
@@ -855,12 +911,14 @@ bool SiarManagerWidthAdjustment::getLinearMotorPotentiometer(u_int16_t& pot)
   
   ret_val = siar_serial_1.write(command, 1);
   const int tam = 6;
+  siar_serial_1.flush();
   ret_val = siar_serial_1.getResponse(buffer, tam);
   
   if (ret_val) {
     ret_val = checkSum(buffer, tam) && buffer[0] == _config.get_lin_pot;
-    pot = (int)buffer[1] << 8 + (int)buffer[2];
-    if (pot > 32767) pot -= 0xFFFF;
+    if (ret_val) {
+      pot = from_two_bytes(buffer[1], buffer[2]);
+    }
   }
   
   return ret_val;
@@ -874,11 +932,13 @@ bool SiarManagerWidthAdjustment::getHardStopStatus(bool &active)
   
   ret_val = siar_serial_1.write(command, 1);
   const int tam = 5;
+  siar_serial_1.flush();
   ret_val = siar_serial_1.getResponse(buffer, tam);
   
   if (ret_val) {
     ret_val = checkSum(buffer, tam) && buffer[0] == _config.get_hard_stop;
-    active = buffer[1] != 0;
+    if (ret_val)
+      active = buffer[1] != 0;
   }
   
   return ret_val;
@@ -893,11 +953,15 @@ bool SiarManagerWidthAdjustment::getHardStopTime(uint8_t& hard_time)
   
   ret_val = siar_serial_1.write(command, 1);
   const int tam = 5;
+  siar_serial_1.flush();
   ret_val = siar_serial_1.getResponse(buffer, tam);
   
   if (ret_val) {
     ret_val = checkSum(buffer, tam) && buffer[0] == _config.get_hard_time;
-    hard_time = buffer[1];
+    if (ret_val) 
+      hard_time = buffer[1];
+    
+    ROS_INFO("Get Hard stop time --> %u", buffer[0]);
   }
   
   return ret_val;
@@ -911,11 +975,13 @@ bool SiarManagerWidthAdjustment::getFanControl(bool& active)
   
   ret_val = siar_serial_1.write(command, 1);
   const int tam = 5;
+  siar_serial_1.flush();
   ret_val = siar_serial_1.getResponse(buffer, tam);
   
   if (ret_val) {
     ret_val = checkSum(buffer, tam) && buffer[0] == _config.get_fan;
-    active = buffer[1] != 0;
+    if (ret_val) 
+      active = buffer[1] != 0;
   }
   
   return ret_val;
@@ -932,6 +998,7 @@ bool SiarManagerWidthAdjustment::getFWVersions()
   
   // Get the motor FW version
   ret_val = siar_serial_1.write(command, 1);
+  siar_serial_1.flush();
   ret_val = siar_serial_1.getResponse(buffer, tam);
   state.motor_fw_version.resize(tam - 4);
   
@@ -944,13 +1011,14 @@ bool SiarManagerWidthAdjustment::getFWVersions()
   
   // Get the battery FW version
   ret_val = battery_serial.write(command, 1);
+  battery_serial.flush();
   ret_val = battery_serial.getResponse(buffer, tam);
   
   state.battery_fw_version.resize(tam - 4);
   
   if (ret_val) {
     ret_val = checkSum(buffer, tam) && buffer[0] == _config.get_fw;
-    for (int i = 0; i < tam - 4;i++) {
+    for (int i = 0; i < tam - 4 && ret_val;i++) {
       state.battery_fw_version[i] = buffer[i + 1];
     }
   }
@@ -967,6 +1035,7 @@ bool SiarManagerWidthAdjustment::setLights(bool front_light, bool rear_light)
   command[1] = front_light?1:0 + rear_light?2:0;
   
   ret_val = battery_serial.write(command, 2);
+  battery_serial.flush();
   ret_val = battery_serial.getResponse(buffer, tam);
   
   if (ret_val) {
@@ -984,6 +1053,7 @@ bool SiarManagerWidthAdjustment::setAuxPinsDirection(uint8_t new_val)
   command[1] = new_val;
   
   ret_val = battery_serial.write(command, 2);
+  battery_serial.flush();
   ret_val = battery_serial.getResponse(buffer, tam);
   
   if (ret_val) {
@@ -1001,6 +1071,7 @@ bool SiarManagerWidthAdjustment::setAuxPinsValues(uint8_t new_val)
   command[1] = new_val;
   
   ret_val = battery_serial.write(command, 2);
+  battery_serial.flush();
   ret_val = battery_serial.getResponse(buffer, tam);
   
   if (ret_val) {
@@ -1018,6 +1089,7 @@ bool SiarManagerWidthAdjustment::setHerculexTorque(uint8_t id, uint8_t value)
   command[1] = value;
   
   ret_val = battery_serial.write(command, 2);
+  battery_serial.flush();
   ret_val = battery_serial.getResponse(buffer, tam);
   
   if (ret_val) {
@@ -1043,6 +1115,7 @@ bool SiarManagerWidthAdjustment::setHerculexPosition(uint8_t id, uint16_t value,
   command[3] = (uint8_t) value & 0x00FF;
   command[4] = (uint8_t) time_to_go;
   ret_val = battery_serial.write(command, 5);
+  battery_serial.flush();
   ret_val = battery_serial.getResponse(buffer, tam);
   
   if (ret_val) {
@@ -1060,6 +1133,7 @@ bool SiarManagerWidthAdjustment::setHerculexClearStatus(uint8_t id)
   command[1] = id;
   
   ret_val = battery_serial.write(command, 2);
+  battery_serial.flush();
   ret_val = battery_serial.getResponse(buffer, tam);
   
   if (ret_val) {
@@ -1076,12 +1150,13 @@ bool SiarManagerWidthAdjustment::getHerculexStatus()
   command[0] = _config.get_herculex_status;
   
   ret_val = battery_serial.write(command, 1);
+  battery_serial.flush();
   ret_val = battery_serial.getResponse(buffer, tam);
   
   if (ret_val) {
     ret_val = checkSum(buffer, tam) && buffer[0] == _config.get_herculex_status;
     
-    for (int i = 0; i < N_HERCULEX; i++) {
+    for (int i = 0; i < N_HERCULEX && ret_val; i++) {
       state.herculex_status[i] = buffer[i + 1];
     }
   }
@@ -1096,12 +1171,13 @@ bool SiarManagerWidthAdjustment::getHerculexTorque()
   command[0] = _config.get_herculex_torque;
   
   ret_val = battery_serial.write(command, 1);
+  battery_serial.flush();
   ret_val = battery_serial.getResponse(buffer, tam);
   
   if (ret_val) {
     ret_val = checkSum(buffer, tam) && buffer[0] == _config.get_herculex_torque;
     
-    for (int i = 0; i < N_HERCULEX; i++) {
+    for (int i = 0; i < N_HERCULEX && ret_val; i++) {
       state.herculex_torque[i] = buffer[i + 1];
     }
   }
@@ -1116,13 +1192,14 @@ bool SiarManagerWidthAdjustment::getHerculexPosition()
   command[0] = _config.get_herculex_position;
   
   ret_val = battery_serial.write(command, 1);
+  battery_serial.flush();
   ret_val = battery_serial.getResponse(buffer, tam);
   
   if (ret_val) {
     ret_val = checkSum(buffer, tam) && buffer[0] == _config.get_herculex_position;
     
-    for (int i = 0; i < N_HERCULEX; i++) {
-      state.herculex_position[i] = ((uint16_t)buffer[i * 2 + 1]) << 8 + buffer[i * 2 + 2];
+    for (int i = 0; i < N_HERCULEX && ret_val; i++) {
+      state.herculex_position[i] = from_two_bytes(buffer[i * 2 + 1] , buffer[i * 2 + 2]);
     }
   }
   
@@ -1136,12 +1213,13 @@ bool SiarManagerWidthAdjustment::getHerculexTemperature()
   command[0] = _config.get_herculex_temp;
   
   ret_val = battery_serial.write(command, 1);
+  battery_serial.flush();
   ret_val = battery_serial.getResponse(buffer, tam);
   
   if (ret_val) {
     ret_val = checkSum(buffer, tam) && buffer[0] == _config.get_herculex_temp;
     
-    for (int i = 0; i < N_HERCULEX; i++) {
+    for (int i = 0; i < N_HERCULEX && ret_val; i++) {
       state.herculex_temperature[i] = buffer[i + 1];
     }
   }
@@ -1156,15 +1234,17 @@ bool SiarManagerWidthAdjustment::getPowerSupply()
   command[0] = _config.get_power_supply;
   
   ret_val = battery_serial.write(command, 1);
+  battery_serial.flush();
   ret_val = battery_serial.getResponse(buffer, tam);
   
+  ret_val &= checkSum(buffer, tam) && buffer[0] == _config.get_power_supply;
+  
   if (ret_val) {
-    ret_val = checkSum(buffer, tam) && buffer[0] == _config.get_power_supply;
-    state.power_supply.elec_v = (int)buffer[1] << 8 + buffer[2];
-    state.power_supply.elec_i = (int)buffer[3] << 8 + buffer[4];
-    state.power_supply.motor_v = (int)buffer[5] << 8 + buffer[6];
-    state.power_supply.motor_i = (int)buffer[7] << 8 + buffer[8];
-    state.power_supply.cable_v = (int)buffer[9] << 8 + buffer[10];
+    state.power_supply.elec_v =  from_two_bytes(buffer[1], buffer[2]);
+    state.power_supply.elec_i = from_two_bytes(buffer[3], buffer[4]);;
+    state.power_supply.motor_v = from_two_bytes(buffer[5], buffer[6]);
+    state.power_supply.motor_i = from_two_bytes(buffer[7], buffer[8]);
+    state.power_supply.cable_v = from_two_bytes(buffer[9], buffer[10]);;
   }
   
   return ret_val;
@@ -1178,6 +1258,7 @@ bool SiarManagerWidthAdjustment::getAuxPinValues()
   command[0] = _config.get_aux_pin_values;
   
   ret_val = battery_serial.write(command, 1);
+  battery_serial.flush();
   ret_val = battery_serial.getResponse(buffer, tam);
   
   if (ret_val) {

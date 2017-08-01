@@ -48,6 +48,8 @@ ros::Time cmd_vel_time;
 double vel_timeout;
 siar_driver::SiarStatus siar_state; // State of SIAR
 
+SiarConfig siar_config;
+
 // -------------- New commands ARM & width -------------------------------//
 
 using siar_driver::SiarArmCommand;
@@ -82,7 +84,7 @@ void armTorqueReceived(const std_msgs::UInt8::ConstPtr &val) {
   }
 }
 
-// TODO: go from [-1, 1] to the useful values in the electronics (better in siar_config?)
+// TODO: go from [-1, 1] to the useful values in the electronics (better in siar_config?) TODO: Check it. Carlos suggested not to touch the width vel (the subscriber has been commented)
 void widthVelReceived(const std_msgs::Float32::ConstPtr &width_vel) {
   if (fabs(width_vel->data) > 1.0) {
     ROS_WARN("siar_node::width_vel_received --> Ignoring non-normalized new width");
@@ -95,9 +97,19 @@ void widthVelReceived(const std_msgs::Float32::ConstPtr &width_vel) {
 void widthPosReceived(const std_msgs::Float32::ConstPtr &width_pos) {
   if (fabs(width_pos->data) > 1.0) {
     ROS_WARN("siar_node::width_pos_received --> Ignoring non-normalized new width");
+    return;
   }
-  uint16_t value = 512 + width_pos->data * 100;
+  uint16_t value;
+  if (width_pos->data > 0.0) {
+    value = siar_config.max_width_pos + width_pos->data * (siar_config.lin_pos_sat._high - siar_config.max_width_pos) ;
+  } else {
+    value = siar_config.max_width_pos + width_pos->data * (siar_config.max_width_pos - siar_config.lin_pos_sat._low ) ;
+  }
+  
+  siar_config.lin_pos_sat.apply(value);
+  ROS_INFO("Linear Position Saturator. Sending: %u. ", value);
   siar->setLinearPosition(value);
+//   siar->setLinearPosition(60);
   
 }
 
@@ -146,7 +158,7 @@ int main(int argc, char** argv)
     ros::Subscriber cmd_vel_sub = n.subscribe<geometry_msgs::Twist>("/cmd_vel",1,cmdVelReceived);
     ros::Subscriber cmd_arm_sub = n.subscribe<SiarArmCommand>("/arm_cmd",1,commandArmReceived);
     ros::Subscriber torque_arm_sub = n.subscribe<std_msgs::UInt8>("/arm_torque",1,armTorqueReceived);
-    ros::Subscriber width_vel_sub = n.subscribe<std_msgs::Float32>("/width_vel", 1, widthVelReceived);
+//     ros::Subscriber width_vel_sub = n.subscribe<std_msgs::Float32>("/width_vel", 1, widthVelReceived); Carlos says it is not important --> only position
     ros::Subscriber width_pos_sub = n.subscribe<std_msgs::Float32>("/width_pos", 1, widthPosReceived);
     
     ros::Time current_time,last_time;
@@ -155,7 +167,6 @@ int main(int argc, char** argv)
     ros::Rate r(100.0);
     tf::TransformBroadcaster tf_broadcaster;
     
-    SiarConfig siar_config;
     try {
       siar = new SiarManagerWidthAdjustment(siar_port_1, joy_port, battery_port, siar_config);
       
@@ -164,6 +175,10 @@ int main(int argc, char** argv)
       if (use_imu) {
 	siar->setIMU(freq_imu);
       }
+      
+      bool reverse_right = false;
+      pn.param<bool>("reverse_right", reverse_right);
+      siar->setReverseRight(reverse_right);
     } catch (std::exception &e) {
       ROS_ERROR("Exception thrown while connecting to Siar. Content: %s", e.what());
       return -1;
