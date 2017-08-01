@@ -47,6 +47,7 @@ SiarManagerWidthAdjustment *siar = NULL;
 ros::Time cmd_vel_time;
 double vel_timeout;
 siar_driver::SiarStatus siar_state; // State of SIAR
+SiarConfig siar_config;
 
 // -------------- New commands ARM & width -------------------------------//
 
@@ -62,6 +63,8 @@ void commandArmReceived(const siar_driver::SiarArmCommand::ConstPtr& arm_cmd) {
     siar->setHerculexPosition(i, arm_cmd->joint_values[i], arm_cmd->command_time);
   }
 }
+
+void publishArmTF(const siar_driver::SiarStatus &st, tf::TransformBroadcaster &tf_broad);
 
 void armTorqueReceived(const std_msgs::UInt8::ConstPtr &val) {
   uint8_t new_state;
@@ -136,8 +139,9 @@ int main(int argc, char** argv)
     ROS_INFO("Freq = %f", freq);
     pn.param<double>("freq_imu",freq_imu,FREQ_IMU);
     
-    bool publish_tf;
+    bool publish_tf, publish_arm_tf;
     pn.param<bool>("publish_tf", publish_tf, false);
+    pn.param<bool>("publish_arm_tf", publish_arm_tf, true);
     
     dt = 1.0 / freq; // Do not forget the dt :)
     ros::Publisher odom_pub = pn.advertise<nav_msgs::Odometry>(odom_frame_id, 5);
@@ -149,13 +153,15 @@ int main(int argc, char** argv)
     ros::Subscriber width_vel_sub = n.subscribe<std_msgs::Float32>("/width_vel", 1, widthVelReceived);
     ros::Subscriber width_pos_sub = n.subscribe<std_msgs::Float32>("/width_pos", 1, widthPosReceived);
     
+    // TODO --> Turn on/off lights ....
+    
     ros::Time current_time,last_time;
     last_time = ros::Time::now();
     cmd_vel_time = ros::Time::now();
     ros::Rate r(100.0);
     tf::TransformBroadcaster tf_broadcaster;
     
-    SiarConfig siar_config;
+    
     try {
       siar = new SiarManagerWidthAdjustment(siar_port_1, joy_port, battery_port, siar_config);
       
@@ -215,6 +221,10 @@ int main(int argc, char** argv)
         // Publish the odometry TF
         tf_broadcaster.sendTransform(odom_trans);
       }
+      
+      if (publish_tf) {
+        publishArmTF(siar_state, tf_broadcaster);
+      }
     }
   }
   catch(SiarManagerException e) {
@@ -226,5 +236,27 @@ int main(int argc, char** argv)
   delete siar;
   
   return 0;
+}
+
+void publishArmTF(const siar_driver::SiarStatus& st, tf::TransformBroadcaster& tf_broad)
+{
+  static geometry_msgs::TransformStamped trans;
+  static int seq = 0;
+  
+  trans.transform.translation.y = trans.transform.translation.z = 0.0;
+  std::string parent_id = "base_arm";
+  
+  
+  for (int i = 0; i < N_HERCULEX - 1; i++) {
+    std::ostringstream frame_id;
+    trans.transform.translation.x = siar_config.arm_length[i];
+    // TODO: Complete this (maybe it's better in the module of Gonzalo)
+    
+    frame_id << "arm_" << i;
+    trans.header.frame_id = frame_id.str();
+    trans.header.seq = seq++;
+    trans.header.stamp = ros::Time::now();
+    tf_broad.sendTransform(trans);
+  }
 }
 

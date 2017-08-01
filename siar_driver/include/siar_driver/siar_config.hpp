@@ -29,6 +29,8 @@
 #include "siar_functions.hpp"
 #include <stdint.h>
 
+#define N_HERCULEX 5      // Number of herculex motors
+
 class SiarConfig {
 public:
   // Robot constraints
@@ -37,6 +39,7 @@ public:
   DeadZone<> velocity_dead; // Dead zone of the velocity (m/s)
   Saturate<int> vel_int_sat; // Two integer saturators that will help to make the conversion
   DeadZone<> encoders_dead;
+  double arm_length[N_HERCULEX];
   
   // Relationships
   
@@ -168,6 +171,13 @@ void SiarConfig::setDefaultConfig()
   set_aux_pin_direction = (unsigned char)0x61;
   set_aux_pin_values = (unsigned char)0x62;
   
+  
+  // Arm lengths and other stuff
+  arm_length[0] = 0.035;
+  arm_length[1] = 0.0475;
+  arm_length[2] = 0.215;
+  arm_length[3] = 0.155;
+  arm_length[4] = 0.08;
 }
 
 #endif

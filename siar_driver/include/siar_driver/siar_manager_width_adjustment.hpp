@@ -48,7 +48,6 @@
 #include <ros/ros.h>
 
 #define CMD_TIME_OUT 5 // In secs
-#define N_HERCULEX 5      // Number of herculex motors
 #define ___MAX_BUFFER_SIAR___ 256
 
 //-- HEADERS ----------------------------------------------------------------------------
