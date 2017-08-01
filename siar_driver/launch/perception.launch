@@ -14,7 +14,7 @@
   
   
   <!-- TF stuff (in the future will be inside the driver. TODO: add parameter -->
-  <include file="$(find siar_driver)/launch/sensor_transform_siar_7_cam.launch" if="$(arg tf)"/>
+  <include file="$(find siar_driver)/launch/sensor_transform_siar_7_cam_new_platform.launch" if="$(arg tf)"/>
 <!--   <include file="$(find siar_driver)/launch/sensor_transform_siar_calib_2017_02_14_4_cam.launch"/> -->
   
   <include file="$(find siar_driver)/launch/bag.launch" if="$(arg bag)"/>
