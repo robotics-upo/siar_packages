@@ -222,6 +222,10 @@ class SiarManagerWidthAdjustment:public SiarManager
   
   bool setRawVelocityCarlos(int16_t left, int16_t right, int16_t left_out, int16_t right_out);
   
+  double getWidth() const;
+  
+  double getXElectronics() const;
+  
   protected:
   // Serial Communciations stuff
   SiarSerial siar_serial_1; // 1 board, six motors 
@@ -1269,6 +1273,35 @@ bool SiarManagerWidthAdjustment::getAuxPinValues()
   return ret_val;
 }
 
+// TODO: Refine it empirically the next get... functions (or with the model)
+double SiarManagerWidthAdjustment::getWidth() const
+{
+  double ret_val = _config.width_sat._low;
+  
+  if (state.lin_motor_pos < _config.max_width_pos) {
+    // In this case the electronics is backwards
+    ret_val += _config.width_sat.getWidth() * (state.lin_motor_pos) / (_config.max_width_pos - _config.lin_pos_sat._low);
+  } else {
+    ret_val += _config.width_sat.getWidth() * (state.lin_motor_pos - _config.max_width_pos) / (_config.max_width_pos - _config.lin_pos_sat._high);
+  }
+  
+  return ret_val;
+}
+
+// Gets the x coordinate of the center of the electronics with respect of the base link
+double SiarManagerWidthAdjustment::getXElectronics() const
+{
+  double ret_val = 0.0;
+  
+  if (state.lin_motor_pos < _config.max_width_pos) {
+    // In this case the electronics is backwards
+    ret_val += _config.max_x_electronics * state.lin_motor_pos / (_config.lin_pos_sat._low - _config.max_width_pos);
+  } else {
+    ret_val += _config.max_x_electronics * state.lin_motor_pos / (_config.lin_pos_sat._high - _config.max_width_pos );
+  }
+  
+  return ret_val;
+}
 
 //-- END OF INLINE FUNCTIONS ---------------------------------------
 

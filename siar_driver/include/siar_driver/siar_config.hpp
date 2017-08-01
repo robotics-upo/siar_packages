@@ -39,6 +39,7 @@ public:
   DeadZone<> velocity_dead; // Dead zone of the velocity (m/s)
   Saturate<int> vel_int_sat; // Two integer saturators that will help to make the conversion
   DeadZone<> encoders_dead;
+  Saturate<> width_sat; // Saturation for the width (i. e. min and max width)
   Saturate<int> lin_pos_sat; // Saturation for the linear motor (width adjustment)
   Saturate<int> arm_pos_sat[N_HERCULEX]; // Saturation for the arm low-level controller
   
@@ -46,6 +47,7 @@ public:
   
   double half_axis_distance, radius, meters_tick, peri_wheel, ticks_revolution, diag_wheels; // In meters
   int  max_width_pos;
+  double max_x_electronics;
   
   // Empirical relationships
   double meters_tick_l, meters_tick_r; // Odometry calibration
@@ -137,8 +139,10 @@ void SiarConfig::setDefaultConfig()
   angular_sat = Saturate<>(0.3);
   vel_int_sat = Saturate<int>(1100);
   
+  width_sat = Saturate<>(0.51,0.71);
   lin_pos_sat = Saturate<int>(0,150);
   max_width_pos = 60;
+  max_x_electronics = 0.15;
   
   // Motor board
   

@@ -167,6 +167,7 @@ int main(int argc, char** argv)
     ros::Rate r(100.0);
     tf::TransformBroadcaster tf_broadcaster;
     
+    
     try {
       siar = new SiarManagerWidthAdjustment(siar_port_1, joy_port, battery_port, siar_config);
       
@@ -188,9 +189,19 @@ int main(int argc, char** argv)
     cmd_vel_time = ros::Time::now() - ros::Duration(vel_timeout);
 
     // Save the proper fields
-    geometry_msgs::TransformStamped odom_trans;
+    geometry_msgs::TransformStamped odom_trans, electronics_trans;
     sensor_msgs::Imu imu_msg;
     bool first_msg = true;
+    
+    
+    // Initialize the constant part of electronics trans
+    electronics_trans.child_frame_id = "electronics_center";
+    electronics_trans.header.frame_id = base_frame_id;
+    electronics_trans.transform.translation.z = 0.35; // TODO: define a constant in siar_config??
+    electronics_trans.transform.translation.x = -0.15; // TODO: define a constant in siar_config??
+    electronics_trans.transform.translation.y = 0.0;
+    electronics_trans.transform.rotation.x = electronics_trans.transform.rotation.y = electronics_trans.transform.rotation.z = 0.0;
+    electronics_trans.transform.rotation.w = 1.0;
 
     while (n.ok()) {
 //       // Sleep and actualize
@@ -230,6 +241,10 @@ int main(int argc, char** argv)
         // Publish the odometry TF
         tf_broadcaster.sendTransform(odom_trans);
       }
+      
+      // Publish electronics_base transform
+      electronics_trans.transform.rotation.z = siar->getXElectronics();
+      tf_broadcaster.sendTransform(electronics_trans);
     }
   }
   catch(SiarManagerException e) {
