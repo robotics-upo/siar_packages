@@ -443,44 +443,47 @@ inline bool SiarManagerWidthAdjustment::update()
   {
     // Actualize battery and power supply data
     if (!actualizeBatteryStatus()) {
-      ROS_ERROR("Could not retrieve the battery status");
+//       ROS_ERROR("Could not retrieve the battery status");
     }
     if (!getPowerSupply()) {
-      ROS_ERROR("Could not retrieve the power supply status");
+//       ROS_ERROR("Could not retrieve the power supply status");
     }
     bat_cont = 0;
     
     // Update arm status
     if (!getHerculexPosition()) {
-      ROS_ERROR("Could not retrieve the herculex position");
+//       ROS_ERROR("Could not retrieve the herculex position");
     }
     if (!getHerculexStatus()) {
-      ROS_ERROR("Could not retrieve the herculex status");
+//       ROS_ERROR("Could not retrieve the herculex status");
     }
     if (!getHerculexTemperature()) {
-      ROS_ERROR("Could not retrieve the herculex temperature");
+//       ROS_ERROR("Could not retrieve the herculex temperature");
     }
     if (!getHerculexTorque()) {
-      ROS_ERROR("Could not retrieve the herculex torque");
+//       ROS_ERROR("Could not retrieve the herculex torque");
     }
     
     // Update aux pins
     if (!getAuxPinValues()) {
-      ROS_ERROR("Could not retrieve the aux pins values");
+//       ROS_ERROR("Could not retrieve the aux pins values");
     }
     
     // Linear motors
-    if (!getLinearMotorPosition(state.lin_motor_pos)) {
-      ROS_ERROR("Could not retrieve the motor position");
+    if (getLinearMotorPosition(state.lin_motor_pos)) {
+      state.electronics_x = getXElectronics();
+      state.width = getWidth();
+    } else {
+//       ROS_ERROR("Could not retrieve the motor position");
     }
     if (!getLinearMotorPotentiometer(state.lin_motor_pot)) {
-      ROS_ERROR("Could not retrieve the motor potentiometer");
+//       ROS_ERROR("Could not retrieve the motor potentiometer");
     }
     
     // 
     bool active;
     if (!getHardStopStatus(active)) {
-      ROS_ERROR("Could not retrieve the hard stop status");
+//       ROS_ERROR("Could not retrieve the hard stop status");
     } else {
       state.hard_stop = active?1:0;
     }
@@ -580,7 +583,8 @@ bool SiarManagerWidthAdjustment::calculateOdometry()
     double dist = ((dl + dr) * 0.5);
     dist = _config.encoders_dead.apply(dist);
     
-     double d_theta_ticks = (dr - dl) / _config.estimated_diag;	 	//rad
+//      double d_theta_ticks = (dr - dl) / _config.estimated_diag;	 	//rad
+    double d_theta_ticks = (dr - dl) / state.width;          //rad
     
     if (first_odometry) {
       first_odometry = false;
@@ -1036,7 +1040,13 @@ bool SiarManagerWidthAdjustment::setLights(bool front_light, bool rear_light)
   bool ret_val = true;
   const int tam = 4;
   command[0] = _config.set_lights;
-  command[1] = front_light?1:0 + rear_light?2:0;
+  command[1] = (front_light?1:0) + (rear_light?2:0);
+  
+//   ROS_INFO("SiarManagerWidthAdjustment::setLights. Command = %u", command[1]);
+//   if (front_light) 
+//     std::cout << "Front\n";
+//   if (rear_light)
+//     std::cout << "Rear\n";
   
   ret_val = battery_serial.write(command, 2);
   battery_serial.flush();
@@ -1282,7 +1292,7 @@ double SiarManagerWidthAdjustment::getWidth() const
     // In this case the electronics is backwards
     ret_val += _config.width_sat.getWidth() * (state.lin_motor_pos) / (_config.max_width_pos - _config.lin_pos_sat._low);
   } else {
-    ret_val += _config.width_sat.getWidth() * (state.lin_motor_pos - _config.max_width_pos) / (_config.max_width_pos - _config.lin_pos_sat._high);
+    ret_val += _config.width_sat.getWidth() * (_config.lin_pos_sat._high - state.lin_motor_pos) / (_config.lin_pos_sat._high - _config.max_width_pos);
   }
   
   return ret_val;
@@ -1295,9 +1305,9 @@ double SiarManagerWidthAdjustment::getXElectronics() const
   
   if (state.lin_motor_pos < _config.max_width_pos) {
     // In this case the electronics is backwards
-    ret_val += _config.max_x_electronics * state.lin_motor_pos / (_config.lin_pos_sat._low - _config.max_width_pos);
+    ret_val -= _config.max_x_electronics * state.lin_motor_pos / (_config.lin_pos_sat._low - _config.max_width_pos);
   } else {
-    ret_val += _config.max_x_electronics * state.lin_motor_pos / (_config.lin_pos_sat._high - _config.max_width_pos );
+    ret_val -= _config.max_x_electronics * (state.lin_motor_pos - _config.max_width_pos ) / (_config.lin_pos_sat._high - _config.max_width_pos );
   }
   
   return ret_val;

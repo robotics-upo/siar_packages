@@ -16,6 +16,9 @@ uint8 hard_stop_time
 uint16 lin_motor_pos
 uint16 lin_motor_pot
 
+float32 electronics_x
+float32 width
+
 nav_msgs/Odometry odom
 
 int64 front_left_ticks

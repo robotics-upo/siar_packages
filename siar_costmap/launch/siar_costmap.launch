@@ -10,10 +10,10 @@
   <arg name="camera_5" default="/camera"/>
   <arg name="camera_6" default="/pepito"/>
   <arg name="tilt_compensate" default="true"/>
-  <arg name="roi_x" default="-1"/>
-  <arg name="roi_y" default="-1"/>
-  <arg name="roi_w" default="-1"/>
-  <arg name="roi_h" default="-1"/>
+  <arg name="roi_x" default="2"/>
+  <arg name="roi_y" default="2"/>
+  <arg name="roi_w" default="316"/>
+  <arg name="roi_h" default="236"/>
   
   # Point cloud computation
   <node pkg="depth2cloud" type="depth2cloud_node" name="depth2cloud_front_down" output="screen" >

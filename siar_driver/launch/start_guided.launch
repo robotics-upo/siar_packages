@@ -63,10 +63,10 @@
     <arg name="camera_4" value="/back_right"/>
     <arg name="camera_5" value="/back"/>
     <arg name="camera_6" value="/front"/>
-    <arg name="roi_x" value="5"/>
-    <arg name="roi_w" value="310"/>
-    <arg name="roi_y" value="1"/>
-    <arg name="roi_h" value="238"/>
+    <arg name="roi_x" value="10"/>
+    <arg name="roi_w" value="290"/>
+    <arg name="roi_y" value="5"/>
+    <arg name="roi_h" value="230"/>
   </include>
   
   <!-- Comms -->

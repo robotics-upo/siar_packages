@@ -46,7 +46,7 @@
         /rssi_nvip_2400
         /elec_battery_status
         /motor_battery_status
-
+	/siar_status
 	/operation_mode
         " />   
         

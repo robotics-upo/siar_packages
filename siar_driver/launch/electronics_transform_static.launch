@@ -1,0 +1,6 @@
+<?xml version="1.0" ?>
+<launch>
+
+<node name="tf_sandwich" pkg="tf" type="static_transform_publisher" args="0 0 0.35 0 0 0 /base_link /electronics_center 10"/>
+
+</launch>

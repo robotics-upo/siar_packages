@@ -37,6 +37,8 @@
 #include "siar_driver/siar_manager.hpp"
 #include "siar_driver/siar_manager_width_adjustment.hpp"
 #include "siar_driver/SiarArmCommand.h"
+#include "siar_driver/SiarLightCommand.h"
+
 
 #define FREQ		50.0
 #define FREQ_IMU	150.0
@@ -52,6 +54,7 @@ SiarConfig siar_config;
 // -------------- New commands ARM & width -------------------------------//
 
 using siar_driver::SiarArmCommand;
+using siar_driver::SiarLightCommand;
 void cmdVelReceived(const geometry_msgs::Twist::ConstPtr& cmd_vel)
 {
   cmd_vel_time = ros::Time::now();
@@ -62,6 +65,12 @@ void commandArmReceived(const siar_driver::SiarArmCommand::ConstPtr& arm_cmd) {
   for (int i = 0; i < N_HERCULEX; i++) {
     siar->setHerculexPosition(i, arm_cmd->joint_values[i], arm_cmd->command_time);
   }
+}
+
+
+void commandLightReceived(const siar_driver::SiarLightCommand::ConstPtr& light_cmd) {
+  siar->setLights(light_cmd->front, light_cmd->rear);
+  
 }
 
 // void publishArmTF(const siar_driver::SiarStatus &st, tf::TransformBroadcaster &tf_broad); TODO: Necessary or in gonzalo's module?
@@ -162,6 +171,7 @@ int main(int argc, char** argv)
     ros::Subscriber torque_arm_sub = n.subscribe<std_msgs::UInt8>("/arm_torque",1,armTorqueReceived);
 //     ros::Subscriber width_vel_sub = n.subscribe<std_msgs::Float32>("/width_vel", 1, widthVelReceived); Carlos says it is not important --> only position
     ros::Subscriber width_pos_sub = n.subscribe<std_msgs::Float32>("/width_pos", 1, widthPosReceived);
+    ros::Subscriber cmd_light_sub = n.subscribe<SiarLightCommand>("/light_cmd", 1, commandLightReceived);
     
     // TODO --> Turn on/off lights ....
     
@@ -250,7 +260,8 @@ int main(int argc, char** argv)
 //         publishArmTF(siar_state, tf_broadcaster);
 //       }
       // Publish electronics_base transform
-      electronics_trans.transform.rotation.z = siar->getXElectronics();
+      electronics_trans.header.stamp = ros::Time::now();
+      electronics_trans.transform.translation.x = siar->getXElectronics();
       tf_broadcaster.sendTransform(electronics_trans);
     }
   }

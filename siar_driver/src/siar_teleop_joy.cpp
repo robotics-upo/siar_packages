@@ -31,6 +31,7 @@
 #include <std_msgs/Int8.h>
 #include <std_msgs/UInt8.h>
 #include <sensor_msgs/Joy.h>
+#include <siar_driver/SiarLightCommand.h>
 #include <stdlib.h>
 
 ///////////////////////////////////////////////////
@@ -48,7 +49,9 @@
 #define ANGULAR_VELOCITY_AXIS 0
 #define AUTO_BUTTON           3
 #define SLOW_BUTTON   	      5
-#define MAX_VELOCITY_BUTTON   7
+#define MAX_VELOCITY_BUTTON   10
+#define FRONT_LIGHT_BUTTON    7
+#define REAR_LIGHT_BUTTON     6
 #define PANIC_BUTTON          2
 #define START_BUTTON          9
 #define BACK_BUTTON           8
@@ -89,6 +92,7 @@ double slow_multiplier;
 int linearVelocityAxis;
 int angularVelocityAxis;
 int maxVelocityButton;
+int front_light_button, rear_light_button;
 int slowButton;
 int auto_button;
 
@@ -112,10 +116,15 @@ bool backPressed   = false;
 bool backwards = false;
 bool ant_reverse_but = false;
 bool slow_mode = false;
+bool last_slow = false;
 bool publishSlow = false;
 bool ant_auto_button = false;
 int auto_mode = 0;
 int max_auto_mode;
+bool front_light = false;
+bool rear_light = false;
+bool last_front_button = false;
+bool last_rear_button = false;
 
 
 ros::Time last_joy_time, last_remote_joy_time;
@@ -125,8 +134,10 @@ ros::Publisher mode_pub;
 
 ros::Publisher width_pos_pub;
 ros::Publisher arm_torque_pub;
+ros::Publisher light_cmd_pub;
 
 bool setAutomaticMode(int new_mode);
+void publishLight();
 
 void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
   startPressed = joy->buttons[startButton] == 1;
@@ -170,10 +181,12 @@ void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
     currentLinearVelocity = maxLinearVelocity * multiplier * joy->axes[linearVelocityAxis];
     currentLinearVelocity *= backwards?-1.0:1.0; // Only the linear velocity should change when going backwards
     
-    if (joy->buttons[slowButton]) {
+    if (joy->buttons[slowButton] && !last_slow) {
       slow_mode = !slow_mode;
       publishSlow = true;
+      
     }
+    last_slow = joy->buttons[slowButton] == 1;
     
     // Arm Button
     int curr_arm_but = joy->buttons[arm_torque_button];
@@ -192,12 +205,27 @@ void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
     double width_pos = joy->axes[width_pos_axis]; // NOTE: the minus is to make the right commands be positive
     double width_pos_2 = joy->axes[width_pos_axis_2]; // NOTE: the minus is to make the right commands be positive
     double norm_sq = width_pos * width_pos + width_pos_2 * width_pos_2;
-    ROS_INFO("Width pos = %f\tWidth pos 2 = %f\tnorm_sq = %f", width_pos, width_pos_2,norm_sq);
+//     ROS_INFO("Width pos = %f\tWidth pos 2 = %f\tnorm_sq = %f", width_pos, width_pos_2,norm_sq);
     if (norm_sq > 0.95 && width_pos > -0.05) {
       std_msgs::Float32 msg;
       msg.data = width_pos_2;
       width_pos_pub.publish(msg);
     } 
+    
+    // Light buttons
+    if (joy->buttons[front_light_button] == 1 && !last_front_button) {
+      front_light = !front_light;
+      publishLight();
+      
+    }
+    last_front_button = joy->buttons[front_light_button];
+    
+    if (joy->buttons[rear_light_button] == 1 && !last_rear_button) {
+      rear_light = !rear_light;
+      publishLight();
+      
+    }
+    last_rear_button = joy->buttons[rear_light_button];
   }
 }
 
@@ -233,6 +261,14 @@ void sendSlowCmd(bool slow_mode, ros::Publisher &pub) {
   slow_pub.publish(msg);
 }
 
+void publishLight()
+{
+  siar_driver::SiarLightCommand msg;
+  msg.front = front_light;
+  msg.rear = rear_light;
+  light_cmd_pub.publish(msg);
+}
+
 int main(int argc, char** argv)
 {
   ros::init(argc, argv, "SiarTeleopJoy");
@@ -262,6 +298,8 @@ int main(int argc, char** argv)
   pn.param<int>("width_pos_axis", width_pos_axis, WIDTH_AXIS);
   pn.param<int>("width_pos_axis_2", width_pos_axis_2, WIDTH_AXIS_2);
   pn.param<int>("arm_torque_button", arm_torque_button, ARM_TORQUE_BUTTON);
+  pn.param<int>("front_light_button", front_light_button, FRONT_LIGHT_BUTTON);
+  pn.param<int>("rear_light_button", rear_light_button, REAR_LIGHT_BUTTON);
   
   pn.param<double>("max_linear_velocity",maxLinearVelocity,MAX_LINEAR_VELOCITY);
   pn.param<double>("max_angular_velocity",maxAngularVelocity,MAX_ANGULAR_VELOCITY);
@@ -285,6 +323,7 @@ int main(int argc, char** argv)
   // Width and arm
   width_pos_pub = n.advertise<std_msgs::Float32>("width_pos", 1);
   arm_torque_pub = n.advertise<std_msgs::UInt8>("arm_torque", 1);
+  light_cmd_pub = n.advertise<siar_driver::SiarLightCommand>("light_cmd", 1);
   
   // ---------END WIDTH ARM ---
   

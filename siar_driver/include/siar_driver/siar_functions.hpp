@@ -59,7 +59,7 @@ inline int16_t from_two_bytes_signed(uint8_t b1, uint8_t b2) {
   } else {
     ret = aux;
   }
-  ROS_INFO("from_two_bytes_signed b1 = %u \t b2=%u \t aux =%u\t ret=%d", b1, b2, aux, ret);
+//   ROS_INFO("from_two_bytes_signed b1 = %u \t b2=%u \t aux =%u\t ret=%d", b1, b2, aux, ret);
   
   return ret;
 }
