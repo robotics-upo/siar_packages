@@ -38,7 +38,7 @@ public:
   
 protected:
   // Camera info subscribers and initialization
-  ros::Subscriber costmap_sub, cmd_vel_sub, odom_sub, mode_sub;
+  ros::Subscriber costmap_sub, cmd_vel_sub, odom_sub, mode_sub, planned_cmd_vel_sub;
   ros::Publisher cmd_vel_pub, footprint_marker_pub, trajectory_marker_pub;
   
   // Operation mode
@@ -67,7 +67,7 @@ protected:
   bool occ_received;
 
   // Command evaluation
-  geometry_msgs::Twist user_command, last_velocity;
+  geometry_msgs::Twist user_command, last_velocity, planned_cmd;
   CommandEvaluator *cmd_eval;
   
   // Include ways to escape the local minima
@@ -87,6 +87,7 @@ protected:
   void parametersCallback(SiarControllerConfig &config, uint32_t level);
   void altitudeCallback(const nav_msgs::OccupancyGridConstPtr &msg);
   void cmdvelCallback(const geometry_msgs::Twist &msg);
+  void cmdvelCallbackPlanned(const geometry_msgs::Twist &msg);
   void odomCallback(const nav_msgs::Odometry &msg);
   void modeCallback(const std_msgs::Int8 &msg);
   
@@ -129,6 +130,7 @@ reconfigure_server_(),config_init_(false),occ_received(false), cmd_eval(NULL), t
   // Now camera info subscribers
   costmap_sub = nh.subscribe("/altitude_map", 2, &SiarController::altitudeCallback, this);
   cmd_vel_sub = nh.subscribe("/cmd_vel_in", 2, &SiarController::cmdvelCallback, this);
+  planned_cmd_vel_sub = nh.subscribe("/planned_cmd_vel", 2, &SiarController::cmdvelCallbackPlanned, this);
   odom_sub = nh.subscribe("/odom", 2, &SiarController::odomCallback, this);
   mode_sub = nh.subscribe("/operation_mode", 2, &SiarController::modeCallback, this);
   
@@ -259,6 +261,12 @@ void SiarController::cmdvelCallback(const geometry_msgs::Twist& msg)
   user_command = msg;
 }
 
+void SiarController::cmdvelCallbackPlanned(const geometry_msgs::Twist& msg)
+{
+  planned_cmd = msg;
+}
+
+
 void SiarController::altitudeCallback(const nav_msgs::OccupancyGridConstPtr &msg)
 {
   last_map = *msg;
@@ -286,11 +294,7 @@ void SiarController::modeCallback(const std_msgs::Int8& msg)
 void SiarController::loop() {
   // Main loop --> we have to 
   geometry_msgs::Twist cmd_vel_msg = user_command;
-  if (operation_mode != 0)
-    cmd_vel_msg.angular.z = 0.0;
-  
-  if (operation_mode != 0) {
-//     if (occ_received && !computeCmdVel(cmd_vel_msg, last_velocity)) {
+  if (operation_mode == 1) {
     if (!occ_received) {
       ROS_INFO("SiarController --> Warning: no altitude map");
     } else if (!computeCmdVel(cmd_vel_msg, last_command)) {
@@ -314,6 +318,10 @@ void SiarController::loop() {
     }
   } else {
     t_unfeasible = 0.0;
+  }
+  if (operation_mode == 2) {
+    // Bypass the planned velocity
+    cmd_vel_msg = planned_cmd;
   }
   
   cmd_vel_pub.publish(cmd_vel_msg);

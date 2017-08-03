@@ -1100,10 +1100,13 @@ bool SiarManagerWidthAdjustment::setHerculexTorque(uint8_t id, uint8_t value)
   bool ret_val = true;
   const int tam = 4;
   command[0] = _config.set_herculex_torque;
-  command[1] = value;
+  command[1] = id;
+  command[2] = value;
   
-  ret_val = battery_serial.write(command, 2);
+  ROS_INFO("Setting herculex torque. Id = %u. Value = %u", id, value);
+ 
   battery_serial.flush();
+  ret_val = battery_serial.write(command, 3);
   ret_val = battery_serial.getResponse(buffer, tam);
   
   if (ret_val) {

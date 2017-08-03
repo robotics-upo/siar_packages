@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   arduimu_v3
+  functions
   kdl_parser
   message_generation
   std_msgs
@@ -41,10 +42,11 @@ generate_messages(
 ###################################
 ## catkin specific configuration ##
 ###################################
+#TODO: the dependence with functions is just for the arm tester
 catkin_package(
  INCLUDE_DIRS include
 #  LIBRARIES siar_driver
- CATKIN_DEPENDS roscpp rospy arduimu_v3 kdl_parser std_msgs message_generation message_runtime nav_msgs robot_state_publisher sensor_msgs tf
+ CATKIN_DEPENDS roscpp rospy arduimu_v3 functions kdl_parser std_msgs message_generation message_runtime nav_msgs robot_state_publisher sensor_msgs tf
 #  DEPENDS system_lib
 )
 
@@ -62,12 +64,14 @@ include_directories(include/
 add_executable(siar_node src/siar_node.cpp)
 add_executable(siar_calibration_node src/siar_calibration_node.cpp)
 add_executable(siar_teleop_joy src/siar_teleop_joy.cpp)
+add_executable(arm_tester src/arm_tester.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 add_dependencies(siar_calibration_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} siar_driver_generate_messages_cpp)
 add_dependencies(siar_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} siar_driver_generate_messages_cpp)
 add_dependencies(siar_teleop_joy ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} siar_driver_generate_messages_cpp)
+add_dependencies(arm_tester ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} siar_driver_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(siar_node
@@ -78,3 +82,4 @@ target_link_libraries(siar_calibration_node
 )
 
 target_link_libraries(siar_teleop_joy ${catkin_LIBRARIES})
+target_link_libraries(arm_tester ${catkin_LIBRARIES})

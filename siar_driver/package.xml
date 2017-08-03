@@ -23,6 +23,7 @@
   v<build_depend>roscpp</build_depend>
   <build_depend>rospy</build_depend>
   <build_depend>arduimu_v3</build_depend>
+  <build_depend>functions</build_depend>
   <build_depend>kdl_parser</build_depend>
   <build_depend>message_generation</build_depend>
   <build_depend>std_msgs</build_depend>
@@ -33,6 +34,7 @@
   <run_depend>roscpp</run_depend>
   <run_depend>rospy</run_depend>
   <run_depend>arduimu_v3</run_depend>
+  <run_depend>functions</run_depend>
   <run_depend>kdl_parser</run_depend>
   <run_depend>message_generation</run_depend>
   <run_depend>message_runtime</run_depend>

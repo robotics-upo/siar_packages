@@ -26,6 +26,8 @@ public:
   
   visualization_msgs::Marker getGraphMarker();
   
+  double getDeltaT() const {return delta_t;}
+  
 protected:
   AStar();
   

@@ -82,7 +82,7 @@ void armTorqueReceived(const std_msgs::UInt8::ConstPtr &val) {
       new_state = 0;
       break;
       
-    case 1:     // Break
+    case 1:     // Brake
       new_state = 0x40;
       break;
     
@@ -90,7 +90,11 @@ void armTorqueReceived(const std_msgs::UInt8::ConstPtr &val) {
       new_state = 0x60;
   }
   for (int i = 0; i < N_HERCULEX; i++) {
-    siar->setHerculexTorque(i, new_state);
+    if (siar->setHerculexTorque(i, new_state)) {
+      ROS_INFO("Siar Node --> Torque changed successfully to: %u", new_state);
+    } else {
+      ROS_ERROR("Siar Node --> Could not change torque");
+    }
   }
 }
 
@@ -103,7 +107,6 @@ void widthVelReceived(const std_msgs::Float32::ConstPtr &width_vel) {
   siar->setLinearVelocity(value);
 }
 
-// TODO: go from [-1, 1] to the useful values in the electronics [0,1024](better in siar_config?)
 void widthPosReceived(const std_msgs::Float32::ConstPtr &width_pos) {
   if (fabs(width_pos->data) > 1.0) {
     ROS_WARN("siar_node::width_pos_received --> Ignoring non-normalized new width");
@@ -175,7 +178,7 @@ int main(int argc, char** argv)
     
     // TODO --> Turn on/off lights ....
     
-    ros::Time current_time,last_time;
+    ros::Time current_time,last_time; 
     last_time = ros::Time::now();
     cmd_vel_time = ros::Time::now();
     ros::Rate r(100.0);

@@ -24,13 +24,21 @@ public:
   //! @brief Start new action
   void passFork(const siar_planner::PassForkGoal::ConstPtr& goal);
   
+  bool getCurrentVel(geometry_msgs::Twist &curr_cmd);
+  
+  double getDeltaT() const {return a_star.getDeltaT();}
+  
 protected:
   ros::NodeHandle nh_;
   typedef actionlib::SimpleActionServer<siar_planner::PassForkAction> PFActionServer;
   PFActionServer PFActionServer_;
   ros::Subscriber reverse_sub, goal_sub; // Also the commands can be sent as a regular topic (without action server)
-  ros::Publisher cmd_vel_pub, path_pub; // Will command the commanded velocity of the 
+  ros::Publisher path_pub; 
   ros::Publisher graph_pub;
+  
+  // Path related info
+  std::list<AStarNode> curr_path;
+  ros::Time start_time, end_time;
   
   // Planner
   AStar a_star;
@@ -88,6 +96,8 @@ void SiarPlannerActionServer::calculatePath(const geometry_msgs::PoseStamped &po
   t0 = ros::Time::now();
   start.state.push_back(0);start.state.push_back(0);start.state.push_back(0);
   
+  // TODO: transform the pose (now it assumes it is indicated in base_link
+  
   goal.state.push_back(pose.pose.position.x);
   goal.state.push_back(pose.pose.position.y);
   
@@ -97,15 +107,17 @@ void SiarPlannerActionServer::calculatePath(const geometry_msgs::PoseStamped &po
   tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
   goal.state.push_back(yaw);
   
-  std::list<AStarNode> path;
-  double cost = a_star.getPath(start, goal, path);
+  double cost = a_star.getPath(start, goal, curr_path);
   
   t1 = ros::Time::now();
   ROS_INFO("Path calculated. Cost = %f.\t Expended time: %f", cost, (t1 - t0).toSec());
   
-  visualization_msgs::Marker m = a_star.getPathMarker(path);
+  visualization_msgs::Marker m = a_star.getPathMarker(curr_path);
   path_pub.publish(m);
   graph_pub.publish(a_star.getGraphMarker());
+  
+  start_time = ros::Time::now();
+  end_time = start_time + ros::Duration(a_star.getDeltaT() * curr_path.size());
 }
 
 void SiarPlannerActionServer::goalCB(const geometry_msgs::PoseStamped_< std::allocator< void > >::ConstPtr& msg)
@@ -113,6 +125,36 @@ void SiarPlannerActionServer::goalCB(const geometry_msgs::PoseStamped_< std::all
   calculatePath(*msg);
 }
 
+bool SiarPlannerActionServer::getCurrentVel(geometry_msgs::Twist& curr_cmd)
+{
+  ros::Time t = ros::Time::now();
+  
+  curr_cmd.linear.y = curr_cmd.linear.z = curr_cmd.angular.x = curr_cmd.angular.y = 0.0;
+  curr_cmd.linear.x = curr_cmd.angular.z = 0.0;
+  
+  if (t < start_time || t > end_time) {
+    return false;
+  }
+  
+  double mission_t = (t - start_time).toSec();
+  
+  int n = floor(mission_t / a_star.getDeltaT() );
+  
+  ROS_INFO("getCurrentVel. T - Start_time= %f\t n = %d", (t - start_time).toSec(), n);
+  
+  int cont = 0;
+  auto it = curr_path.begin();
+  for (; cont < n; cont++, it++) {
+  }
+  
+  
+  
+  curr_cmd.linear.x = it->command_lin;
+  curr_cmd.angular.z = it->command_ang;
+  
+  
+  return true;
+}
 
 
 
