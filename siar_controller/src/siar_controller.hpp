@@ -20,6 +20,7 @@
 #include <visualization_msgs/MarkerArray.h>
 
 #include "siar_controller/command_evaluator.hpp"
+#include "siar_driver/SiarStatus.h"
 
 #include <stdlib.h>
 #include <ctime>
@@ -69,6 +70,7 @@ protected:
   // Command evaluation
   geometry_msgs::Twist user_command, last_velocity, planned_cmd;
   CommandEvaluator *cmd_eval;
+  double width_thres;
   
   // Include ways to escape the local minima
   double t_unfeasible,ang_scape_inc, max_t_unfeasible;
@@ -90,6 +92,7 @@ protected:
   void cmdvelCallbackPlanned(const geometry_msgs::Twist &msg);
   void odomCallback(const nav_msgs::Odometry &msg);
   void modeCallback(const std_msgs::Int8 &msg);
+  void statusCallback(const siar_driver::SiarStatus &msg);
   
   //! @brief Get parameters from parameter server
   void getParameters(ros::NodeHandle &pn);
@@ -99,7 +102,7 @@ protected:
   //! @brief Initializes the discrete_test_set_forward and discrete_test_set_backward according to the configuration information
   void initializeDiscreteTestSet();
   //! @brief Retrieves the file_test_set_forward and backward from file (the filename is specified in the configuration)
-  void initializeTestSetFromFile(const std::string &velocityset_filename, int n_interpol = 1, double mult = 1.0);
+  void initializeTestSetFromFile(const std::string &velocityset_filename, int n_interpol = 1, double mult = 1);
   
   bool file_test_set_init;
   std::vector <geometry_msgs::Twist> discrete_test_set_forward, discrete_test_set_backward;
@@ -173,11 +176,9 @@ void SiarController::getParameters(ros::NodeHandle& pn)
   pn.param("T_hor", _conf.T_hor, 3.0);
   pn.param("delta_T", _conf.delta_T, 0.2);
   pn.param("T", _conf.T, 0.1);
-  
-  
-  
   pn.param("n_lin", _conf.n_lin, 3);
   pn.param("n_ang", _conf.n_ang, 12);
+  pn.param("width_thres", width_thres, 0.02);
   
   markers.markers.reserve(_conf.n_lin * (_conf.n_ang + 1) * 2 + 20);
   ang_vel_inc = model.a_max * _conf.delta_T / (float)_conf.n_ang;
@@ -570,6 +571,17 @@ void SiarController::copyMarker(visualization_msgs::Marker& dst, const visualiza
   dst.type = orig.type;
   dst.lifetime = ros::Duration(_conf.T*3.0); // TODO: check the fields to copy
 }
+
+void SiarController::statusCallback(const siar_driver::SiarStatus& msg)
+{
+  // Check if the width has changed enough to perform an actualization of the footprint
+  
+  if (fabs(msg.width - _conf.robot_width) < width_thres) {
+    cmd_eval->getFootprint()->setWidth(msg.width);
+    _conf.robot_width = msg.width;
+  }
+}
+
 
 
 }

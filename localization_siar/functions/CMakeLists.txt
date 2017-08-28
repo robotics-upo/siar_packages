@@ -19,6 +19,9 @@ add_library(functions
   src/ArgumentData.cpp  src/DegMinSec.cpp  src/FormattedTime.cpp  src/functions.cpp
 		src/HessianPlane.cpp  src/Point3D.cpp  src/RandomNumberGenerator.cpp  src/RealVector.cpp
 )
+add_executable(test_interpolator src/test/test_interpolator.cpp)
+target_link_libraries(test_interpolator functions)
+
 
 
 ## Mark executables and/or libraries for installation

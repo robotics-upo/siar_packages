@@ -12,36 +12,42 @@ typedef std::vector<geometry_msgs::Point> FootprintType;
   
 class SiarFootprint {
 public:
+  //! @brief Default constructor
   SiarFootprint(double cellsize = 0.02, double length = 0.8, double width = 0.56, double wheel_width = 0.06, bool simplified = false);
   
+  //! @brief Constructor from ROS 
   SiarFootprint(ros::NodeHandle &pn);
   
   ~SiarFootprint();
   
+  //! @BRIEF Gets the wheel part of the footprint
   FootprintType getFootprint(double x, double y, double yaw);
+  
+  //! @brief gets the part for collision detection
   FootprintType getFootprintCollision(double x, double y, double yaw);
   
+  //! @brief Adds points to a marker
   void addPoints(double x, double y, double yaw, visualization_msgs::Marker &m, int id = 0, bool init = false, const std::string link = "/base_link");
-//   void printFootprintCollision(double x, double y, double yaw, ros::Publisher pub, int id = 0);
   
-//   inline cv::Mat *getOriginalFootprint() {return footprint;}
+  void setWidth(double new_width) ;
+  
+  inline double getWidth() const {
+    return m_width;
+  }
   
   double m_length, m_width, m_wheel_width;
+  bool m_simplified;
   
-  size_t size, size_2;
+  size_t size, size_2; // Size of matrices
 
 protected:  
   double m_cellsize;
   
-  void init(bool simplified = true);
-  
-  // Base footprint image
-//   cv::Mat *footprint;
+  void init();
 
   FootprintType footprint_p;
   FootprintType footprint_p_2;
   FootprintType footprint_rot, footprint_rot_2;
-  
 };
 
 SiarFootprint::SiarFootprint(ros::NodeHandle& pn)
@@ -56,26 +62,27 @@ SiarFootprint::SiarFootprint(ros::NodeHandle& pn)
     m_width = 0.56;
   }
   pn.param("wheel_width", m_wheel_width, 0.075);
-  bool simplified = true;
-  if (!pn.getParam("simple_footprint", simplified))
-    simplified = true;
+  if (!pn.getParam("simple_footprint", m_simplified))
+    m_simplified = true;
   
-  init(simplified);
+  init();
 }
 
 
 SiarFootprint::SiarFootprint(double cellsize, double length , double width, double wheel_width, bool simplified):
-m_length(length),m_width(width), m_wheel_width(wheel_width), m_cellsize(cellsize)
+m_length(length),m_width(width), m_wheel_width(wheel_width), m_cellsize(cellsize),m_simplified(simplified)
 {
-  init(simplified);
+  init();
 }
 
-void SiarFootprint::init(bool simplified) 
+void SiarFootprint::init() 
 {
   // Construct original_grid. 1 --> Metadata
-  
   int n_width = ceil(m_width/m_cellsize);
   int n_cel_wheel = ceil(m_wheel_width/m_cellsize);
+  
+  footprint_p.clear();
+  footprint_p_2.clear();
   
   // Add points
   double x = -m_length/2.0;
@@ -90,14 +97,16 @@ void SiarFootprint::init(bool simplified)
       }
       if (j < n_cel_wheel || n_width - j <= n_cel_wheel ) {
         p.y = y;
-        if (!simplified || i%2 == j%2) {
-          footprint_p.push_back(p); // Alternate for make the collision detection simpler
+        if (!m_simplified || i%2 == j%2) {
+          footprint_p.push_back(p); // If simplified, alternate for make the collision detection simpler
         }
       }
     }
   }
   double y = -m_width/2.0;
   p.x = x - m_cellsize;
+  
+  // Then the collision footprint
   for (int j = 0; y < m_width/2.0; y += m_cellsize, j++) {
     p.y = y;
     footprint_p_2.push_back(p);
@@ -113,10 +122,10 @@ SiarFootprint::~SiarFootprint()
 }
 
 
+
 //! @NOTE The user should NOT free the pointer
 FootprintType SiarFootprint::getFootprint(double x, double y, double yaw)
 {
-  /// Compute a rotation matrix with respect to the center of the image
   double cos_yaw = cos(yaw);
   double sin_yaw = sin(yaw);
   for (unsigned int i = 0; i < size;i++) {
@@ -171,6 +180,13 @@ void SiarFootprint::addPoints(double x, double y, double th, visualization_msgs:
     m.points.push_back(p);
   }
 }
+
+void SiarFootprint::setWidth(double new_width)
+{
+  m_width = new_width;
+  init();
+}
+
 
 // void SiarFootprint::addFootprintCollision(double x, double y, double th, ros::Publisher pub, int id)  {
 //   std::vector<geometry_msgs::Point> fp = getFootprintCollision(x, y, th);

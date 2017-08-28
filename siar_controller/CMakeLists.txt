@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
   functions
+  siar_driver
 )
 
 set (CMAKE_CXX_FLAGS -std=c++11)
@@ -50,7 +51,7 @@ generate_dynamic_reconfigure_options(
 catkin_package(
  INCLUDE_DIRS include
 #  LIBRARIES siar_controller
- CATKIN_DEPENDS  dynamic_reconfigure geometry_msgs nav_msgs roscpp std_msgs functions
+ CATKIN_DEPENDS  dynamic_reconfigure geometry_msgs nav_msgs roscpp std_msgs functions siar_driver
 #  DEPENDS system_lib
 )
 
