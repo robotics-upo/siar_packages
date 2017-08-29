@@ -33,6 +33,9 @@
     <param name="two_boards" value="$(arg two_boards)"/>
     <param name="publish_tf" value="$(arg publish_tf)"/>
     <param name="reverse_right" value="$(arg reverse_right)"/>
+    <param name="lin_mot_file" value="$(find siar_driver)/data/lin_pos"/>
+    <param name="width_file" value="$(find siar_driver)/data/width"/>
+    <param name="elec_x_file" value="$(find siar_driver)/data/center_x"/>
   </node>
   <include file="$(find arduimu_v3)/launch/arduimu_v3.launch" if="$(arg use_imu)" >
     <arg name="device" value="$(arg imu_device)"/>
@@ -64,7 +67,7 @@
     <arg name="camera_5" value="/back"/>
     <arg name="camera_6" value="/front"/>
     <arg name="roi_x" value="10"/>
-    <arg name="roi_w" value="290"/>
+    <arg name="roi_w" value="300"/>
     <arg name="roi_y" value="5"/>
     <arg name="roi_h" value="230"/>
   </include>

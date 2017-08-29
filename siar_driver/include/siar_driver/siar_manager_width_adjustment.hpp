@@ -46,6 +46,7 @@
 #include "siar_manager.hpp"
 #include <std_msgs/Bool.h>
 #include <ros/ros.h>
+#include "functions/linear_interpolator.hpp"
 
 #define CMD_TIME_OUT 5 // In secs
 #define ___MAX_BUFFER_SIAR___ 256
@@ -140,7 +141,6 @@ class SiarManagerWidthAdjustment:public SiarManager
   //! @brief Gets the installed FW versions of both boards (stores them into the class)
   bool getFWVersions();
   
-  
   /// ------------Battery management and arm commands  (new July 2017) -----------------------
   
   // Battery and arm set commands
@@ -234,14 +234,16 @@ class SiarManagerWidthAdjustment:public SiarManager
   ros::Time last_cmd;
   unsigned char command[___MAX_BUFFER_SIAR___], buffer[___MAX_BUFFER_SIAR___];
   
-  
-  
   // Status flags
   bool first_odometry;
   bool controlled, has_joystick;
   ros::Publisher state_pub;
   ros::Subscriber slow_motion_sub, reverse_sub;
   int bat_cont, bat_skip;
+  
+  // Linear interpolators data
+  std::string lin_mot_vec_file, width_file, elec_x_file;
+  functions::LinearInterpolator *width_inter, *x_inter;
   
   //! @brief Calculates the increments of the position and orientation variables of the robot by integrating odometry measures
   //! @retval true Got ticks from the encoders and performed the calculations
@@ -284,7 +286,7 @@ inline SiarManagerWidthAdjustment::SiarManagerWidthAdjustment(const std::string&
                                                             const std::string& device_battery,
 							    const SiarConfig &config) :
 siar_serial_1(device_1), joy_serial(device_2, false), battery_serial(device_battery), 
-first_odometry(true), controlled(false), has_joystick(true), bat_cont(0), bat_skip(10)
+first_odometry(true), controlled(false), has_joystick(true), bat_cont(0), bat_skip(10), width_inter(NULL), x_inter(NULL)
 {
   state.is_stopped = true;
   state.slow = false;
@@ -342,6 +344,18 @@ first_odometry(true), controlled(false), has_joystick(true), bat_cont(0), bat_sk
   state_pub = pn.advertise<siar_driver::SiarStatus>("/siar_status", 5);
   slow_motion_sub = pn.subscribe("/slow_motion", 1, &SiarManagerWidthAdjustment::slowReceived, this);
   reverse_sub = pn.subscribe("/reverse", 1, &SiarManagerWidthAdjustment::reverseReceived, this);
+  
+  if (!pn.getParam("lin_mot_file", lin_mot_vec_file)) {
+    lin_mot_vec_file = "lin_mot";
+  }
+  if (!pn.getParam("width_file", width_file)) {
+    width_file = "width_file";
+  }
+  if (!pn.getParam("elec_x_file", elec_x_file)) {
+    elec_x_file = "elec_x_file";
+  }
+  width_inter = new functions::LinearInterpolator(lin_mot_vec_file, width_file);
+  x_inter = new functions::LinearInterpolator(lin_mot_vec_file, elec_x_file);
   
   // Stop robot
   setVelocity(0.0f, 0.0f);
@@ -437,7 +451,7 @@ inline bool SiarManagerWidthAdjustment::update()
   if (has_joystick) 
     getJoystickActuate();
   
-  // New: actualize and publish battery status
+  // New: actualize and publish different status TODO: How to handle errors here? Currently ignoring them
   bat_cont++;
   if (bat_cont >= bat_skip)
   {

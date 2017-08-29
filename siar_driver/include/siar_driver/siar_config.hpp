@@ -139,11 +139,6 @@ void SiarConfig::setDefaultConfig()
   angular_sat = Saturate<>(0.3);
   vel_int_sat = Saturate<int>(1100);
   
-  width_sat = Saturate<>(0.51,0.71);
-  lin_pos_sat = Saturate<int>(0,150);
-  max_width_pos = 60;
-  max_x_electronics = 0.15;
-  
   // Motor board
   
   set_vel = (unsigned char)0x56; // Followed the C# code by Carlos Marques (Jul 2017)

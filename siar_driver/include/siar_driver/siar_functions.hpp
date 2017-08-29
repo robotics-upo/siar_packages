@@ -51,13 +51,11 @@ inline int16_t from_two_bytes_signed(uint8_t b1, uint8_t b2) {
   uint16_t aux = from_two_bytes(b1, b2);
   
   
-  int16_t ret;
+  int16_t ret = aux;
   if (aux > 32768) {
     int32_t a;
     a = -65536 + aux;
     ret = a;
-  } else {
-    ret = aux;
   }
 //   ROS_INFO("from_two_bytes_signed b1 = %u \t b2=%u \t aux =%u\t ret=%d", b1, b2, aux, ret);
   
