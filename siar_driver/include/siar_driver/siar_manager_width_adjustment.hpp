@@ -224,7 +224,11 @@ class SiarManagerWidthAdjustment:public SiarManager
   
   double getWidth() const;
   
+  double setNormWidth(const double value);
+  
   double getXElectronics() const;
+  
+  bool setXElectronics(const double value);
   
   protected:
   // Serial Communciations stuff
@@ -243,7 +247,7 @@ class SiarManagerWidthAdjustment:public SiarManager
   
   // Linear interpolators data
   std::string lin_mot_vec_file, width_file, elec_x_file;
-  functions::LinearInterpolator *width_inter, *x_inter;
+  functions::LinearInterpolator *width_inter, *x_inter, *width_to_lin_pos, *x_elec_to_lin_pos;
   
   //! @brief Calculates the increments of the position and orientation variables of the robot by integrating odometry measures
   //! @retval true Got ticks from the encoders and performed the calculations
@@ -286,7 +290,8 @@ inline SiarManagerWidthAdjustment::SiarManagerWidthAdjustment(const std::string&
                                                             const std::string& device_battery,
 							    const SiarConfig &config) :
 siar_serial_1(device_1), joy_serial(device_2, false), battery_serial(device_battery), 
-first_odometry(true), controlled(false), has_joystick(true), bat_cont(0), bat_skip(10), width_inter(NULL), x_inter(NULL)
+first_odometry(true), controlled(false), has_joystick(true), bat_cont(0), bat_skip(10), width_inter(NULL), x_inter(NULL),
+width_to_lin_pos(NULL), x_elec_to_lin_pos(NULL)
 {
   state.is_stopped = true;
   state.slow = false;
@@ -356,6 +361,8 @@ first_odometry(true), controlled(false), has_joystick(true), bat_cont(0), bat_sk
   }
   width_inter = new functions::LinearInterpolator(lin_mot_vec_file, width_file);
   x_inter = new functions::LinearInterpolator(lin_mot_vec_file, elec_x_file);
+  width_to_lin_pos = new functions::LinearInterpolator(width_file, lin_mot_vec_file); // TODO: not invertible!!
+  x_elec_to_lin_pos = new functions::LinearInterpolator(elec_x_file, lin_mot_vec_file);
   
   // Stop robot
   setVelocity(0.0f, 0.0f);
@@ -385,6 +392,7 @@ inline SiarManagerWidthAdjustment::~SiarManagerWidthAdjustment() {
     // If the connection was open --> stop Siar and... 
     setVelocity(0.0f, 0.0f);
   }
+  delete width_inter, width_to_lin_pos, x_elec_to_lin_pos, x_inter;
 }
 
 // TODO: check it!
@@ -1303,32 +1311,33 @@ bool SiarManagerWidthAdjustment::getAuxPinValues()
 // TODO: Refine it empirically the next get... functions (or with the model)
 double SiarManagerWidthAdjustment::getWidth() const
 {
-  double ret_val = _config.width_sat._low;
-  
-  if (state.lin_motor_pos < _config.max_width_pos) {
-    // In this case the electronics is backwards
-    ret_val += _config.width_sat.getWidth() * (state.lin_motor_pos) / (_config.max_width_pos - _config.lin_pos_sat._low);
-  } else {
-    ret_val += _config.width_sat.getWidth() * (_config.lin_pos_sat._high - state.lin_motor_pos) / (_config.lin_pos_sat._high - _config.max_width_pos);
-  }
-  
-  return ret_val;
+  return width_inter->interpolate(state.lin_motor_pos);
 }
 
 // Gets the x coordinate of the center of the electronics with respect of the base link
 double SiarManagerWidthAdjustment::getXElectronics() const
 {
-  double ret_val = 0.0;
-  
-  if (state.lin_motor_pos < _config.max_width_pos) {
-    // In this case the electronics is backwards
-    ret_val -= _config.max_x_electronics * state.lin_motor_pos / (_config.lin_pos_sat._low - _config.max_width_pos);
-  } else {
-    ret_val -= _config.max_x_electronics * (state.lin_motor_pos - _config.max_width_pos ) / (_config.lin_pos_sat._high - _config.max_width_pos );
-  }
-  
-  return ret_val;
+  return x_inter->interpolate(state.lin_motor_pos);
 }
+
+bool SiarManagerWidthAdjustment::setXElectronics(const double value)
+{
+  uint16_t val = x_elec_to_lin_pos->interpolate(value);
+  return setLinearPosition(val);
+}
+
+double SiarManagerWidthAdjustment::setNormWidth(const double value)
+{
+  std::map<double, double>::const_iterator it = x_elec_to_lin_pos->lower_bound(1e100);
+  double up_bound = it->first;
+  it = x_elec_to_lin_pos -> upper_bound(-1e100);
+  double low_bound = fabs(it->second);
+  double eff_val = (value > 0)?value*up_bound:value*low_bound;
+  
+  uint16_t val = x_elec_to_lin_pos->interpolate(eff_val);
+  return setLinearPosition(val);
+}
+
 
 //-- END OF INLINE FUNCTIONS ---------------------------------------
 

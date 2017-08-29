@@ -9,7 +9,7 @@
 
 namespace functions {
 
-class LinearInterpolator:std::map<double, double> {
+class LinearInterpolator:public std::map<double, double> {
 public:
   //! @brief Gets the map from a file with a 2XN matrix
   LinearInterpolator(const std::string filename);

@@ -99,31 +99,12 @@ void armTorqueReceived(const std_msgs::UInt8::ConstPtr &val) {
 }
 
 // TODO: go from [-1, 1] to the useful values in the electronics (better in siar_config?) TODO: Check it. Carlos suggested not to touch the width vel (the subscriber has been commented)
-void widthVelReceived(const std_msgs::Float32::ConstPtr &width_vel) {
-  if (fabs(width_vel->data) > 1.0) {
-    ROS_WARN("siar_node::width_vel_received --> Ignoring non-normalized new width");
-  }
-  uint16_t value = 512 + width_vel->data * 100;
-  siar->setLinearVelocity(value);
+void elec_x_received(const std_msgs::Float32::ConstPtr &elec_x) {
+  siar->setXElectronics(elec_x->data);
 }
 
-void widthPosReceived(const std_msgs::Float32::ConstPtr &width_pos) {
-  if (fabs(width_pos->data) > 1.0) {
-    ROS_WARN("siar_node::width_pos_received --> Ignoring non-normalized new width");
-    return;
-  }
-  uint16_t value;
-  if (width_pos->data > 0.0) {
-    value = siar_config.max_width_pos + width_pos->data * (siar_config.lin_pos_sat._high - siar_config.max_width_pos) ;
-  } else {
-    value = siar_config.max_width_pos + width_pos->data * (siar_config.max_width_pos - siar_config.lin_pos_sat._low ) ;
-  }
-  
-  siar_config.lin_pos_sat.apply(value);
-  ROS_INFO("Linear Position Saturator. Sending: %u. ", value);
-  siar->setLinearPosition(value);
-//   siar->setLinearPosition(60);
-  
+void widthNormReceived(const std_msgs::Float32::ConstPtr &width_pos) {
+  siar->setNormWidth(width_pos->data);
 }
 
 int main(int argc, char** argv)
@@ -172,8 +153,8 @@ int main(int argc, char** argv)
     ros::Subscriber cmd_vel_sub = n.subscribe<geometry_msgs::Twist>("/cmd_vel",1,cmdVelReceived);
     ros::Subscriber cmd_arm_sub = n.subscribe<SiarArmCommand>("/arm_cmd",1,commandArmReceived);
     ros::Subscriber torque_arm_sub = n.subscribe<std_msgs::UInt8>("/arm_torque",1,armTorqueReceived);
-//     ros::Subscriber width_vel_sub = n.subscribe<std_msgs::Float32>("/width_vel", 1, widthVelReceived); Carlos says it is not important --> only position
-    ros::Subscriber width_pos_sub = n.subscribe<std_msgs::Float32>("/width_pos", 1, widthPosReceived);
+    ros::Subscriber width_vel_sub = n.subscribe<std_msgs::Float32>("/set_x_pos", 1, elec_x_received); 
+    ros::Subscriber width_pos_sub = n.subscribe<std_msgs::Float32>("/width_pos", 1, widthNormReceived);
     ros::Subscriber cmd_light_sub = n.subscribe<SiarLightCommand>("/light_cmd", 1, commandLightReceived);
     
     // TODO --> Turn on/off lights ....
@@ -278,26 +259,4 @@ int main(int argc, char** argv)
   
   return 0;
 }
-
-// void publishArmTF(const siar_driver::SiarStatus& st, tf::TransformBroadcaster& tf_broad)
-// {
-//   static geometry_msgs::TransformStamped trans;
-//   static int seq = 0;
-  
-//   trans.transform.translation.y = trans.transform.translation.z = 0.0;
-//   std::string parent_id = "base_arm";
-/*  
-  
-  for (int i = 0; i < N_HERCULEX - 1; i++) {
-    std::ostringstream frame_id;
-    trans.transform.translation.x = siar_config.arm_length[i];
-    // TODO: Complete this (maybe it's better in the module of Gonzalo)
-    
-    frame_id << "arm_" << i;
-    trans.header.frame_id = frame_id.str();
-    trans.header.seq = seq++;
-    trans.header.stamp = ros::Time::now();
-    tf_broad.sendTransform(trans);
-  }
-}*/
 

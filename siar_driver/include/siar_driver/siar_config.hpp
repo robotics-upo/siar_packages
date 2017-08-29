@@ -39,8 +39,6 @@ public:
   DeadZone<> velocity_dead; // Dead zone of the velocity (m/s)
   Saturate<int> vel_int_sat; // Two integer saturators that will help to make the conversion
   DeadZone<> encoders_dead;
-  Saturate<> width_sat; // Saturation for the width (i. e. min and max width)
-  Saturate<int> lin_pos_sat; // Saturation for the linear motor (width adjustment)
   Saturate<int> arm_pos_sat[N_HERCULEX]; // Saturation for the arm low-level controller
   
   // Relationships
@@ -127,10 +125,10 @@ void SiarConfig::setDefaultConfig()
 //   estimated_diag = 0.55;
   
   // Debug
-  std::cerr << "DEBUG: Meters / ticks L = " << meters_tick_l << std::endl;
-  std::cerr << "DEBUG: Meters / ticks R = " << meters_tick_r << std::endl;
-  std::cerr << "DEBUG: Meters / ticks BL = " << meters_tick_l_b << std::endl;
-  std::cerr << "DEBUG: Meters / ticks BR = " << meters_tick_r_b << std::endl;
+//   std::cerr << "DEBUG: Meters / ticks L = " << meters_tick_l << std::endl;
+//   std::cerr << "DEBUG: Meters / ticks R = " << meters_tick_r << std::endl;
+//   std::cerr << "DEBUG: Meters / ticks BL = " << meters_tick_l_b << std::endl;
+//   std::cerr << "DEBUG: Meters / ticks BR = " << meters_tick_r_b << std::endl;
   
   velocity_dead = DeadZone<>(0.01); // TODO: identify
   encoders_dead = DeadZone<>(0.0003);
