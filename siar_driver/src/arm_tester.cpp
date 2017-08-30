@@ -47,7 +47,7 @@ int main(int argc, char **argv) {
     cout << "Got " << v.size() << "commands\n";
   } else {
     cerr << "Usage: " << argv[0] << " <file_name>\n";
-    cerr << "Or: " << argv[0] << " <j0> <j1> <j2> <j3> <j4> <j5> <command_time>\n";
+    cerr << "Or: " << argv[0] << " <j1> <j2> <j3> <j4> <j5> <command_time>\n";
   }
   
   // ROS stuff
