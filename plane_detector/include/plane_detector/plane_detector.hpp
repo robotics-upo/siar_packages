@@ -17,7 +17,7 @@
 #include "visualization_msgs/Marker.h"
 
 #include <dynamic_reconfigure/server.h>
-#include <plane_calibrator/DetectorConfig.h>
+#include <plane_detector/DetectorConfig.h>
 
 enum PixelStatus {
   UNPROCESSED = -3, IN_R_PRIMA, IN_QUEUE

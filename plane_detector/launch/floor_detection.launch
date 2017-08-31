@@ -19,7 +19,7 @@
   <node name="republish_depth" type="republish" pkg="image_transport" args="compressedDepth in:=$(arg camera)/depth_registered/image_raw raw out:=$(arg camera)/depth_registered/image_raw"/>
   
   # Launch plane detector
-  <node name="test_floor_detector" type="test_floor_detector" pkg="plane_calibrator" output="screen" >
+  <node name="test_floor_detector" type="test_floor_detector" pkg="plane_detector" output="screen" >
    <param name="camera" value="$(arg camera)/depth_registered"/>
    <param name="link_1" value="$(arg robot_frame)"/>
    <param name="link_2" value="$(arg camera)_depth_optical_frame"/>

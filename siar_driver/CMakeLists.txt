@@ -38,6 +38,9 @@ generate_messages(
   nav_msgs
 )
 
+# find_package(catkin REQUIRED genmsg actionlib_msgs actionlib)
+# add_action_files(DIRECTORY action FILES DoDishes.action)
+# generate_messages(DEPENDENCIES actionlib_msgs)
 
 ###################################
 ## catkin specific configuration ##
