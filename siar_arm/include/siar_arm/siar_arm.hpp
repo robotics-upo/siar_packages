@@ -1,5 +1,5 @@
-#ifndef _SIAR_ARM_H_
-#define _SIAR_ARM_H_
+#ifndef _SIAR_ARM_HPP_
+#define _SIAR_ARM_HPP_
 
 
 #include "ros/ros.h"
@@ -49,7 +49,7 @@ class SiarArmControl{
 			for(int i=0; i<5; i++)
 			{
 				servo_command.joint_values[i] = write_values[i];
-				command_time = max( command_time, fabs(write_values[i] - read_values[i]));
+				command_time = max( command_time, abs(write_values[i] - read_values[i]));
 			}
 			servo_command.command_time = command_time * 2;
 					
