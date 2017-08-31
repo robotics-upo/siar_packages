@@ -2,21 +2,14 @@
 #define __ARM_FIREWALL_HPP__
 
 #include "ros/ros.h"
-#include "std_msgs/String.h"
-#include "geometry_msgs/Point.h"
-#include "geometry_msgs/PoseStamped.h"
-#include "math.h"
 #include "siar_driver/SiarArmCommand.h"
 #include "siar_driver/SiarStatus.h"
-#include "siar_arm.hpp"
-#include <queue>
+#include <array>
 
 
-using namespace std;
-
-static class ArmFirewall {
-
-  bool checkJointLimits(const std::array<uint16_t, 5> joint_values)
+class ArmFirewall {
+public:
+  static bool checkJointLimits(const std::array<uint16_t, 5> joint_values)
   {
     bool ret_val = (joint_values[0]<805 && joint_values[0]>208);
     ret_val &= (joint_values[1]<1568 && joint_values[1]>220);
@@ -27,7 +20,7 @@ static class ArmFirewall {
     return ret_val;
   }
 
-  bool checkTemperatureAndStatus(const std::array<uint16_t,5> &herculex_temperature, const std::array<uint16_t,5> &herculex_status) {
+  static bool checkTemperatureAndStatus(const std::array<uint16_t,5> &herculex_temperature, const std::array<uint16_t,5> &herculex_status) {
     bool ret_val = true;
     for(int i = 0; i<5; i++)
     {
@@ -46,8 +39,6 @@ static class ArmFirewall {
   }
   
 };
-
-
 
 #endif  
 

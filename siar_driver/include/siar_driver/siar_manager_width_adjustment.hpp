@@ -47,6 +47,7 @@
 #include <std_msgs/Bool.h>
 #include <ros/ros.h>
 #include "functions/linear_interpolator.hpp"
+#include "siar_driver/arm_firewall.hpp"
 
 #define CMD_TIME_OUT 5 // In secs
 #define ___MAX_BUFFER_SIAR___ 256
@@ -1147,6 +1148,9 @@ bool SiarManagerWidthAdjustment::setHerculexPosition(uint8_t id, uint16_t value,
   if (time_to_go < 0 || time_to_go > 0xFF) {
     time_to_go = 3; // Default value
   }
+  
+  // Then check the remaining stuff
+  
   
   command[0] = _config.set_herculex_position;
   command[1] = id;
