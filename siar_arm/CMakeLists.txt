@@ -148,6 +148,8 @@ include_directories(include/
 
 add_executable(arm_control_pose src/arm_control_pose.cpp)
 add_executable(arm_firewall src/arm_firewall.cpp)
+add_executable(arm_deploy_pickup src/arm_deploy_pickup.cpp)
+
 
 
 ## Add cmake target dependencies of the library
@@ -182,7 +184,10 @@ add_executable(arm_firewall src/arm_firewall.cpp)
    ${Boost_LIBRARIES}   
  ) 
  
-
+ target_link_libraries(arm_deploy_pickup
+   ${catkin_LIBRARIES}
+   ${Boost_LIBRARIES}   
+ ) 
 #target_link_libraries(siar_arm
 #  ${catkin_LIBRARIES}
 #)
