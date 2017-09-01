@@ -6,6 +6,7 @@
 #include <queue>
 #include "detected_plane.hpp"
 #include <sensor_msgs/Image.h>
+#include <sensor_msgs/PointCloud.h>
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <eigen3/Eigen/Geometry>
@@ -50,14 +51,18 @@ public:
   
   void publishMarkers(ros::Publisher &pub, const std::string &frame_id, double lifetime = 0.1) const;
   
+  void publishPointCloud(ros::Publisher &pub, const std::string &frame_id, double lifetime = 0.1) const;
+   
+  
+  
   inline bool isInitialized() {return _initialized;}
   
 protected:
   double _delta, _epsilon, _gamma; // Dynamically reconfigurable
   int _theta;
-  std::vector <DetectedPlane> _detected_planes;
-  std::vector <int> _detected_ids;
-  std::vector<int> status_vec;
+  std::vector <DetectedPlane> _detected_planes; // Vector de IDs
+  std::vector <int> _detected_ids; // Contiene todos los IDs que son considerados planos
+  std::vector<int> status_vec; // Relaciona los puntos de la imagen con una region
   std::queue<int> q;
   cv_bridge::CvImageConstPtr cvbDepth;
   int _available_pixels;
@@ -252,6 +257,34 @@ int PlaneDetector::detectPlanes(const sensor_msgs::Image &depth)
       _available_pixels--;
     }
   }
+  
+  
+  
+///////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////
+
+
+
+
+
+
+
+///////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////
+
+
+  
   
 //   printPlanes(_detected_planes);
   
@@ -495,6 +528,57 @@ void PlaneDetector::publishMarkers(ros::Publisher &pub, const std::string &frame
     pub.publish(_detected_planes[i].getMarker(frame_id, i, 1.0, lifetime));
   }
 }
+
+
+void PlaneDetector::publishPointCloud(ros::Publisher &pub, const std::string &frame_id, double lifetime) const
+{
+  sensor_msgs::PointCloud coloured_cloud;
+  sensor_msgs::ChannelFloat32 channel_point;
+  coloured_cloud.header.frame_id = frame_id;
+  coloured_cloud.header.stamp = ros::Time();
+  channel_point.name = "rgb"; 
+  coloured_cloud.points.resize(width*height);      
+  coloured_cloud.channels.resize(width*height);      
+  
+  ROS_INFO("Primera fase");
+  for (unsigned int j = 0; j <  width*height; j++)
+  {
+    Eigen::Vector3d v = get3DPoint(j);
+    geometry_msgs::Point p;
+    coloured_cloud.points[j].x = v(0);
+    coloured_cloud.points[j].y = v(1);
+    coloured_cloud.points[j].z = v(2);
+
+        ROS_INFO("%d iteracion",j);
+
+    uint colors[3]; 
+    switch(status_vec[j])
+    {
+      case 0: colors[0] = 0; colors[1] = 255; colors[2] = 255; break;
+      case 1: colors[0]  = 255; colors[1] = 0; colors[2] = 255; break;
+      case 2: colors[0]  = 255; colors[1] = 255; colors[2] = 0; break;
+      case 3: colors[0]  = 0; colors[1] = 0; colors[2] = 255; break;
+      case 4: colors[0]  = 255; colors[1] = 0; colors[2] = 0; break;
+      case 5: colors[0]  = 0; colors[1] = 255; colors[2] = 0; break;
+      case 6: colors[0]  = 125; colors[1] = 255; colors[2] = 0; break;
+      case 7: colors[0]  = 0; colors[1] = 125; colors[2] = 255; break;
+      case 8: colors[0]  = 255; colors[1] = 125; colors[2] = 125; break;
+      case 9: colors[0]  = 0; colors[1] = 125; colors[2] = 0; break;
+      default: colors[0]  = 255; colors[1] = 255; colors[2] = 255; break;	
+    }
+	  
+    channel_point.values[0] = colors[0]<< 16 | colors[1]<< 8 | colors[2];
+      
+    coloured_cloud.channels[j] = channel_point;    
+      
+      
+  }
+   
+  pub.publish(coloured_cloud);
+}
+
+
+
 
 void PlaneDetector::dynamicReconfigureUpdate()
 {

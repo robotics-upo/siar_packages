@@ -21,6 +21,7 @@ void infoCallback(const sensor_msgs::CameraInfoConstPtr &info);
 
 PlaneDetector *p_det = NULL;
 ros::Publisher marker_pub;
+ros::Publisher pointcloud_pub;
 
 std::string link_name("/front_link");
 
@@ -59,6 +60,7 @@ int main(int argc, char **argv)
   ros::Subscriber im_info_sub = nh.subscribe(info_topic, 2, infoCallback);
   ros::Subscriber im_subs = nh.subscribe(depth_topic, 2, imgCallback);
   marker_pub = nh.advertise<visualization_msgs::Marker>("plane_marker", 2);
+  pointcloud_pub = nh.advertise<sensor_msgs::PointCloud>("plane_pointcloud", 2);
   
   p_det = new PlaneDetector(nh, pn);
   
@@ -81,6 +83,7 @@ void imgCallback(const sensor_msgs::ImageConstPtr& im)
 //       marker_pub.publish(p.getMarker(link_name, i, scale));
 //     }
     p_det->publishMarkers(marker_pub, link_name);
+    p_det->publishPointCloud(pointcloud_pub, link_name);
   }
   
   
