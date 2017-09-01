@@ -41,10 +41,11 @@ bool front_light
 bool rear_light
 
 #arm related
-uint16[5] herculex_position
+int16[5] herculex_position
 uint8[5] herculex_temperature
 uint8[5] herculex_status
 uint8[5] herculex_torque
+bool arm_panic
 
 #auxiliar pins
 uint8 aux_pins_values
