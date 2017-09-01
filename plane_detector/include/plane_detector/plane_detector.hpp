@@ -534,13 +534,14 @@ void PlaneDetector::publishPointCloud(ros::Publisher &pub, const std::string &fr
 {
   sensor_msgs::PointCloud coloured_cloud;
   sensor_msgs::ChannelFloat32 channel_point;
+  channel_point.values.resize(1);
   coloured_cloud.header.frame_id = frame_id;
   coloured_cloud.header.stamp = ros::Time();
   channel_point.name = "rgb"; 
   coloured_cloud.points.resize(width*height);      
   coloured_cloud.channels.resize(width*height);      
   
-  ROS_INFO("Primera fase");
+//  ROS_INFO("Primera fase");
   for (unsigned int j = 0; j <  width*height; j++)
   {
     Eigen::Vector3d v = get3DPoint(j);
@@ -549,7 +550,7 @@ void PlaneDetector::publishPointCloud(ros::Publisher &pub, const std::string &fr
     coloured_cloud.points[j].y = v(1);
     coloured_cloud.points[j].z = v(2);
 
-        ROS_INFO("%d iteracion",j);
+ //       ROS_INFO("%d iteracion",j);
 
     uint colors[3]; 
     switch(status_vec[j])
