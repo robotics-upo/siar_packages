@@ -7,7 +7,7 @@
 #include <sensor_msgs/CompressedImage.h>
 #include <sensor_msgs/image_encodings.h>
 #include <tf/transform_listener.h>
-#include <visualization_msgs/Marker.h>
+#include <visualization_msgs/Marker.h> 
 #include <plane_detector/WallInfo.h>
 
 //! @brief Detects the floor plane and its neighbors and classifies them according to the height with respect to the floor.
@@ -77,7 +77,7 @@ WallDetector::WallDetector(ros::NodeHandle &nh, ros::NodeHandle &pnh): PlaneDete
   img_sub_1 = nh.subscribe(img_topic_1, 2, &WallDetector::imgCallback_1, this);
   
   marker_pub = nh.advertise<visualization_msgs::Marker>(marker_topic, 2);
-  wall_info_pub = nh.advertise<plane_calibrator::WallInfo>(wall_info_topic, 2);
+  wall_info_pub = nh.advertise<plane_detector::WallInfo>(wall_info_topic, 2);
 }
 
 WallDetector::WallDetector(double delta, double epsilon, double gamma, int theta, const std::string &cam, const Eigen::Affine3d& T): PlaneDetector(delta, epsilon, gamma, theta), T(T)
@@ -124,7 +124,7 @@ void WallDetector::detectWalls(const sensor_msgs::Image &img)
   if (wall_planes.size() != 2) {
     ROS_INFO("Detected %lu wall planes --> not taking decisions", wall_planes.size());
     // Publish wrong info (distances cannot be less than zero)
-    plane_calibrator::WallInfo w_info;
+    plane_detector::WallInfo w_info;
     w_info.d_left = -1.0;
     w_info.d_right = -1.0;
     w_info.angle = -1.0;
@@ -149,7 +149,7 @@ void WallDetector::detectWalls(const sensor_msgs::Image &img)
   marker_pub.publish(p_left.getMarker(link_1, 0, color.at(0)));
   marker_pub.publish(p_right.getMarker(link_1, 1, color.at(1)));
   
-  plane_calibrator::WallInfo w_info;
+  plane_detector::WallInfo w_info;
   w_info.d_left = p_left.d;
   w_info.d_right = p_right.d;
   w_info.angle = p_left.v.dot(v_y);

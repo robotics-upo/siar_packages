@@ -92,6 +92,10 @@ add_executable(test_wall_detector src/test_wall_detector.cpp)
 target_link_libraries(test_wall_detector ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Boost_LIBRARIES})
 
 
+
+add_dependencies(test_wall_detector ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} plane_detector_generate_messages_cpp)
+
+
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
 #   src/${PROJECT_NAME}/plane_detector.cpp
