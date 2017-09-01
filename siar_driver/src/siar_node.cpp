@@ -62,6 +62,8 @@ void cmdVelReceived(const geometry_msgs::Twist::ConstPtr& cmd_vel)
 }
 
 void commandArmReceived(const siar_driver::SiarArmCommand::ConstPtr& arm_cmd) {
+  // Then check the remaining stuff
+  ArmFirewall::checkJointLimits(arm_cmd->joint_values);
   for (int i = 0; i < N_HERCULEX; i++) {
     siar->setHerculexPosition(i, arm_cmd->joint_values[i], arm_cmd->command_time);
   }

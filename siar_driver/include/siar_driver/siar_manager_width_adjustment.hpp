@@ -225,11 +225,21 @@ class SiarManagerWidthAdjustment:public SiarManager
   
   double getWidth() const;
   
+  //! @brief Sets the norm width
   double setNormWidth(const double value);
   
+  //! @brief gets the electronics position
   double getXElectronics() const;
-  
+
+  //! Manually sets the electronics position  
   bool setXElectronics(const double value);
+  
+  void setArmPanic() {
+    state.arm_panic = true;
+    for (int i = 0; i < N_HERCULEX; i++) {
+      setHerculexTorque(i, 1);
+    }
+  }
   
   protected:
   // Serial Communciations stuff
@@ -513,6 +523,15 @@ inline bool SiarManagerWidthAdjustment::update()
 //     if (!getHardStopTime(state.hard_stop_time)) {
 //       ROS_ERROR("Could not retrieve the hard stop time");
 //     }
+  }
+  
+  // Check arm integrity
+  if (!ArmFirewall::checkTemperatureAndStatus(state.herculex_temperature, state.herculex_status)) {
+    // Change to panic mode and brake the joints
+    if (!state.arm_panic) {
+      ROS_ERROR("Siar manager::update --> Arm failed temperature and status check --> panic");
+    }
+    setArmPanic();
   }
   
   // Publish state
@@ -1148,9 +1167,6 @@ bool SiarManagerWidthAdjustment::setHerculexPosition(uint8_t id, uint16_t value,
   if (time_to_go < 0 || time_to_go > 0xFF) {
     time_to_go = 3; // Default value
   }
-  
-  // Then check the remaining stuff
-  
   
   command[0] = _config.set_herculex_position;
   command[1] = id;
