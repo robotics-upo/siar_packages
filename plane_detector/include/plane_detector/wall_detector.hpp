@@ -8,7 +8,7 @@
 #include <sensor_msgs/image_encodings.h>
 #include <tf/transform_listener.h>
 #include <visualization_msgs/Marker.h>
-#include <plane_calibrator/WallInfo.h>
+#include <plane_detector/WallInfo.h>
 
 //! @brief Detects the floor plane and its neighbors and classifies them according to the height with respect to the floor.
 //! @brief It assumes that the camera has been calibrated with respect to the robot.
