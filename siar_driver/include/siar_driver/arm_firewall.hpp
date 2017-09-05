@@ -29,11 +29,11 @@ public:
         ROS_ERROR("TEMPERATURE OF THE %d LINK IS OUT OF RANGE: %d", i, herculex_temperature[i]);
         ret_val = false;
       }
-      if (herculex_status[i]!=1)
-      {
-        ROS_ERROR("%d LINK STATUS: %d", i, herculex_status[i]);
-        ret_val = false;
-      }
+//       if (herculex_status[i]!=1)    // TODO: Check this!!
+//       {
+//         ROS_ERROR("%d LINK STATUS: %d", i, herculex_status[i]);
+//         ret_val = false;
+//       }
     }
     return ret_val;  
   }

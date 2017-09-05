@@ -177,9 +177,6 @@ int main(int argc, char** argv)
 	siar->setIMU(freq_imu);
       }
       
-      bool reverse_right = false;
-      pn.param<bool>("reverse_right", reverse_right);
-      siar->setReverseRight(reverse_right);
     } catch (std::exception &e) {
       ROS_ERROR("Exception thrown while connecting to Siar. Content: %s", e.what());
       return -1;

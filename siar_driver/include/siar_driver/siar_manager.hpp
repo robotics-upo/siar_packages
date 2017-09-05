@@ -105,10 +105,6 @@ class SiarManager
     first_odometry = true;
     update();
   }
-  
-  virtual void setReverseRight(bool val) {
-    _config.reverse_right = val;
-  }
 
   //! @brief accessor to the state of Siar
   const siar_driver::SiarStatus &getState() const {return state;}
