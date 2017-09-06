@@ -88,7 +88,7 @@ public:
       m_baseFrameId = "base_link";
     if(!lnh.getParam("tilt_compensate", m_tiltCompesante))
       m_tiltCompesante = false;
-    if(!lnh.getParam("consider_sign", m_tiltCompesante))
+    if(!lnh.getParam("consider_sign", m_considerSign))
       m_considerSign = true;
 
     // Setup subscription to sensor data
@@ -211,7 +211,7 @@ public:
           point2index(x, y, index);
           if(m_costmap.data[index] != SC_POSITIVE_OBS && m_costmap.data[index] != SC_NEGATIVE_OBS)
           {
-            if(fabs(z) > m_obstacleHeight)
+            if(z > m_obstacleHeight)
             {
               SiarCostmap::PointPix p;
               m_costmap.data[index] = SC_POSITIVE_OBS;
