@@ -307,6 +307,8 @@ width_to_lin_pos(NULL), x_elec_to_lin_pos(NULL)
   state.is_stopped = true;
   state.slow = false;
   state.reverse = false;
+  state.width = 0.51;
+  state.electronics_x = 0.4;
   
   // Initialize inherited fields
   _config = config;
@@ -549,6 +551,8 @@ inline bool SiarManagerWidthAdjustment::setRawVelocity(int16_t left, int16_t rig
     right /= 4;
   }
   
+  right *= -1; // The right motors are reversed
+  
   // get the right command
   command[0] = _config.set_vel;
   command[1] = (unsigned char)(left >> 8);
@@ -589,10 +593,6 @@ inline bool SiarManagerWidthAdjustment::setVelocity(double linear, double angula
   left_speed = _config.velocity_sat.apply(left_speed);
   right_speed = _config.velocity_sat.apply(right_speed);
   
-  if (_config.reverse_right) {
-    right_speed *= -1;
-  }
-  
   // Convert from left and right speed velocities to [-1100, 1100]
   // TODO: this is deprecated
   int v_left = left_speed * ((double)_config.vel_int_sat._high) / (_config.velocity_sat._high * _config.peri_wheel);
@@ -606,7 +606,7 @@ inline bool SiarManagerWidthAdjustment::setVelocity(double linear, double angula
   if (linear > 0.01 || angular > 0.01) {
     std::cout << "SiarManagerWidthAdjustment::setVelocity --> v = " << linear << "\t w = " << angular << "\t ";
     std::cout << "\t l_speed = " << left_speed << "\t r_speed = " << right_speed << "\t ";
-    std::cout << "\t l_int = " << v_left << "\t r_int = " << v_left << std::endl;
+    std::cout << "\t l_int = " << v_left << "\t r_int = " << v_right << std::endl;
   }
 #endif
   
@@ -619,17 +619,18 @@ bool SiarManagerWidthAdjustment::calculateOdometry()
   bool ret_val = getIMD(dl, dr);
   
   if (ret_val) {
-    if (_config.reverse_right) {
-      dr *= -1;
-    }
+    dr *= -1; // The Rightmost motor are reversed
     double dist = ((dl + dr) * 0.5);
     dist = _config.encoders_dead.apply(dist);
     
 //      double d_theta_ticks = (dr - dl) / _config.estimated_diag;	 	//rad
     double d_theta_ticks = (dr - dl) / state.width;          //rad
     
+//     ROS_INFO("d_theta_ticks = %f", d_theta_ticks);
+    
     if (first_odometry) {
       first_odometry = false;
+      state.header.stamp = ros::Time::now();
     } else {
       // Actualize the linear and angular speeds
       ros::Time t = ros::Time::now();
@@ -637,6 +638,8 @@ bool SiarManagerWidthAdjustment::calculateOdometry()
       state.speed = dist / d_t;
       double angular_rate_ticks = d_theta_ticks / d_t;
       double yaw = tf::getYaw(state.odom.pose.pose.orientation);
+      
+//       ROS_INFO("D_t = %f\tspeed = %f\tyaw = %f", d_t, state.speed, yaw);
       
       state.odom.header.stamp = t;
       // Correct the angles with the IMU, if available
@@ -720,10 +723,8 @@ bool SiarManagerWidthAdjustment::getJoystickActuate()
 	Left_ref_out = (int16_t)-(vel_Forward + vel_Rotation_out);
 	Right_ref_out = (int16_t)(vel_Forward - vel_Rotation_out);
         
-        if (_config.reverse_right) {
-          Right_ref *= -1;
-          Right_ref_out *= -1;
-        }
+        Right_ref *= -1;
+        Right_ref_out *= -1;
 
 	// Put a dead zone in the joystick controller
 	if (Left_ref > 60) Left_ref = Left_ref - 60;
@@ -1348,13 +1349,14 @@ bool SiarManagerWidthAdjustment::setXElectronics(const double value)
 
 double SiarManagerWidthAdjustment::setNormWidth(const double value)
 {
-  std::map<double, double>::const_iterator it = x_elec_to_lin_pos->lower_bound(1e100);
+  std::map<double, double>::const_iterator it = x_elec_to_lin_pos->lower_bound(10000);
   double up_bound = it->first;
-  it = x_elec_to_lin_pos -> upper_bound(-1e100);
-  double low_bound = fabs(it->second);
-  double eff_val = (value > 0)?value*up_bound:value*low_bound;
+  it = x_elec_to_lin_pos -> upper_bound(-10000);
+  double low_bound = fabs(it->first);
+  double eff_val = value*low_bound;
   
   uint16_t val = x_elec_to_lin_pos->interpolate(eff_val);
+  ROS_INFO("Linear Pos: %u\tUp=%f\tlow=%fValue=%f", val,up_bound, low_bound, value);
   return setLinearPosition(val);
 }
 

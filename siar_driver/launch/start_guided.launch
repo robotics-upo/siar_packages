@@ -18,7 +18,6 @@
   <arg name="obstacle_height" default="0.075"/>
   <arg name="resolution" default ="0.025"/>
   <arg name="localize" default="false"/>
-  <arg name="reverse_right" default="false"/>
   
   <!-- Bring up the raposa node and the imu if desired -->
   <node name="siar_node" pkg="siar_driver" type="siar_node" output="screen">
@@ -32,7 +31,6 @@
     <param name="joy_device" value="$(arg joy_device)"/>
     <param name="two_boards" value="$(arg two_boards)"/>
     <param name="publish_tf" value="$(arg publish_tf)"/>
-    <param name="reverse_right" value="$(arg reverse_right)"/>
     <param name="lin_mot_file" value="$(find siar_driver)/data/lin_pos"/>
     <param name="width_file" value="$(find siar_driver)/data/width"/>
     <param name="elec_x_file" value="$(find siar_driver)/data/center_x"/>

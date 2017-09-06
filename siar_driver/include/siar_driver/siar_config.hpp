@@ -76,9 +76,6 @@ public:
   unsigned char get_power_supply;
   unsigned char get_aux_pin_values;
   
-  // Flags
-  bool reverse_right;
-  
   SiarConfig(const std::string &filename = "");
   
   void setDefaultConfig();
@@ -101,8 +98,6 @@ bool SiarConfig::saveConfig(const std::string& filename)
 
 void SiarConfig::setDefaultConfig()
 {
-  reverse_right = false;
-  
   half_axis_distance = 0.2;
   diag_wheels = 0.4; // TODO: In the width adjusted the diag wheels will not be constant --> Get the maximum and minimum diagonals and interpolate!
   radius = 0.085; // 0.085 is the distance from the robot center to the ground
