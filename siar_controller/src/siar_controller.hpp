@@ -579,6 +579,7 @@ void SiarController::statusCallback(const siar_driver::SiarStatus& msg)
   if (fabs(msg.width - _conf.robot_width) < width_thres) {
     cmd_eval->getFootprint()->setWidth(msg.width);
     _conf.robot_width = msg.width;
+    ROS_INFO("Setting new width footprint: %f", msg.width);
   }
 }
 

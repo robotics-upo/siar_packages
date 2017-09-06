@@ -103,7 +103,7 @@ public:
     depth_pub = nh.advertise<sensor_msgs::CompressedImage>(depthTopic, 1);
     depth_pub_2 = nh.advertise<sensor_msgs::CompressedImage>(depthTopic_2, 1);
     rssi_pub = nh.advertise<rssi_get::Nvip_status>(rssi_topic, 1);
-    siar_status_pub = nh.advertise<siar_driver::SiarBatteryMonitor>(siar_status_topic, 1);
+    siar_status_pub = nh.advertise<siar_driver::SiarStatus>(siar_status_topic, 1);
     point_pub = nh.advertise<sensor_msgs::PointCloud2>(point_topic, 1);
     
     camTopic = camera_1 + "/rgb/camera_info";
