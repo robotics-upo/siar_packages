@@ -33,7 +33,8 @@ public:
   SiarController(ros::NodeHandle &nh, ros::NodeHandle &pn);
   
   //! @brief Gets the best command
-  bool computeCmdVel(geometry_msgs::Twist &cmd, const geometry_msgs::Twist &v_ini);
+  //! @param mode If 2 --> Allows wheels to enter inside the gutter
+  bool computeCmdVel(geometry_msgs::Twist &cmd, const geometry_msgs::Twist &v_ini, int mode = 0);
   
   ~SiarController();
   
@@ -83,7 +84,7 @@ protected:
   int n_commands, n_best;
   
   //! @brief Evaluates a command and then actualizes the best velocity so far if necessary
-  void evaluateAndActualizeBest(const geometry_msgs::Twist& cmd_vel, const geometry_msgs::Twist &v_ini);
+  void evaluateAndActualizeBest(const geometry_msgs::Twist& cmd_vel, const geometry_msgs::Twist &v_ini, int mode = 0);
 
   // Callbacks  
   void parametersCallback(SiarControllerConfig &config, uint32_t level);
@@ -295,10 +296,10 @@ void SiarController::modeCallback(const std_msgs::Int8& msg)
 void SiarController::loop() {
   // Main loop --> we have to 
   geometry_msgs::Twist cmd_vel_msg = user_command;
-  if (operation_mode == 1) {
+  if (operation_mode != 3) {
     if (!occ_received) {
       ROS_INFO("SiarController --> Warning: no altitude map");
-    } else if (!computeCmdVel(cmd_vel_msg, last_command)) {
+    } else if (!computeCmdVel(cmd_vel_msg, last_command, operation_mode)) {
       if (fabs(user_command.linear.x) >= lin_vel_dec) {
         // The USER wants to go
         t_unfeasible+=_conf.T;
@@ -316,12 +317,14 @@ void SiarController::loop() {
       
     } else {
       t_unfeasible = 0.0; // A valid command has been generated --> restart the time counter
+      if (operation_mode == 2) {
+        cmd_vel_msg.angular.z *= 0.4;
+        cmd_vel_msg.linear.x *= 0.4;
+      }
     }
   } else {
-    t_unfeasible = 0.0;
-  }
-  if (operation_mode == 2) {
     // Bypass the planned velocity
+    // Fully autonomous mode TODO: Check it!!
     cmd_vel_msg = planned_cmd;
   }
   
@@ -329,7 +332,7 @@ void SiarController::loop() {
   last_command = cmd_vel_msg;
 }
 
-bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry_msgs::Twist &v_ini)
+bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry_msgs::Twist &v_ini, int mode)
 {
   if (!cmd_eval) {
     ROS_ERROR("SiarController::loop --> Command Evaluator is not configured\n");
@@ -367,7 +370,7 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
   for (unsigned int i = 0; i < test_set.size(); i++) 
   { 
     curr_cmd = test_set.at(i);
-    evaluateAndActualizeBest(cmd_vel, v_ini); // Actualizes best velocity and best marker
+    evaluateAndActualizeBest(cmd_vel, v_ini, mode); // Actualizes best velocity and best marker
   }
   
   ROS_INFO("End loop: Best command: %f,%f \t Orig command %f, %f",
@@ -516,10 +519,14 @@ void SiarController::initializeDiscreteTestSet()
   }
 }
 
-void SiarController::evaluateAndActualizeBest(const geometry_msgs::Twist& cmd_vel, const geometry_msgs::Twist &v_ini)
+void SiarController::evaluateAndActualizeBest(const geometry_msgs::Twist& cmd_vel, const geometry_msgs::Twist &v_ini, int mode)
 {
   m.points.clear();
-  curr_cost = cmd_eval->evaluateTrajectory(v_ini, curr_cmd, cmd_vel, last_map, m);
+  if (mode != 2) {
+    curr_cost = cmd_eval->evaluateTrajectory(v_ini, curr_cmd, cmd_vel, last_map, m);
+  } else {
+    curr_cost = cmd_eval->evaluateTrajectoryRelaxed(v_ini, curr_cmd, cmd_vel, last_map, m);
+  }
     
   if (curr_cost < lowest_cost && curr_cost >= 0.0) {
     best_cmd = curr_cmd;
