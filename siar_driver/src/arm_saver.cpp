@@ -34,10 +34,12 @@
 #define START_BUTTON          9
 
 int startButton;
+bool lastJoy = false;
 bool startPressed = false;
 
 void joyReceived(const sensor_msgs::Joy::ConstPtr& joy) {
   startPressed = joy->buttons[startButton] == 1;
+  
 }
 
 boost::array <int16_t, 5> curr_pos;
@@ -55,12 +57,12 @@ int main(int argc, char** argv)
   ros::NodeHandle pn("~");
   std::vector <std::vector<int16_t> > traj;
   
-  if (argc < 1) {
+  if (argc < 2) {
     std::cerr << "Usage: " << argv[0] << " <filename> [wait_time (cents of a second) default 200]\n";
     return -1;
   }
   int wait_time = 200;
-  if (argc > 1) 
+  if (argc > 2) 
     wait_time = atoi(argv[2]);
     
   
@@ -76,14 +78,23 @@ int main(int argc, char** argv)
   v.resize(6);
   v[5] = wait_time;
   
+  int cont = 0;
+  
   while (n.ok()) {
     ros::spinOnce();
-    if (startPressed && pos_received) {
-      for (int i = 0; i < 5; i++)
+    if (startPressed && !lastJoy && pos_received) {
+      
+      for (int i = 0; i < 5; i++) {
         v[i] = curr_pos[i];
-        
+      }
+      
+      ROS_INFO("Adding pos %d: %s", cont, functions::printVector(v).c_str());
+      
       traj.push_back(v);
+      cont++;
+      
     }
+    lastJoy = startPressed;
     rate.sleep();
   }
   
