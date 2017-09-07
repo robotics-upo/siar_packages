@@ -120,7 +120,6 @@ namespace siar_controller {
     int width; bool rotate; int total_points;
     int positive_obs, negative_obs;
     double min_wheel;
-    bool allow_only_negative;
     
     double m_w_dist, m_w_safe; // Different weights. Respectively: Distance to commanded velocity, safety, collision penalty
     
@@ -195,7 +194,6 @@ CommandEvaluator::CommandEvaluator(ros::NodeHandle& pn):m_model(pn),footprint(NU
   pn.param("positive_obs", positive_obs, 127);
   pn.param("negative_obs", negative_obs, -127);
   pn.param("min_wheel", min_wheel, 0.2); // Minimum fragment of the wheel that has to be without obstacle to be collision-free (in relaxed mode)
-  pn.param("allow_only_negative", allow_only_negative, false); // If true --> the track is only allow to enter into negative obstacles
   footprint_params = new SiarFootprint(pn);
   
   ROS_INFO("Created the evaluater. Positive obstacle: %d", positive_obs);
@@ -465,10 +463,10 @@ int CommandEvaluator::applyFootprintRelaxed(double x, double y, double th,
     if (index < 0) {
       continue;
     }
-    if (alt_map.data[index] == positive_obs && allow_only_negative) {
+    if (alt_map.data[index] == positive_obs) {
       collision = true;
       ret_val = -1;
-    } else if (alt_map.data[index] == positive_obs || alt_map.data[index] == negative_obs) {
+    } else if (alt_map.data[index] == negative_obs) {
       if (orig[i].y > 0.0) {
         left_wheel = true;
         cont_left--;
@@ -480,10 +478,7 @@ int CommandEvaluator::applyFootprintRelaxed(double x, double y, double th,
         collision = left_wheel && right_wheel; // Collision detected! (if applying the collision map, only consider positive obstacles)
       }
     } 
-    
-    
-    ret_val += abs(alt_map.data[index]); // TODO: check index and coordinate transform
-    
+    ret_val += abs(alt_map.data[index]); 
   }
   collision |= ( (double)cont_left / (double)size * 2.0 ) < min_wheel;
   collision |= ( (double)cont_right / (double)size * 2.0 ) < min_wheel;
