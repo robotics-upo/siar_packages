@@ -49,6 +49,19 @@ namespace siar_controller {
     
     CommandEvaluator(ros::NodeHandle &pn);
     
+    inline void setWeightDistance(double w_d) {
+      m_w_dist = w_d;
+    }
+    
+    inline void setWeightSafe(double w_s) {
+      m_w_safe = w_s;
+    }
+    
+    inline void restoreWeights() {
+      m_w_dist = orig_m_w_dist;
+      m_w_safe = orig_m_w_safe;
+    }
+    
     //! @brief Sets the parameters into the evaluator
     //! @param footprint_p --> has the parameters for width, length and wheel_width
     //! @note The evaluator will delete the footprint_p
@@ -122,6 +135,7 @@ namespace siar_controller {
     double min_wheel;
     
     double m_w_dist, m_w_safe; // Different weights. Respectively: Distance to commanded velocity, safety, collision penalty
+    double orig_m_w_dist, orig_m_w_safe; // Different weights. Respectively: Distance to commanded velocity, safety, collision penalty
     
     RobotCharacteristics m_model;
     
@@ -179,6 +193,8 @@ CommandEvaluator::CommandEvaluator(double w_dist, double w_safe, double T, const
 {
   
   setParameters(w_dist, w_safe, T, model, delta_T, footprint_p);
+  orig_m_w_dist = w_dist;
+  orig_m_w_safe = w_safe;
   positive_obs = 127;
   negative_obs = -127;
   ROS_INFO("Created the evaluater. Positive obstacle: %d", positive_obs);
@@ -195,6 +211,8 @@ CommandEvaluator::CommandEvaluator(ros::NodeHandle& pn):m_model(pn),footprint(NU
   pn.param("negative_obs", negative_obs, -127);
   pn.param("min_wheel", min_wheel, 0.2); // Minimum fragment of the wheel that has to be without obstacle to be collision-free (in relaxed mode)
   footprint_params = new SiarFootprint(pn);
+  orig_m_w_dist = m_w_dist;
+  orig_m_w_safe = m_w_safe;
   
   ROS_INFO("Created the evaluater. Positive obstacle: %d", positive_obs);
 }
@@ -257,6 +275,9 @@ double CommandEvaluator::evaluateTrajectory(const geometry_msgs::Twist& v_ini, c
     
     // Actualize the cost
     cont_footprint += applyFootprint(x, y, th, alt_map, collision);
+    
+    if (!collision)
+      applyFootprint(x, y, th, alt_map, collision, true); // Search for positive collisions too
   }
   
   double ret = cont_footprint * m_w_safe + m_w_dist * sqrt(pow(x - operator_command.linear.x * m_T, 2.0) + y*y);
@@ -384,6 +405,9 @@ double CommandEvaluator::evaluateTrajectoryRelaxed(const geometry_msgs::Twist& v
     
     // Actualize the cost
     cont_footprint += applyFootprintRelaxed(x, y, th, alt_map, collision, only_one_wheel);
+    
+    if (!collision)
+      applyFootprint(x, y, th, alt_map, collision, true); // Search for positive collisions too
   }
   
   double ret = cont_footprint * m_w_safe + m_w_dist * sqrt(pow(x - operator_command.linear.x * m_T, 2.0) + y*y);
@@ -414,7 +438,7 @@ int CommandEvaluator::applyFootprint(double x, double y, double th,
   if (!apply_collision)
     fp = footprint->getFootprint(x, y, th);
   else
-    return 0;
+    fp = footprint->getFootprintCollision(x, y, th);
   
   collision = false;
   

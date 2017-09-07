@@ -72,6 +72,7 @@ protected:
   geometry_msgs::Twist user_command, last_velocity, planned_cmd;
   CommandEvaluator *cmd_eval;
   double width_thres;
+  double weight_dis_2;
   
   // Include ways to escape the local minima
   double t_unfeasible,ang_scape_inc, max_t_unfeasible;
@@ -160,6 +161,8 @@ reconfigure_server_(),config_init_(false),occ_received(false), cmd_eval(NULL), t
 void SiarController::getParameters(ros::NodeHandle& pn)
 {
   config_init_ = true;
+  
+  pn.param("w_dis_2", weight_dis_2, 1e3);
   
   pn.param("use_dynamic_reconfigure", use_dynamic_reconfigure, false);
   
@@ -296,7 +299,7 @@ void SiarController::modeCallback(const std_msgs::Int8& msg)
 void SiarController::loop() {
   // Main loop --> we have to 
   geometry_msgs::Twist cmd_vel_msg = user_command;
-  if (operation_mode != 3) {
+  if (operation_mode != 3 && operation_mode > 0) {
     if (!occ_received) {
       ROS_INFO("SiarController --> Warning: no altitude map");
     } else if (!computeCmdVel(cmd_vel_msg, last_command, operation_mode)) {
@@ -322,7 +325,7 @@ void SiarController::loop() {
         cmd_vel_msg.linear.x *= 0.4;
       }
     }
-  } else {
+  } else if (operation_mode == 3) {
     // Bypass the planned velocity
     // Fully autonomous mode TODO: Check it!!
     cmd_vel_msg = planned_cmd;
@@ -348,7 +351,7 @@ bool SiarController::computeCmdVel(geometry_msgs::Twist& cmd_vel, const geometry
   
   // Get test set (different options available)
   std::vector<geometry_msgs::Twist> test_set;
-  if (operation_mode != 0) {
+  if (operation_mode > 0) {
     if (file_test_set_forward.size() > 0) {
       if (cmd_vel.linear.x > model.v_min) 
         test_set = file_test_set_forward;
@@ -525,6 +528,7 @@ void SiarController::evaluateAndActualizeBest(const geometry_msgs::Twist& cmd_ve
   if (mode != 2) {
     curr_cost = cmd_eval->evaluateTrajectory(v_ini, curr_cmd, cmd_vel, last_map, m);
   } else {
+    cmd_eval->setWeightDistance(weight_dis_2);
     curr_cost = cmd_eval->evaluateTrajectoryRelaxed(v_ini, curr_cmd, cmd_vel, last_map, m);
   }
     
