@@ -10,7 +10,7 @@
   <arg name="siar_device_1" default="/dev/serial/by-id/usb-FTDI_MM232R_USB_MODULE_board2-if00-port0"/>
   <arg name="siar_device_2" default="/dev/serial/by-id/usb-FTDI_MM232R_USB_MODULE_board2-if00-port0"/>
   <arg name="joy_device" default="/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A6DDSJE-if00-port0"/>
-  <arg name="battery_device" default="/dev/serial/by-id/usb-FTDI_MM232R_USB_MODULE_FTGT8JO-if00-port0"/>
+  <arg name="battery_device" default="/dev/serial/by-id/usb-FTDI_MM232R_USB_MODULE_board1-if00-port0"/>
   <arg name="two_boards" default="false"/>
   <arg name="perception" default="true"/>
   <arg name="bag" default="true"/>

@@ -62,6 +62,14 @@ namespace siar_controller {
       m_w_safe = orig_m_w_safe;
     }
     
+    inline void setMinWheelLeft(double new_min_w_l) {
+      min_wheel_left = new_min_w_l;
+    }
+    
+    inline void setMinWheelRight(double new_min_w_r) {
+      min_wheel_right = new_min_w_r;
+    }
+    
     //! @brief Sets the parameters into the evaluator
     //! @param footprint_p --> has the parameters for width, length and wheel_width
     //! @note The evaluator will delete the footprint_p
@@ -92,7 +100,7 @@ namespace siar_controller {
     //! @param m (out) Marker that can be used for representing the trajectory in RViz.
     double evaluateTrajectoryRelaxed(const geometry_msgs::Twist& v_ini, const geometry_msgs::Twist& v_command, 
                               const geometry_msgs::Twist& operator_command, const nav_msgs::OccupancyGrid& alt_map,
-                              visualization_msgs::Marker &m, double x = 0.0, double y = 0.0, double th = 0.0, bool only_one_wheel = true);
+                              visualization_msgs::Marker &m, double x = 0.0, double y = 0.0, double th = 0.0);
     
     //! @brief Destructor
     ~CommandEvaluator();
@@ -119,12 +127,7 @@ namespace siar_controller {
     
     int applyFootprintRelaxed(double x, double y, double th, 
                                      const nav_msgs::OccupancyGrid &alt_map, 
-                                     bool &collision, bool only_one_wheel);
-    
-    double getMinWheel() const {return min_wheel;}
-    
-    void setMinWheel(double v) {min_wheel = v;}
-    
+                                     bool &collision);
     
   protected:
     double m_T; // Lookahead time
@@ -132,7 +135,7 @@ namespace siar_controller {
     double m_divRes, origin_x, origin_y;
     int width; bool rotate; int total_points;
     int positive_obs, negative_obs;
-    double min_wheel;
+    double min_wheel_left, min_wheel_right;
     
     double m_w_dist, m_w_safe; // Different weights. Respectively: Distance to commanded velocity, safety, collision penalty
     double orig_m_w_dist, orig_m_w_safe; // Different weights. Respectively: Distance to commanded velocity, safety, collision penalty
@@ -209,7 +212,8 @@ CommandEvaluator::CommandEvaluator(ros::NodeHandle& pn):m_model(pn),footprint(NU
   pn.param("T", m_T, 3.0);
   pn.param("positive_obs", positive_obs, 127);
   pn.param("negative_obs", negative_obs, -127);
-  pn.param("min_wheel", min_wheel, 0.2); // Minimum fragment of the wheel that has to be without obstacle to be collision-free (in relaxed mode)
+  pn.param("min_wheel_l", min_wheel_left, 0.2); // Minimum fragment of the wheel that has to be without obstacle to be collision-free (in relaxed mode)
+  pn.param("min_wheel_r", min_wheel_right, 0.2); // Minimum fragment of the wheel that has to be without obstacle to be collision-free (in relaxed mode)
   footprint_params = new SiarFootprint(pn);
   orig_m_w_dist = m_w_dist;
   orig_m_w_safe = m_w_safe;
@@ -368,7 +372,7 @@ double CommandEvaluator::evaluateTrajectoryMinVelocity(const geometry_msgs::Twis
 
 double CommandEvaluator::evaluateTrajectoryRelaxed(const geometry_msgs::Twist& v_ini, const geometry_msgs::Twist& v_command, 
                                                    const geometry_msgs::Twist& operator_command, const nav_msgs::OccupancyGrid& alt_map, 
-                                                   visualization_msgs::Marker& m, double x, double y, double th, bool only_one_wheel)
+                                                   visualization_msgs::Marker& m, double x, double y, double th)
 {
   double dt = m_delta_T;
   int steps = m_T / m_delta_T;  
@@ -404,7 +408,7 @@ double CommandEvaluator::evaluateTrajectoryRelaxed(const geometry_msgs::Twist& v
       footprint->addPoints(x, y, th, m, 0, i == 0);
     
     // Actualize the cost
-    cont_footprint += applyFootprintRelaxed(x, y, th, alt_map, collision, only_one_wheel);
+    cont_footprint += applyFootprintRelaxed(x, y, th, alt_map, collision);
     
     if (!collision)
       applyFootprint(x, y, th, alt_map, collision, true); // Search for positive collisions too
@@ -463,7 +467,7 @@ int CommandEvaluator::applyFootprint(double x, double y, double th,
 
 int CommandEvaluator::applyFootprintRelaxed(double x, double y, double th, 
                                      const nav_msgs::OccupancyGrid &alt_map, 
-                                     bool &collision, bool only_one_wheel)
+                                     bool &collision)
 {
   int ret_val = 0;
   
@@ -498,14 +502,11 @@ int CommandEvaluator::applyFootprintRelaxed(double x, double y, double th,
         right_wheel = true;
         cont_right--;
       }
-      if (only_one_wheel) {
-        collision = left_wheel && right_wheel; // Collision detected! (if applying the collision map, only consider positive obstacles)
-      }
     } 
     ret_val += abs(alt_map.data[index]); 
   }
-  collision |= ( (double)cont_left / (double)size * 2.0 ) < min_wheel;
-  collision |= ( (double)cont_right / (double)size * 2.0 ) < min_wheel;
+  collision |= ( (double)cont_left / (double)size * 2.0 ) < min_wheel_left;
+  collision |= ( (double)cont_right / (double)size * 2.0 ) < min_wheel_right;
   if (collision) {
 //     ROS_INFO("CommandEvaluator::applyFootprintRelaxed --> COLLISION. Cont_left: %d \t Cont_right: %d \t fp size: %d", cont_left, cont_right, (int)fp.size());
   }

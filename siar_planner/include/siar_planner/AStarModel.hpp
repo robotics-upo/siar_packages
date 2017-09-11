@@ -15,15 +15,15 @@ public:
   
   void occupancyGridCallback(nav_msgs::OccupancyGridConstPtr msg);
   
-  visualization_msgs::Marker testIntegration(AStarState &st, bool relaxed = false, bool one_wheel = true);
+  visualization_msgs::Marker testIntegration(AStarState &st, bool relaxed = false);
   
   //! @brief Integrates the model and returns the cost associated with 
   //! @return Negative --> collision. Positive --> Arc's longitude
-  double integrate(AStarState &st, geometry_msgs::Twist &cmd, double T, bool relaxed = false, bool one_wheel = true);
+  double integrate(AStarState &st, geometry_msgs::Twist &cmd, double T, bool relaxed = false);
   
   //! @brief Integrates the model and returns the cost associated with 
   //! @return Negative --> collision. Positive --> Arc's longitude
-  double integrate(visualization_msgs::Marker& m, AStarState& st, geometry_msgs::Twist& cmd, double T, bool relaxed, bool one_wheel = false);
+  double integrate(visualization_msgs::Marker& m, AStarState& st, geometry_msgs::Twist& cmd, double T, bool relaxed);
   
   virtual geometry_msgs::Twist generateRandomCommand();
   
@@ -44,12 +44,14 @@ public:
   }
   
   inline double getMinWheel() const {
-    return m_ce.getMinWheel();
+//     return m_ce.getMinWheel();
+    return -1.0;
   }
   
   inline void setMinWheel(double v) {
     
-    m_ce.setMinWheel(v);
+    m_ce.setMinWheelLeft(v);
+    m_ce.setMinWheelRight(v);
   }
   
   inline double getWorldMaxX() const{
@@ -91,13 +93,13 @@ void AStarModel::occupancyGridCallback(nav_msgs::OccupancyGridConstPtr msg)
   
 }
 
-double AStarModel::integrate(AStarState& st, geometry_msgs::Twist& cmd, double T, bool relaxed, bool one_wheel)
+double AStarModel::integrate(AStarState& st, geometry_msgs::Twist& cmd, double T, bool relaxed)
 {
-  return integrate(m, st, cmd, T, relaxed, one_wheel);
+  return integrate(m, st, cmd, T, relaxed);
 }
 
 
-double AStarModel::integrate(visualization_msgs::Marker& m, AStarState& st, geometry_msgs::Twist& cmd, double T, bool relaxed, bool one_wheel)
+double AStarModel::integrate(visualization_msgs::Marker& m, AStarState& st, geometry_msgs::Twist& cmd, double T, bool relaxed)
 {
   geometry_msgs::Twist v_ini;
   v_ini.linear.x = m_ce.getCharacteristics().v_max;
@@ -113,7 +115,7 @@ double AStarModel::integrate(visualization_msgs::Marker& m, AStarState& st, geom
   if (!relaxed) 
     ret_val = m_ce.evaluateTrajectory(v_ini, cmd, cmd, m_world, m, st.state[0], st.state[1], st.state[2]);
   else
-    ret_val = m_ce.evaluateTrajectoryRelaxed(v_ini, cmd, cmd, m_world, m, st.state[0], st.state[1], st.state[2], one_wheel);
+    ret_val = m_ce.evaluateTrajectoryRelaxed(v_ini, cmd, cmd, m_world, m, st.state[0], st.state[1], st.state[2]);
   
   st.state = m_ce.getLastState();
   
@@ -145,10 +147,10 @@ visualization_msgs::Marker AStarModel::getMarker(AStarState& st, int id)
   return m;
 }
 
-visualization_msgs::Marker AStarModel::testIntegration(AStarState& st, bool relaxed, bool one_wheel)
+visualization_msgs::Marker AStarModel::testIntegration(AStarState& st, bool relaxed)
 {
   auto comm = generateRandomCommand();
-  double cost = integrate(st, comm, 0.5, relaxed, one_wheel);
+  double cost = integrate(st, comm, 0.5, relaxed);
   
   ROS_INFO("AStarModel::testIntegration --> Command = %f, %f --> Cost = %f", comm.linear.x, comm.angular.z, cost);
   
