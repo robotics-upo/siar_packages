@@ -58,8 +58,10 @@
 #define REVERSE_BUTTON        0
 // New buttons ARM and width
 #define ARM_TORQUE_BUTTON     4
-#define WIDTH_AXIS            2
-#define WIDTH_AXIS_2          3
+#define WIDTH_AXIS            4
+#define WIDTH_AXIS_2          5
+#define WHEEL_AXIS            2
+#define WHEEL_AXIS_2          2
 // --END NEW BUTTONS ---
 
 #define MAX_LINEAR_VELOCITY   1.0
@@ -97,7 +99,7 @@ int slowButton;
 int auto_button;
 
 int arm_torque_button;
-int width_pos_axis, width_pos_axis_2;
+int width_pos_axis, width_pos_axis_2, wheel_pos_axis;
 uint8_t arm_torque = 0; // Current state of arm_torque
 int ant_arm_torque_button = 0;
 double ant_width_pos = 0.0;
@@ -201,16 +203,40 @@ void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
     }
     ant_arm_torque_button = curr_arm_but;
     
-    // Width velocity
-    double width_pos = joy->axes[width_pos_axis]; // NOTE: the minus is to make the right commands be positive
-    double width_pos_2 = joy->axes[width_pos_axis_2]; // NOTE: the minus is to make the right commands be positive
-    double norm_sq = width_pos * width_pos + width_pos_2 * width_pos_2;
+    // Width position
+    double width_pos = joy->axes[width_pos_axis]; 
+    double width_pos_2 = joy->axes[width_pos_axis_2];
 //     ROS_INFO("Width pos = %f\tWidth pos 2 = %f\tnorm_sq = %f", width_pos, width_pos_2,norm_sq);
-    if (norm_sq > 0.95 && width_pos > -0.05) {
+    if (width_pos > 0.95 && fabs(width_pos_2) < 0.05) { // Maximum width
+      std_msgs::Float32 msg;
+      msg.data = 0.0;
+      width_pos_pub.publish(msg);
+    } else if ( width_pos > 0.95 && fabs(width_pos_2) > 0.95) {
+      std_msgs::Float32 msg;
+      msg.data = 0.75;
+      if (width_pos_2 < 0) {
+        msg.data *= -1.0;
+      }
+      width_pos_pub.publish(msg);
+    } else if (fabs(width_pos_2) > 0.95) {
       std_msgs::Float32 msg;
       msg.data = width_pos_2;
       width_pos_pub.publish(msg);
-    } 
+    }
+    
+    double wheel_pos = joy->axes[wheel_pos_axis];
+    if (fabs(wheel_pos) > 0.95) {
+      if (auto_mode > 0) {
+        auto_mode = (wheel_pos > 0)?3:2;
+      }
+      setAutomaticMode(auto_mode);
+    } else {
+      // Return to normal operation mode
+      if (auto_mode > 0) {
+        auto_mode = 1;
+      }
+      setAutomaticMode(auto_mode);
+    }
     
     // Light buttons
     if (joy->buttons[front_light_button] == 1 && !last_front_button) {
@@ -297,6 +323,7 @@ int main(int argc, char** argv)
   
   pn.param<int>("width_pos_axis", width_pos_axis, WIDTH_AXIS);
   pn.param<int>("width_pos_axis_2", width_pos_axis_2, WIDTH_AXIS_2);
+  pn.param<int>("wheel_pos_axis", wheel_pos_axis, WHEEL_AXIS);
   pn.param<int>("arm_torque_button", arm_torque_button, ARM_TORQUE_BUTTON);
   pn.param<int>("front_light_button", front_light_button, FRONT_LIGHT_BUTTON);
   pn.param<int>("rear_light_button", rear_light_button, REAR_LIGHT_BUTTON);

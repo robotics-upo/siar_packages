@@ -327,7 +327,7 @@ void SiarController::loop() {
       
     } else {
       t_unfeasible = 0.0; // A valid command has been generated --> restart the time counter
-      if (operation_mode == 2) {
+      if (operation_mode != 1) {
         cmd_vel_msg.angular.z *= 0.4;
         cmd_vel_msg.linear.x *= 0.4;
       }

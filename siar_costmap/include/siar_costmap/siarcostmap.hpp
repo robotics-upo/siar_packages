@@ -90,6 +90,10 @@ public:
       m_tiltCompesante = false;
     if(!lnh.getParam("consider_sign", m_considerSign))
       m_considerSign = true;
+    
+    // NOTE: Changes for demo --> ignore obstacles exceeding a height
+    if(!lnh.getParam("robot_height", m_robotHeight))
+      m_robotHeight = 0.4;
 
     // Setup subscription to sensor data
     m_sub0 = m_nh.subscribe("cloud0", 1, &SiarCostmap::cloud0Callback, this);
@@ -211,7 +215,7 @@ public:
           point2index(x, y, index);
           if(m_costmap.data[index] != SC_POSITIVE_OBS && m_costmap.data[index] != SC_NEGATIVE_OBS)
           {
-            if(z > m_obstacleHeight)
+            if(z > m_obstacleHeight && z < m_robotHeight)
             {
               SiarCostmap::PointPix p;
               m_costmap.data[index] = SC_POSITIVE_OBS;
@@ -406,7 +410,7 @@ private:
   
   // Params
   double m_hz, m_obstacleHeight, m_obstacleHeightNeg, m_expDecay;
-  double m_width, m_height, m_resolution;
+  double m_width, m_height, m_resolution, m_robotHeight;
   std::string m_baseFrameId;
   bool m_tiltCompesante;
   
