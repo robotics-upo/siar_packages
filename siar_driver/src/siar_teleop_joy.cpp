@@ -61,7 +61,7 @@
 #define WIDTH_AXIS            4
 #define WIDTH_AXIS_2          5
 #define WHEEL_AXIS            2
-#define WHEEL_AXIS_2          2
+#define WHEEL_AXIS_2          3
 // --END NEW BUTTONS ---
 
 #define MAX_LINEAR_VELOCITY   1.0
@@ -99,7 +99,7 @@ int slowButton;
 int auto_button;
 
 int arm_torque_button;
-int width_pos_axis, width_pos_axis_2, wheel_pos_axis;
+int width_pos_axis, width_pos_axis_2, wheel_pos_axis, wheel_pos_axis_2;
 uint8_t arm_torque = 0; // Current state of arm_torque
 int ant_arm_torque_button = 0;
 double ant_width_pos = 0.0;
@@ -226,11 +226,17 @@ void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
     }
     
     double wheel_pos = joy->axes[wheel_pos_axis];
+    double wheel_pos_2 = joy->axes[wheel_pos_axis_2];
     if (fabs(wheel_pos) > 0.95) {
       if (auto_mode > 0) {
         if (backwards)
           wheel_pos *= -1.0; // TODO: necessary?
         auto_mode = (wheel_pos > 0 )?3:2;
+      }
+      setAutomaticMode(auto_mode);
+    } else if (wheel_pos_2 > 0.95) {
+      if (auto_mode > 0) {
+        auto_mode = 4;
       }
       setAutomaticMode(auto_mode);
     } else {
@@ -327,9 +333,11 @@ int main(int argc, char** argv)
   pn.param<int>("width_pos_axis", width_pos_axis, WIDTH_AXIS);
   pn.param<int>("width_pos_axis_2", width_pos_axis_2, WIDTH_AXIS_2);
   pn.param<int>("wheel_pos_axis", wheel_pos_axis, WHEEL_AXIS);
+  pn.param<int>("wheel_pos_axis_2", wheel_pos_axis_2, WHEEL_AXIS_2);
   pn.param<int>("arm_torque_button", arm_torque_button, ARM_TORQUE_BUTTON);
   pn.param<int>("front_light_button", front_light_button, FRONT_LIGHT_BUTTON);
   pn.param<int>("rear_light_button", rear_light_button, REAR_LIGHT_BUTTON);
+  
   
   pn.param<double>("max_linear_velocity",maxLinearVelocity,MAX_LINEAR_VELOCITY);
   pn.param<double>("max_angular_velocity",maxAngularVelocity,MAX_ANGULAR_VELOCITY);
