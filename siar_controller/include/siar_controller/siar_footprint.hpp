@@ -91,7 +91,7 @@ void SiarFootprint::init()
     double y = -m_width/2.0;
     p.x = x;
     for (int j = 0; y < m_width/2.0; y += m_cellsize, j++) {
-      if (i == 0) {
+      if (i <= 2) {
         p.y = y;
         footprint_p_2.push_back(p);
       }
@@ -104,11 +104,16 @@ void SiarFootprint::init()
     }
   }
   double y = -m_width/2.0;
-  p.x = x - m_cellsize;
+  
   
   // Then the collision footprint
   for (int j = 0; y < m_width/2.0; y += m_cellsize, j++) {
     p.y = y;
+    p.x = x - m_cellsize;
+    footprint_p_2.push_back(p);
+    p.x = x - 2.0 * m_cellsize;
+    footprint_p_2.push_back(p);
+    p.x = x - 3.0 * m_cellsize;
     footprint_p_2.push_back(p);
   }  
   footprint_rot = footprint_p;
@@ -179,6 +184,15 @@ void SiarFootprint::addPoints(double x, double y, double th, visualization_msgs:
     
     m.points.push_back(p);
   }
+  
+  footprint = getFootprintCollision(x, y, th);
+  for (unsigned int i = 0;i < footprint.size(); i++) {
+    p.x = footprint.at(i).x;
+    p.y = footprint.at(i).y;
+    p.z = 0.0;
+    
+    m.points.push_back(p);
+  }
 }
 
 void SiarFootprint::setWidth(double new_width)
@@ -190,10 +204,10 @@ void SiarFootprint::setWidth(double new_width)
 
 // void SiarFootprint::addFootprintCollision(double x, double y, double th, ros::Publisher pub, int id)  {
 //   std::vector<geometry_msgs::Point> fp = getFootprintCollision(x, y, th);
-//   
+// //   
 //   static visualization_msgs::Marker points;
-//   
-//   
+// //   
+// //   
 //   points.header.frame_id = "/base_link";
 //   points.header.stamp = ros::Time::now();
 //   points.ns = "footprint";

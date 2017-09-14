@@ -1,12 +1,12 @@
 <?xml version="1.0" ?>
 <launch>
-
+  
 <node name="tf_front" pkg="tf" type="static_transform_publisher" args="0.36 0 0.06 0 -0.13 0 electronics_center front_link  30"/>
 <node name="tf_back" pkg="tf" type="static_transform_publisher" args="-0.36 0 0.06 3.141593 -0.15 0 electronics_center back_link 30"/>
-<node name="tf_front_right" pkg="tf" type="static_transform_publisher" args="0.37 -0.05 0 -0.445 0.62 0 electronics_center front_right_link 30"/>
-<node name="tf_front_left" pkg="tf" type="static_transform_publisher" args="0.37 0.05 -0.005 0.45 0.65 3.12 electronics_center front_left_link 30"/>
-<node name="tf_back_right" pkg="tf" type="static_transform_publisher" args="-0.36 -0.05 0 3.6 0.71 3.11 electronics_center back_right_link 30"/>
-<node name="tf_back_left" pkg="tf" type="static_transform_publisher" args="-0.37 0.05 0 2.73 0.67 0.01 electronics_center back_left_link 30"/>
+<node name="tf_front_right" pkg="tf" type="static_transform_publisher" args="0.37 -0.05 -0.008 -0.45 0.645 0.01 electronics_center front_right_link 30"/>
+<node name="tf_front_left" pkg="tf" type="static_transform_publisher" args="0.37 0.05 -0.015 0.45 0.67 3.15 electronics_center front_left_link 30"/>
+<node name="tf_back_right" pkg="tf" type="static_transform_publisher" args="-0.36 -0.05 0.004 3.6 0.645 3.115 electronics_center back_right_link 30"/>
+<node name="tf_back_left" pkg="tf" type="static_transform_publisher" args="-0.37 0.05 0.002 2.73 0.61 0.01 electronics_center back_left_link 30"/>
 <node name="tf_up" pkg="tf" type="static_transform_publisher" args="0 0 0.06 -1.57 -1.57 0 electronics_center up_link 30"/>
 
 <node name="tf_arm" pkg="tf" type="static_transform_publisher" args="-0.4 0 0 3.141593 0 0 electronics_center arm_link 30"/>
