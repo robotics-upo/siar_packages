@@ -9,10 +9,10 @@
   
   <arg name="tilt_compensate" default="true"/>
   <arg name="consider_sign" default="true"/>
-  <arg name="roi_x" default="2"/>
-  <arg name="roi_y" default="2"/>
-  <arg name="roi_w" default="316"/>
-  <arg name="roi_h" default="236"/>
+  <arg name="roi_x" default="3"/>
+  <arg name="roi_y" default="3"/>
+  <arg name="roi_w" default="314"/>
+  <arg name="roi_h" default="234"/>
   
   <arg name="camera_1" default="/front_left"/>
   <arg name="camera_2" default="/back_left"/>
@@ -25,7 +25,7 @@
   <param name="use_sim_time" value="true" />
 
   # Bag file
-  <node name="bag_player" type="play" pkg="rosbag" args="$(arg bag_file) --clock -s $(arg start)" />
+  <node name="bag_player" type="play" pkg="rosbag" output="screen" args="$(arg bag_file) --clock -s $(arg start)" />
   
   # Camera TFs
   <include file="$(find bag_play)/launch/sensor_transform_siar.launch"/>
@@ -128,13 +128,14 @@
     <remap from="cloud4" to="$(arg camera_5)/point_cloud"/>                  # Input cloud 4
     <remap from="cloud5" to="$(arg camera_6)/point_cloud"/>                  # Input cloud 5
 
-    <param name="hz" value = "10.0"/>							# Costmap update rate
-    <param name="obstacle_height" value = "0.1"/>				# Absolute value of obstacle height (or hole depth)
+    <param name="hz" value = "5.0"/>							# Costmap update rate
+    <param name="obstacle_height" value = "0.08"/>				# Absolute value of obstacle height (or hole depth)
     <param name="exp_decay" value = "7.0"/>					    # Obstacle exponential decay (it is counted in cells)
     <remap from="/costmap_node/costmap" to="/test_costmap"/>
     <param name="tilt_compensate" value="$(arg tilt_compensate)"/>
     <param name="consider_sign" value="$(arg consider_sign)"/>
     <remap from="imu" to="/arduimu_v3/imu"/>
+    <param name="robot_height" value="0.4"/>
   </node>
 
 </launch>

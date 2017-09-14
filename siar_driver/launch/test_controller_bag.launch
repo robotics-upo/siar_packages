@@ -3,10 +3,10 @@
   
   <arg name="joystick" default="true"/>
   <arg name="perception" default="true"/>
-  <arg name="obstacle_height" default="0.075"/>
-  <arg name="resolution" default ="0.025"/>
-  <arg name="costmap" default="true"/>
-  <arg name="tilt_compensate" default="true"/>
+  <arg name="bag_file"/>
+  <arg name="start" default="0"/>
+  
+  <node name="bag_player" type="play" pkg="rosbag" args="$(arg bag_file) --clock -s $(arg start)" />
   
   <node name="siar_joy" pkg="siar_driver" type="siar_teleop_joy" output="screen" if="$(arg joystick)">
     <remap from="/cmd_vel" to="/user_cmd_vel"/>
@@ -23,25 +23,10 @@
       <remap from="/cmd_vel_out" to="/cmd_vel"/>
       <remap from="/altitude_map" to="/costmap_node/costmap"/>
       <remap from="/trajectory_marker" to="/tm"/>
+      <remap from="/best_marker" to="/bm"/>
       
       <rosparam file="$(find siar_controller)/cfg/siar_controller_fast.yaml" command="load"  /> 
       <param name="velocityset_filename" value="$(find siar_controller)/cfg/velocity_set_fast_smooth"/>
     </node>
-  <include file="$(find siar_costmap)/launch/siar_costmap.launch" if="$(arg costmap)" output="screen">
-    <arg name="obstacle_height" value="$(arg obstacle_height)"/>
-    <arg name="resolution" value="$(arg resolution)"/>
-    <arg name="camera_1" value="/front_left"/>
-    <arg name="camera_2" value="/front_right"/>
-    <arg name="camera_3" value="/back_left"/>
-    <arg name="camera_4" value="/back_right"/>
-    <arg name="roi_x" value="5"/>
-    <arg name="roi_w" value="310"/>
-    <arg name="roi_y" value="1"/>
-    <arg name="roi_h" value="238"/>
-    <arg name="tilt_compensate" value="$(arg tilt_compensate)"/>
-  </include>
-  
-  <!-- Perception -->
-  <include file="$(find siar_driver)/launch/perception.launch" if="$(arg perception)"/>
   
 </launch>

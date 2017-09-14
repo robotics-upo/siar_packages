@@ -324,7 +324,7 @@ void AStar::expandNode(int base_id, int relaxation_mode)
     AStarState st = n.st;
     geometry_msgs::Twist &command = *it;
     
-    double cost = m.integrate(st, command, delta_t, relaxation_mode >= 1, false); // If relaxation_mode >= 1 --> allow two wheels
+    double cost = m.integrate(st, command, delta_t, relaxation_mode >= 1); // If relaxation_mode >= 1 --> allow two wheels
     
     if (cost < 0.0) {
       // Collision
