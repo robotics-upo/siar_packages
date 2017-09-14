@@ -149,9 +149,10 @@ void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
   
   if (!ant_auto_button && joy->buttons[auto_button] == 1) {
     // Request for mode change
-    auto_mode++;
-    if (auto_mode > max_auto_mode) 
+    if (auto_mode > 0) 
       auto_mode = 0;
+    else
+      auto_mode = 1;
     setAutomaticMode(auto_mode);
   }
   ant_auto_button = joy->buttons[auto_button] == 1;
@@ -227,7 +228,9 @@ void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
     double wheel_pos = joy->axes[wheel_pos_axis];
     if (fabs(wheel_pos) > 0.95) {
       if (auto_mode > 0) {
-        auto_mode = (wheel_pos > 0)?3:2;
+        if (backwards)
+          wheel_pos *= -1.0; // TODO: necessary?
+        auto_mode = (wheel_pos > 0 )?3:2;
       }
       setAutomaticMode(auto_mode);
     } else {
