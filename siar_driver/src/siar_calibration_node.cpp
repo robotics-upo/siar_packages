@@ -1,6 +1,6 @@
 /***********************************************************************/
 /**                                                                    */
-/** siar_calibration_node.h                                                */
+/** siar_calibration_node.h                                            */
 /**                                                                    */
 /** Copyright (c) 2015, Service Robotics Lab.                          */ 
 /**                     http://robotics.upo.es                         */
