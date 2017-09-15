@@ -132,7 +132,7 @@ class SiarArmControl{
 			q1 = atan2(y,x);
 			q2 = beta;
 			q3 = gamma - PI;
-			q4 = (delta - PI)-(2*PI);
+			q4 = (delta - PI);
 			q5 = a;
 			
 			//ROS_INFO("x: %f; y: %f;z: %f",x,y,z);

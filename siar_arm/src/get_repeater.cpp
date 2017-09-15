@@ -45,7 +45,7 @@ void  Move2MarkerCallback(const aruco_msgs::MarkerArray::ConstPtr& markers_read)
 int main(int argc, char **argv)
 {
 
-	ros::init(argc, argv, "get_repiter");
+	ros::init(argc, argv, "get_repeater");
 
 	ros::NodeHandle n;
 
@@ -53,22 +53,24 @@ int main(int argc, char **argv)
 
 
 
-	ros::Subscriber images_right_sub = n.subscribe("/aruco_marker_publisher_back_right/markers", 1000, Move2MarkerCallback);
+	ros::Subscriber images_right_sub = n.subscribe("/aruco_marker_publisher_back_right/markers", 2, Move2MarkerCallback);
 
-	ros::Subscriber images_left_sub = n.subscribe("/aruco_marker_publisher_back_left/markers", 1000, Move2MarkerCallback);
+	ros::Subscriber images_left_sub = n.subscribe("/aruco_marker_publisher_back_left/markers", 2, Move2MarkerCallback);
 
-	ros::Subscriber arm_pos_sub = n.subscribe("/mensaje_david_status", 1000, ReadServosCallback);
+	ros::Subscriber arm_pos_sub = n.subscribe("/siar_status", 2, ReadServosCallback);
 
 
 	
 
-	arm1.arm_pos_pub = n.advertise<siar_driver::SiarArmCommand>("/mensaje_david_comando", 1000);
+	arm1.arm_pos_pub = n.advertise<siar_driver::SiarArmCommand>("/arm_cmd", 2);
 	
 	arm1.moveArmHL(0);
+	ros::Rate r(10);
 
 	while (ros::ok())
 	{    
-    	ros::spinOnce();
+    	   ros::spinOnce();
+	   r.sleep();
 	}
     return 0;
 

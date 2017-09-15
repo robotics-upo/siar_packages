@@ -229,8 +229,8 @@ void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
     double wheel_pos_2 = joy->axes[wheel_pos_axis_2];
     if (fabs(wheel_pos) > 0.95) {
       if (auto_mode > 0) {
-        if (backwards)
-          wheel_pos *= -1.0; // TODO: necessary?
+        if (currentLinearVelocity < 0.0)
+          wheel_pos *= -1.0; 
         auto_mode = (wheel_pos > 0 )?3:2;
       }
       setAutomaticMode(auto_mode);
