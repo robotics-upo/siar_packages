@@ -23,11 +23,15 @@ find_package(catkin REQUIRED COMPONENTS
   genmsg 
   actionlib_msgs 
   actionlib
-  
+  aruco
+  aruco_msgs 
+  image_transport 
+  cv_bridge
 )
 
 ## System dependencies are found with CMake's conventions
  find_package(Boost REQUIRED COMPONENTS system)
+ find_package(aruco REQUIRED )
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -83,7 +87,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_action_files(
 	DIRECTORY action 
 	FILES 
-	armServosMove.action	
+#	armServosMove.action	
 )
 
 generate_messages(
@@ -124,10 +128,11 @@ generate_messages(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  LIBRARIES siar_driver
- CATKIN_DEPENDS roscpp rospy functions std_msgs message_generation message_runtime nav_msgs robot_state_publisher sensor_msgs tf
+ CATKIN_DEPENDS roscpp rospy functions std_msgs message_generation message_runtime nav_msgs robot_state_publisher sensor_msgs tf aruco aruco_ros
 
 #  DEPENDS system_lib
 )
+
 
 ###########
 ## Build ##
@@ -147,9 +152,8 @@ include_directories(include/
 
 
 add_executable(arm_control_pose src/arm_control_pose.cpp)
-# add_executable(arm_firewall src/arm_firewall.cpp)
-# add_executable(arm_deploy_pickup src/arm_deploy_pickup.cpp)
-
+add_executable(get_repeater  src/get_repeater.cpp)
+# add_executable(marker_pose_test  src/marker_pose_test.cpp)
 
 
 ## Add cmake target dependencies of the library
@@ -178,6 +182,13 @@ add_executable(arm_control_pose src/arm_control_pose.cpp)
    ${catkin_LIBRARIES}
    ${Boost_LIBRARIES}   
  )
+ 
+target_link_libraries(get_repeater  
+   ${catkin_LIBRARIES}
+   ${Boost_LIBRARIES}   
+   ${aruco_LIBS}
+) 
+ 
  
 #  target_link_libraries(arm_firewall
 #    ${catkin_LIBRARIES}

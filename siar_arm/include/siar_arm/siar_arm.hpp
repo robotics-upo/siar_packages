@@ -13,6 +13,7 @@
 #include <std_msgs/UInt8.h>
 #include <string>
 #include <queue>
+#include <aruco_msgs/MarkerArray.h>
 
 
 //#include <actionlib/client/simple_action_client.h>
@@ -22,10 +23,10 @@
 
 
 #define PI 3.14159265
-#define L1 47.5
-#define L2 215
-#define L3 155
-#define L4 80
+#define L1 0.0475
+#define L2 0.215
+#define L3 0.155
+#define L4 0.080
 
 //typedef actionlib::SimpleActionClient<siar_arm::armServosMoveAction> Client;
 //typedef actionlib::SimpleActionServer<siar_arm::armServosMoveAction> Server;
@@ -57,6 +58,12 @@ class SiarArmControl{
 				
 			
 			arm_pos_pub.publish(servo_command);
+			
+			
+			
+			//geometry_msgs::PoseStamped A = forwardKinematics(write_values);
+			//geometry_msgs::Point B = A.pose.position;
+			//ROS_INFO("Computed: %f %f %f", B.x, B.y, B.z);
 			usleep ( servo_command.command_time * 10000);
 
 			
@@ -125,9 +132,11 @@ class SiarArmControl{
 			q1 = atan2(y,x);
 			q2 = beta;
 			q3 = gamma - PI;
-			q4 = delta - PI;
+			q4 = (delta - PI)-(2*PI);
 			q5 = a;
 			
+			//ROS_INFO("x: %f; y: %f;z: %f",x,y,z);
+			//ROS_INFO("q1: %f, q2: %f, q3: %f, q4: %f, q5:%f",q1,q2,q3,q4,q5);
 			
 
 			result[0] = (q1*2.0/PI*(228.0-805.0)/2.0+512.0);
@@ -136,6 +145,8 @@ class SiarArmControl{
 			result[3] = (q4*2.0/PI*(156.0-722.0)/2.0+437.0);
 			result[4] = (q5*2.0/PI*(242.0-792.0)/2.0+792.0);
 						
+			
+			
 			for( int i=0; i<5; i++)
 				inverse_function_values[i] = result[i];
 			
@@ -265,16 +276,16 @@ class SiarArmControl{
 				{
 					case 0: f_path = "/paths/home2base"; break;
 					case 1: f_path = "/paths/base2home"; break;
-					case 2: f_path = "/paths/deploy12base"; break;
-					case 3: f_path = "/paths/deploy22base"; break;
-					case 4: f_path = "/paths/deploy32base"; break;
-					case 5: f_path = "/paths/deploy42base"; break;
-					case 6: f_path = "/paths/deploy52base"; break;
-					case 7: f_path = "/paths/base2deploy1"; break;
-					case 8: f_path = "/paths/base2deploy2"; break;
-					case 9: f_path = "/paths/base2deploy3"; break;
-					case 10: f_path = "/paths/base2deploy4"; break;
-					case 11: f_path = "/paths/base2deploy5"; break;
+					case 2: f_path = "/paths/base2deploy12ground"; break;
+					case 3: f_path = "/paths/base2deploy22ground"; break;
+					case 4: f_path = "/paths/base2deploy32ground"; break;
+					case 5: f_path = "/paths/base2deploy42ground"; break;
+					case 6: f_path = "/paths/base2deploy52ground"; break;
+					case 7: f_path = "/paths/base2deploy12base"; break;
+					case 8: f_path = "/paths/base2deploy22base"; break;
+					case 9: f_path = "/paths/base2deploy32base"; break;
+					case 10: f_path = "/paths/base2deploy42base"; break;
+					case 11: f_path = "/paths/base2deploy52base"; break;
 				}
 				
 							
@@ -327,20 +338,22 @@ class SiarArmControl{
 			
 		}
 
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
+/*	void followMarker()
+	{
+	      
+	      
+	      btQuaternion q(target_state->target.transform.rotation.x, target_state->target.transform.rotation.y, target_state->target.transform.rotation.z, target_state->target.transform.rotation.w);
+	      double roll, pitch, yaw;
+	      tf::Matrix3x3(q).getRPY(roll, pitch, yaw);  
+	}
+*/
+
 		
 		
 
 };
+
+
 
 
 #endif /* _SIAR_ARM_H_ */
