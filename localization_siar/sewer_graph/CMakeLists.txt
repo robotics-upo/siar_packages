@@ -19,7 +19,7 @@ catkin_package(
 include_directories(include ${catkin_INCLUDE_DIRS})
 
 SET(FP_SOURCE src/earthlocation.cpp src/general.cpp src/sewer_graph.cpp) 
-SET(LIBS ${catkin_LIBRARIES} kmlbase kmldom kmlengine kmlconvenience)
+SET(LIBS ${catkin_LIBRARIES} kmlbase kmldom kmlengine kmlconvenience dxflib)
 
 add_library(sewer_graph ${FP_SOURCE}
 )
@@ -33,6 +33,9 @@ target_link_libraries(sewer_graph ${LIBS})
 # Test sewer graph
 add_executable(test_sewer_graph src/exec/test_sewer_graph.cpp)
 target_link_libraries(test_sewer_graph ${PROJECT_NAME} ${LIBS})
+
+add_executable(dxf_to_sewer_graph src/exec/dxf_to_sewer_graph.cpp src/test_creationclass.cpp)
+target_link_libraries(dxf_to_sewer_graph ${PROJECT_NAME} ${LIBS})
 
 add_executable(get_results src/exec/get_results.cpp)
 target_link_libraries(get_results ${PROJECT_NAME} ${LIBS})
