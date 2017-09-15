@@ -92,8 +92,8 @@ add_executable(test_wall_detector src/test_wall_detector.cpp)
 target_link_libraries(test_wall_detector ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Boost_LIBRARIES})
 
 
-add_executable(test_hole_detector src/test_hole_detector.cpp)
-target_link_libraries(test_hole_detector ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Boost_LIBRARIES})
+#add_executable(test_hole_detector src/test_hole_detector.cpp)
+#target_link_libraries(test_hole_detector ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Boost_LIBRARIES})
 
 
 
