@@ -20,6 +20,7 @@ namespace sewer_graph {
 enum SewerVertexType {
   MANHOLE,
   FORK,
+  NORMAL,
   
   ALL = 255
 };
@@ -33,11 +34,15 @@ struct SewerVertex {
   
   std::string toString() const;
   SewerVertexType type;
+  
+  
 };
 
 struct SewerEdge {
   double distance;
-  double route; // Angle relative to N
+  double route; // Angle relative to N (in the sense of waterflow)
+  
+  std::string section; // Can be T181, D1400, T168, T133, NT120A, T164...
   
   std::string toString() const;
 };
@@ -52,17 +57,25 @@ struct SewerEdge {
 class SewerGraph:public simple_graph::SimpleGraph<SewerVertex, SewerEdge>
 {
 public:
+  SewerGraph() {
+    
+  }
+  
    //! @brief Constructor from file
   SewerGraph(const std::string &filename); 
   
   //! @brief Loads graph from a file
   bool loadGraph(const std::string &filename);
   
+  bool writeGraph(const std::string &filename);
+  
+  virtual void addEdge(int i, int j);
+  
 //   std::string toString() const;        Por ahora usamos la versión de SimpleGraph
   
   double getDistanceToClosestManhole(double x, double y) const;
   
-  double getDistanceToClosestVertex(double x, double y, SewerVertexType type) const;
+  double getDistanceToClosestVertex(double x, double y, SewerVertexType type = ALL) const;
   
   int getClosestVertex(double x, double y, SewerVertexType type = ALL) const;
   
@@ -78,6 +91,14 @@ public:
   std::vector<visualization_msgs::Marker> getMarkers(std::string ref_frame) const;
   
   sensor_msgs::NavSatFix getReferencePosition() const;
+  
+  void setCenter(const EarthLocation &c) {
+    center = c;
+  }
+  
+  EarthLocation getCenter() const {
+    return center;
+  }
 
 protected:
   EarthLocation center;

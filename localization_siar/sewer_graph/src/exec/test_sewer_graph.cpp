@@ -7,7 +7,7 @@ using namespace sewer_graph;
 
 int main(int argc, char ** argv) {
   if (argc < 2) {
-    cerr << "Usage: " << argv[0] << " <filename> [<output_kml_file>]\n";
+    cerr << "Usage: " << argv[0] << " <in_filename> [<out_filename>] [<output_kml_file>]\n";
     return -1;
   }
   string s(argv[1]);
@@ -15,7 +15,15 @@ int main(int argc, char ** argv) {
   cout << g.toString_2() << endl; 
   
   if (argc > 2) {
-    string kml_file(argv[2]);
+    string f(argv[2]);
+    if (g.writeGraph(f))
+      cout << "Graph exported to " << f << endl;
+    else
+      cerr << "Could not export graph to " << f << endl;
+  }
+  
+  if (argc > 3) {
+    string kml_file(argv[3]);
     cout << "Exporting KML file to " << kml_file << endl;
     g.exportKMLFile(kml_file);
   }

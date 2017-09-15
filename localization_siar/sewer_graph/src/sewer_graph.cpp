@@ -102,18 +102,12 @@ bool SewerGraph::loadGraph(const string& filename)
       addVertex(v);
     }
     
-    SewerEdge e;
     for (;i < info.size(); i++) {
       if (info[i].size() >= 2) {
-        cout << "Adding edge: " << info[i][0] << " to " << info[i][1] << "\t";
-        EarthLocation origin(getVertexContent(info[i][0]).e);
-        EarthLocation dest(getVertexContent(info[i][1]).e);
+//         cout << "Adding edge: " << info[i][0] << " to " << info[i][1] << "\t";
+        addEdge(info[i][0], info[i][1]);
         
-        e.distance = origin.distance(dest);
-        RealVector v = dest.toRelative(origin);
-        e.route = atan2(v[1], v[0]);
-        cout << "v = " << v.toString() << "\tRoute: " << e.route << endl;
-        addEdge(info[i][0], info[i][1], e);
+        
       }
       
     }
@@ -124,6 +118,46 @@ bool SewerGraph::loadGraph(const string& filename)
   }
   
   return ret_val;
+}
+
+void SewerGraph::addEdge(int i, int j) {
+  SewerEdge e;
+  EarthLocation origin(getVertexContent(i).e);
+  EarthLocation dest(getVertexContent(j).e);
+  e.distance = origin.distance(dest);
+  RealVector v = dest.toRelative(origin);
+  e.route = atan2(v[1], v[0]);
+  cout << "v = " << v.toString() << "\tRoute: " << e.route << endl;
+  SimpleGraph::addEdge(i, j, e);
+  SimpleGraph::addEdge(j, i, e);
+}
+
+bool SewerGraph::writeGraph(const std::string &filename) {
+  ostringstream os;
+  os.precision(10);
+  string sep = "\t\t";
+  
+  for (int i = 0; i < nVertices(); i++) {
+    SewerVertex v = getVertexContent(i);
+    os << v.e.getLatitude() << sep << v.e.getLongitude() << sep << v.type <<  endl;
+    
+  }
+  
+  os << "\n-1\n"; // Separator between vertices and edges
+  
+  for (int i = 0; i < nVertices(); i++) {
+    // Then iterate the edges
+    std::list<int> n = vertices[i].getNeighbours();
+    std::list<int>::iterator it = n.begin();
+    for (;it != n.end(); it++) {
+      int j = *it;
+      if (j > i) {
+        os << i << sep << j << "\n";
+      }
+    }
+  }
+  
+  return functions::writeStringToFile(filename, os.str());
 }
 
 // ----------------- Calculations -------------------------------------------
