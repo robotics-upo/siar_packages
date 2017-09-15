@@ -322,7 +322,7 @@ void SiarController::loop() {
         cmd_vel_msg.angular.z = 0.0;
         cmd_vel_msg.linear.x = 0.0;
         t_unfeasible = 0.0;
-      }
+      } 
       
       
     } else {
@@ -330,6 +330,10 @@ void SiarController::loop() {
       if (operation_mode != 1) {
         cmd_vel_msg.angular.z *= 0.4;
         cmd_vel_msg.linear.x *= 0.4;
+      } else {
+        double mult = fabs(user_command.linear.x / model.v_max);
+	cmd_vel_msg.angular.z *= mult;
+	cmd_vel_msg.linear.x *= mult;
       }
     }
   } 

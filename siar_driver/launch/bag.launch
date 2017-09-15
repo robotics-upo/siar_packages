@@ -16,21 +16,34 @@
         /front_left/depth_registered/camera_info  
 /front_left/depth_registered/image_raw/compressedDepth/parameter_descriptions
 /front_left/depth_registered/image_raw/compressedDepth/parameter_updates
+      /front_left/rgb/camera_info /front_left/rgb/image_raw/compressed 
+        /front_left/rgb/image_raw/compressed/parameter_descriptions 
+        /front_left/rgb/image_raw/compressed/parameter_updates 
       
       /front_right/depth_registered/image_raw/compressedDepth
         /front_right/depth_registered/camera_info  
 /front_right/depth_registered/image_raw/compressedDepth/parameter_descriptions
 /front_right/depth_registered/image_raw/compressedDepth/parameter_updates 
+      /front_right/rgb/camera_info /front_right/rgb/image_raw/compressed 
+        /front_right/rgb/image_raw/compressed/parameter_descriptions 
+        /front_right/rgb/image_raw/compressed/parameter_updates 
         
         /back_left/depth_registered/camera_info  
         /back_left/depth_registered/image_raw/compressedDepth
 /back_left/depth_registered/image_raw/compressedDepth/parameter_descriptions
 /back_left/depth_registered/image_raw/compressedDepth/parameter_updates 
+      /back_left/rgb/camera_info /back_left/rgb/image_raw/compressed 
+        /back_left/rgb/image_raw/compressed/parameter_descriptions 
+        /back_left/rgb/image_raw/compressed/parameter_updates 
       
       /back_right/depth_registered/camera_info  
         /back_right/depth_registered/image_raw/compressedDepth
 /back_right/depth_registered/image_raw/compressedDepth/parameter_descriptions
 /back_right/depth_registered/image_raw/compressedDepth/parameter_updates 
+      /back_right/rgb/camera_info /back_right/rgb/image_raw/compressed 
+        /back_right/rgb/image_raw/compressed/parameter_descriptions 
+        /back_right/rgb/image_raw/compressed/parameter_updates 
+      
       
       /up/depth_registered/camera_info  
         /up/depth_registered/image_raw/compressedDepth
