@@ -64,7 +64,7 @@ int main(int argc, char **argv)
 
 	arm1.arm_pos_pub = n.advertise<siar_driver::SiarArmCommand>("/arm_cmd", 2);
 	
-	arm1.moveArmHL(0);
+//	arm1.moveArmHL(0);
 	ros::Rate r(10);
 
 	while (ros::ok())
