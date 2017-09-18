@@ -140,7 +140,7 @@ class SiarArmControl{
 			
 			
 			q1 = -atan2(y,x);
-			q1 = (fabs(q1)-0.1)*(q1/fabs(q1));
+//			q1 = (fabs(q1)-0.1)*(q1/fabs(q1));
 			q2 = beta;
 			q3 = (gamma - PI);
 			q4 = (delta - PI);
