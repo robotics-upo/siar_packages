@@ -35,19 +35,21 @@ void  Move2MarkerCallback(const aruco_msgs::MarkerArray::ConstPtr& markers_read)
 	geometry_msgs::Point near_point;
 	geometry_msgs::Point up_point;
 
-
-	for( int i=0; i<markers_read->markers.size();i++) 
+	ROS_INFO("number of markers: %d", markers_read->markers.size());
+int i = 0;//	for( int i=0; i<markers_read->markers.size();i++) 
 	{
-	  goal_point = markers_read->markers[i].pose.pose.position;
-	  goal_point.z += 0.06;  
+	  near_point = markers_read->markers[i].pose.pose.position;
+	  goal_point = near_point;  
+	  goal_point.x += 0.1*cos(atan2(near_point.y,near_point.x));
+	  goal_point.y += 0.1*sin(atan2(near_point.y,near_point.x));
+	  goal_point.z += 0.00;  
 	  up_point = goal_point;
 	  up_point.z += 0.05;
-	  near_point = goal_point;
-	  near_point.z -= 0.04 ;
 
 	  arm1.movelArm2Point(near_point,0);	
-  	  arm1.movelArm2Point(goal_point,10);	
-	  arm1.movelArm2Point(up_point,3);	
+  	  arm1.movelArm2Point(goal_point,0);	
+	  arm1.movelArm2Point(up_point,0);
+	  	
 		  
 	}
 	//ROS_INFO("goal_point: %f %f %f", goal_point.x, goal_point.y, goal_point.z);
@@ -66,18 +68,18 @@ int main(int argc, char **argv)
 
 
 
-	ros::Subscriber images_right_sub = n.subscribe("/aruco_marker_publisher_back_right/markers", 1000, Move2MarkerCallback);
+	ros::Subscriber images_right_sub = n.subscribe("/aruco_marker_publisher_back_right/markers", 1, Move2MarkerCallback);
 
-	ros::Subscriber images_left_sub = n.subscribe("/aruco_marker_publisher_back_left/markers", 1000, Move2MarkerCallback);
+	ros::Subscriber images_left_sub = n.subscribe("/aruco_marker_publisher_back_left/markers", 1, Move2MarkerCallback);
 
-	ros::Subscriber arm_pos_sub = n.subscribe("/mensaje_david_status", 1000, ReadServosCallback);
+	ros::Subscriber arm_pos_sub = n.subscribe("/siar_status", 1, ReadServosCallback);
 
 
 	
 
-	arm1.arm_pos_pub = n.advertise<siar_driver::SiarArmCommand>("/mensaje_david_comando", 1000);
+	arm1.arm_pos_pub = n.advertise<siar_driver::SiarArmCommand>("/arm_cmd", 1);
 	
-	arm1.moveArmHL(0);
+	//arm1.moveArmHL(0);
 
 	while (ros::ok())
 	{    
