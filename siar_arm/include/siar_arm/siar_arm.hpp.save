@@ -81,7 +81,8 @@ class SiarArmControl{
 			else
 			{
 				ROS_ERROR("Arm command values are out of the range");
-				ROS_ERROR("POS: %d; %d; %d; %d; %d", servo_command.joint_values[0], servo_command.joint_values[1], servo_command.joint_values[2], servo_command.joint_values[3], servo_command.joint_values[4]);			
+				ROS_ERROR("POS: %f, %f, %f, %f, %f", servo_command.joint_values[0], servo_command.joint_values[1], servo_command.joint_values[3], servo_command.joint_values[3], servo_command.joint_values[4]);
+				cout << servo_command.joint_values[0] << ", "<< servo_command.joint_values[1] << ", "<< servo_command.joint_values[2] << ", "<< servo_command.joint_values[3] << ", "<< servo_command.joint_values[4] << endl;			
 			}
 			  
 			
@@ -139,9 +140,9 @@ class SiarArmControl{
 			}
 			
 			
-			q1 = -atan2(y,x);
+			q1 = atan2(y,x);
 			q2 = beta;
-			q3 = (gamma - PI);
+			q3 = gamma - PI;
 			q4 = (delta - PI);
 			q5 = a;
 			
@@ -149,11 +150,11 @@ class SiarArmControl{
 			//ROS_INFO("q1: %f, q2: %f, q3: %f, q4: %f, q5:%f",q1,q2,q3,q4,q5);
 			
 
-			result[0] = (q1/PI*(228.0-805.0)+512.0);
-			result[1] = (q2/PI*(452.0-1580.0)+1008.0);
-			result[2] = (q3/PI*(743.0-1855.0)+1294.0);
-			result[3] = (q4/PI*(156.0-722.0)+437.0);
-			result[4] = (q5/PI*(242.0-792.0)+792.0);
+			result[0] = -(q1*2.0/PI*(228.0-805.0)/2.0+512.0);
+			result[1] = -(q2*2.0/PI*(452.0-1580.0)/2.0+1008.0);
+			result[2] = -(q3*2.0/PI*(1855.0-743.0)/2.0+1294.0);
+			result[3] = -(q4*2.0/PI*(156.0-722.0)/2.0+437.0);
+			result[4] = -(q5*2.0/PI*(242.0-792.0)/2.0+792.0);
 						
 			
 			
