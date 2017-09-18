@@ -32,25 +32,12 @@ void  Move2MarkerCallback(const aruco_msgs::MarkerArray::ConstPtr& markers_read)
 
 
 	geometry_msgs::Point goal_point;
-	geometry_msgs::Point near_point;
-	geometry_msgs::Point up_point;
-
-
 	for( int i=0; i<markers_read->markers.size();i++) 
-	{
 	  goal_point = markers_read->markers[i].pose.pose.position;
-	  goal_point.z += 0.06;  
-	  up_point = goal_point;
-	  up_point.z += 0.05;
-	  near_point = goal_point;
-	  near_point.z -= 0.04 ;
-
-	  arm1.movelArm2Point(near_point,0);	
-  	  arm1.movelArm2Point(goal_point,10);	
-	  arm1.movelArm2Point(up_point,3);	
-		  
-	}
-	//ROS_INFO("goal_point: %f %f %f", goal_point.x, goal_point.y, goal_point.z);
+	 
+	arm1.movelArm2Point(goal_point,0);	
+	
+	ROS_INFO("goal_point: %f %f %f", goal_point.x, goal_point.y, goal_point.z);
 }
 
 
@@ -58,7 +45,7 @@ void  Move2MarkerCallback(const aruco_msgs::MarkerArray::ConstPtr& markers_read)
 int main(int argc, char **argv)
 {
 
-	ros::init(argc, argv, "get_repeater");
+	ros::init(argc, argv, "attack_repeater");
 
 	ros::NodeHandle n;
 
@@ -66,22 +53,24 @@ int main(int argc, char **argv)
 
 
 
-	ros::Subscriber images_right_sub = n.subscribe("/aruco_marker_publisher_back_right/markers", 1000, Move2MarkerCallback);
+	ros::Subscriber images_right_sub = n.subscribe("/aruco_marker_publisher_back_right/markers", 2, Move2MarkerCallback);
 
-	ros::Subscriber images_left_sub = n.subscribe("/aruco_marker_publisher_back_left/markers", 1000, Move2MarkerCallback);
+	ros::Subscriber images_left_sub = n.subscribe("/aruco_marker_publisher_back_left/markers", 2, Move2MarkerCallback);
 
-	ros::Subscriber arm_pos_sub = n.subscribe("/mensaje_david_status", 1000, ReadServosCallback);
+	ros::Subscriber arm_pos_sub = n.subscribe("/siar_status", 2, ReadServosCallback);
 
 
 	
 
-	arm1.arm_pos_pub = n.advertise<siar_driver::SiarArmCommand>("/mensaje_david_comando", 1000);
+	arm1.arm_pos_pub = n.advertise<siar_driver::SiarArmCommand>("/arm_cmd", 2);
 	
 	arm1.moveArmHL(0);
+	ros::Rate r(10);
 
 	while (ros::ok())
 	{    
-    	ros::spinOnce();
+    	   ros::spinOnce();
+	   r.sleep();
 	}
     return 0;
 

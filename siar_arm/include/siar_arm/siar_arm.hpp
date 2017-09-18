@@ -42,7 +42,16 @@ class SiarArmControl{
 
 		int inverse_function_values[5];
 
+	public:
+	  
+		siar_driver::SiarArmCommand servo_command;
 		
+		ros::Publisher arm_pos_pub;
+
+		int read_values[5];
+		int write_values[5];
+	
+			  
 		void writeServos()
 		{	
 			int command_time = 0;
@@ -56,31 +65,30 @@ class SiarArmControl{
 					
 		//	cout << servo_command.joint_values[0] << ", "<< servo_command.joint_values[1] << ", "<< servo_command.joint_values[2] << ", "<< servo_command.joint_values[3] << ", "<< servo_command.joint_values[4] << endl;			
 				
+			    bool ret_val = (write_values[0]<805 && write_values[0]>208);
+			ret_val &= (write_values[1]<1568 && write_values[1]>220);
+			ret_val &= (write_values[2]<2020 && write_values[2]>191); // Limits from the Arm Reference Value spreadsheet of Carlos Marques
+			ret_val &= (write_values[3]<958 && write_values[3]>30);
+			ret_val &= (write_values[4]<1000 && write_values[4]>30);
 			
-			arm_pos_pub.publish(servo_command);
-			
+			if( ret_val == 1)
+			{
+				arm_pos_pub.publish(servo_command);
+				usleep ( servo_command.command_time * 10000);
+			}
+			else
+			{
+				ROS_ERROR("Arm command values are out of the range");
+				cout << servo_command.joint_values[0] << ", "<< servo_command.joint_values[1] << ", "<< servo_command.joint_values[2] << ", "<< servo_command.joint_values[3] << ", "<< servo_command.joint_values[4] << endl;			
+			}
+			  
 			
 			
 			//geometry_msgs::PoseStamped A = forwardKinematics(write_values);
 			//geometry_msgs::Point B = A.pose.position;
 			//ROS_INFO("Computed: %f %f %f", B.x, B.y, B.z);
-			usleep ( servo_command.command_time * 10000);
-
-			
 
 		}
-		
-	
-	public:
-
-		siar_driver::SiarArmCommand servo_command;
-		
-		ros::Publisher arm_pos_pub;
-
-		int read_values[5];
-		int write_values[5];
-	
-		
 		
 		
 		void inverseKinematics(const geometry_msgs::PoseStamped& pose)
