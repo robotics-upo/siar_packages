@@ -48,6 +48,54 @@ int main(int argc, char **argv)
 	   arm1.writeServos();
 	   usleep(3000);
 	   
+	   arm1.write_values[0] = 650;
+	   arm1.writeServos();
+           usleep(3000);
+
+           arm1.write_values[0] = 350;
+           arm1.writeServos();
+           usleep(3000);
+
+           arm1.write_values[0] = 512;
+           arm1.writeServos();
+           usleep(3000);
+
+	   arm1.write_values[1] = 1200;     
+           arm1.writeServos();
+           usleep(3000);
+
+           arm1.write_values[1] = 700;
+           arm1.writeServos();
+           usleep(3000);
+
+           arm1.write_values[1] = 1008;
+           arm1.writeServos();
+           usleep(3000);
+
+	   arm1.write_values[2] = 1500;     
+           arm1.writeServos();
+           usleep(3000);
+
+           arm1.write_values[2] = 1000;
+           arm1.writeServos();
+           usleep(3000);
+
+           arm1.write_values[2] = 1294;
+           arm1.writeServos();
+           usleep(3000);
+		
+	   arm1.write_values[3] = 600;     
+           arm1.writeServos();
+           usleep(3000);
+
+           arm1.write_values[3] = 250;
+           arm1.writeServos();
+           usleep(3000);
+
+           arm1.write_values[3] = 437;
+           arm1.writeServos();
+           usleep(3000);
+	   
 	   r.sleep();
 	}
     return 0;
