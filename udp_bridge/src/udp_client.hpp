@@ -17,6 +17,7 @@
 #include <tf/transform_broadcaster.h>
 #include "cycle.hpp"
 #include "udp_manager.hpp"
+#include "joy_translator.hpp"
 #include <boost/thread/scoped_thread.hpp>
 
 class UDPClient : public UDPManager
@@ -47,16 +48,7 @@ private:
   // UDP stuff
   std::string ip_address;
   
-  // Joy buttons translation
-  int startButton, newStartButton;
-  int panicButton, newPanicButton;
-  int backButton, newBackButton;
-  int autoButton, newAutoButton;
-  int reverseButton, newReverseButton;
-  int slowButton, newSlowButton;
-  int maxVelocityButton, newMaxVelocityButton;
-  int linearAxis, newLinearAxis;
-  int angularAxis, newAngularAxis;
+  JoyTranslator *joy_trans;
   bool translate_joy;
   
 public:
@@ -126,47 +118,11 @@ public:
     allCamerasTopic = "/all_cameras";
     
     // Buttons params
-    if (!lnh.getParam("translate_joy", translate_joy))
-      translate_joy = false;
-    if (translate_joy)  {
-      if (!lnh.getParam("start_button", startButton))
-        startButton = 0;
-      if (!lnh.getParam("new/start_button", newStartButton))
-        newStartButton = 0;
-      if (!lnh.getParam("panic_button", panicButton))
-        panicButton = 0;
-      if (!lnh.getParam("new/panic_button", newPanicButton))
-        newPanicButton = 0;
-      if (!lnh.getParam("back_button", backButton))
-        backButton = 0;
-      if (!lnh.getParam("new/back_button", newBackButton))
-        newBackButton = 0;
-      if (!lnh.getParam("auto_button", autoButton))
-        autoButton = 0;
-      if (!lnh.getParam("new/auto_button", newAutoButton))
-        newAutoButton = 0;
-      if (!lnh.getParam("reverse_button", reverseButton))
-        reverseButton = 0;
-      if (!lnh.getParam("new/reverse_button", newReverseButton))
-        newReverseButton = 0;
-      if (!lnh.getParam("slow_button", slowButton))
-        slowButton = 0;
-      if (!lnh.getParam("new/slow_button", newSlowButton))
-        newSlowButton = 0;
-      if (!lnh.getParam("max_velocity_button", maxVelocityButton))
-        maxVelocityButton = 0;
-      if (!lnh.getParam("new/max_velocity_button", newMaxVelocityButton))
-        newMaxVelocityButton = 0;
-      if (!lnh.getParam("linear_axis", linearAxis))
-        linearAxis = 0;
-      if (!lnh.getParam("angular_axis", angularAxis))
-        angularAxis = 0;
-      if (!lnh.getParam("new/linear_axis", newLinearAxis))
-        newLinearAxis = 0;
-      if (!lnh.getParam("new/angular_axis", newAngularAxis)) {
-        newAngularAxis = 0;
-      }
-    }
+    joy_trans = NULL;
+    translate_joy = false;
+    lnh.getParam("translate_joy", translate_joy);
+    if (translate_joy)
+      joy_trans = new JoyTranslator(nh, lnh);
     
     // Create subscribers
     publish_depth_sub = nh.subscribe(publishDepthTopic, 1, &UDPClient::publishDepthCallback, this);
@@ -281,6 +237,7 @@ public:
   ~UDPClient()
   {
     endSession();
+    delete joy_trans;
   }
   
 virtual bool startSession()
@@ -438,28 +395,12 @@ protected:
     serializeWrite<std_msgs::Bool>(publishDepthTopic, *msg);
   }
   
-  const sensor_msgs::Joy translateJoy(const sensor_msgs::Joy &msg) {
-    sensor_msgs::Joy ret = msg;
-    
-    ret.buttons[startButton] = msg.buttons[newStartButton];
-    ret.buttons[panicButton] = msg.buttons[newPanicButton];
-    ret.buttons[backButton] = msg.buttons[newBackButton];
-    ret.buttons[autoButton] = msg.buttons[newAutoButton];
-    ret.buttons[reverseButton] = msg.buttons[newReverseButton];
-    ret.buttons[slowButton] = msg.buttons[newSlowButton];
-    ret.buttons[maxVelocityButton] = msg.buttons[newMaxVelocityButton];
-    
-    ret.axes[linearAxis] = msg.axes[newLinearAxis];
-    ret.axes[angularAxis] = msg.axes[newAngularAxis];
-    
-    return ret;
-  }
-  
   void joyCallback(const sensor_msgs::JoyConstPtr &msg)
   {
     // All data will be published (no sampling)
-    if (translate_joy) {
-      sensor_msgs::Joy trans_msg = translateJoy(*msg);
+    if (joy_trans != NULL) {
+      sensor_msgs::Joy trans_msg = joy_trans->translateJoy(*msg);
+      
       serializeWrite<sensor_msgs::Joy>(joyTopic, trans_msg);
     } else {
       serializeWrite<sensor_msgs::Joy>(joyTopic, *msg);

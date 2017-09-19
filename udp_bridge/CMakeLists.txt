@@ -50,16 +50,22 @@ include_directories(
 ## Declare a cpp executable
 add_executable(udp_server src/udp_server_node.cpp)
 add_executable(udp_client src/udp_client_node.cpp)
+add_executable(joy_translator_node src/test_joy_translator.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
 add_dependencies(udp_server ${siar_driver_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 add_dependencies(udp_client ${siar_driver_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(joy_translator_node ${siar_driver_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(udp_server
    ${catkin_LIBRARIES}
 )
 target_link_libraries(udp_client
+   ${catkin_LIBRARIES}
+)
+
+target_link_libraries(joy_translator_node
    ${catkin_LIBRARIES}
 )

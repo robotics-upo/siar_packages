@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<!-- Launches frame dropper and serial comms for the server side -->
+<launch>
+  
+  <!-- Launch translator-->
+  
+  <node pkg="udp_bridge" type="joy_translator_node" name="joy_trans" output="screen">
+   <rosparam file="$(find udp_bridge)/cfg/test_translate_360.yaml" command="load"  /> 
+  </node>
+</launch>
