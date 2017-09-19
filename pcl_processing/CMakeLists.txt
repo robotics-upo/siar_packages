@@ -16,7 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 
 catkin_package(
- INCLUDE_DIRS include
+# INCLUDE_DIRS include
 #  LIBRARIES pcl_processing
  CATKIN_DEPENDS depth_image_proc image_transport pcl_ros roscpp rospy sensor_msgs tf2
 #  DEPENDS system_lib
@@ -35,10 +35,10 @@ include_directories(
 )
 
 
-find_package(libpointmatcher REQUIRED PATHS ${LIBPOINTMATCHER_INSTALL_DIR})
+#find_package(libpointmatcher REQUIRED PATHS ${LIBPOINTMATCHER_INSTALL_DIR})
 #include(libnaboConfig)
-include_directories(${libpointmatcher_INCLUDE_DIRS})
-set(EXTERNAL_LIBS ${EXTERNAL_LIBS} ${libpointmatcher_LIBRARIES})
+#include_directories(${libpointmatcher_INCLUDE_DIRS})
+set(EXTERNAL_LIBS ${EXTERNAL_LIBS} )
 
 ## Declare a C++ executable
 #add_executable(point_cloud_subscriber src/point_cloud_subscriber.cpp src/processPointCloud.cpp)
