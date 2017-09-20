@@ -9,10 +9,6 @@
 
 #include <aruco_msgs/MarkerArray.h>
 
-
-
-
-
 SiarArmControl arm1;
 
 void ReadServosCallback(const siar_driver::SiarStatus::ConstPtr& arm_pose)
