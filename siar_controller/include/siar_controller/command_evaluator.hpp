@@ -481,9 +481,10 @@ int CommandEvaluator::applyFootprintRelaxed(double x, double y, double th,
   bool right_wheel = false;
   bool left_wheel = false;
   int size = fp.size();
-  int cont_left = size / 2;
-  int cont_right = size / 2;
-  for (unsigned int i = 0; i < size && !collision; i++) {
+  int cont_left = (min_wheel_left * size) / 2;
+  int cont_right = (min_wheel_right * size) /2;
+  
+  for (unsigned int i = 0; i < size && !collision && cont_left > 0 && cont_right > 0; i++) {
     
     index = point2index(fp[i].x, fp[i].y);
 //     ROS_INFO("Point2index(%f,%f) = %d,%d. Value = %d", fp.at(i).x, fp.at(i).y,index/alt_map.info.width, index%alt_map.info.width, alt_map.data[index]);
@@ -498,15 +499,21 @@ int CommandEvaluator::applyFootprintRelaxed(double x, double y, double th,
       if (orig[i].y > 0.0) {
         left_wheel = true;
         cont_left--;
+        if (min_wheel_left + 0.01 > min_wheel_right) {
+          ret_val += abs(alt_map.data[index]); 
+        }
       } else {
         right_wheel = true;
         cont_right--;
+        if (min_wheel_right + 0.01 > min_wheel_left) {
+          ret_val += abs(alt_map.data[index]); 
+        }
       }
     } 
-    ret_val += abs(alt_map.data[index]); 
+    
   }
-  collision |= ( (double)cont_left / (double)size * 2.0 ) < min_wheel_left;
-  collision |= ( (double)cont_right / (double)size * 2.0 ) < min_wheel_right;
+  collision |= 0 <= min_wheel_left;
+  collision |= 0 <= min_wheel_right;
   if (collision) {
 //     ROS_INFO("CommandEvaluator::applyFootprintRelaxed --> COLLISION. Cont_left: %d \t Cont_right: %d \t fp size: %d", cont_left, cont_right, (int)fp.size());
   }
