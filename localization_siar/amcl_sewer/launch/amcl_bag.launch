@@ -5,8 +5,8 @@
   # Bag filename
   <arg name="bag_file" default="~/siar_2017-01-17-11-17-28.bag"/>
   <arg name="play_bag" default="true"/>
-  <arg name="rgbd_odom" default="false"/>
-  <arg name="rate" default="2"/>
+  <arg name="rgbd_odom" default="true"/>
+  <arg name="rate" default="1"/>
   
   # Use simulation time fro TFs
   <param name="use_sim_time" value="true" />
@@ -87,7 +87,7 @@
     <param name="forkDev" value="0.6"/>
     <param name="fork_dist" value="3.0"/>
     
-    <param name="sewer_graph_file" value="$(find sewer_graph)/test/sewer_graph_2"/>
+    <param name="sewer_graph_file" value="$(find sewer_graph)/test/gis_graph_reduced"/>
     
     <remap from="/amcl_sewer_node/initial_pose" to="/initialpose"/>
     

@@ -370,25 +370,17 @@ private:
   
   void processCloud(const sensor_msgs::PointCloud2ConstPtr& msg, int id)
   {
-    static bool gotTf[6] = {false, false, false, false, false, false};
-    
-    if(!gotTf[id])
-    {
       try
       {
         m_tfListener.lookupTransform(m_baseFrameId, msg->header.frame_id, ros::Time(0), m_cloudTf[id]);
-        gotTf[id] = true;
+        m_cloud[id] = *msg;
+      m_cloudNew[id] = true;
+//         gotTf[id] = true;
       }
       catch (tf::TransformException ex)
       {
         ROS_ERROR("Error: %s", ex.what());
       }
-    }
-    else
-    {
-      m_cloud[id] = *msg;
-      m_cloudNew[id] = true;
-    }
   }
   
   inline void point2index(float &x, float &y, int &index)

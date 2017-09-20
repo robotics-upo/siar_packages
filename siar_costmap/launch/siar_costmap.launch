@@ -2,19 +2,19 @@
 <launch>
 
   <arg name="resolution" default="0.025"/>
-  <arg name="obstacle_height" default="0.05"/>
-  <arg name="camera_1" default="/front_down"/>
-  <arg name="camera_2" default="/back_down"/>
-  <arg name="camera_3" default="/front_down_2"/>
-  <arg name="camera_4" default="/back"/>
+  <arg name="obstacle_height" default="0.075"/>
+  <arg name="camera_1" default="/front_left"/>
+  <arg name="camera_2" default="/back_left"/>
+  <arg name="camera_3" default="/front_right"/>
+  <arg name="camera_4" default="/back_right"/>
   <arg name="camera_5" default="/camera"/>
   <arg name="camera_6" default="/pepito"/>
   <arg name="tilt_compensate" default="true"/>
   <arg name="consider_sign" default="true"/>
-  <arg name="roi_x" default="2"/>
-  <arg name="roi_y" default="2"/>
-  <arg name="roi_w" default="316"/>
-  <arg name="roi_h" default="236"/>
+  <arg name="roi_x" default="4"/>
+  <arg name="roi_y" default="4"/>
+  <arg name="roi_w" default="312"/>
+  <arg name="roi_h" default="232"/>
   
   # Point cloud computation
   <node pkg="depth2cloud" type="depth2cloud_node" name="depth2cloud_front_down" output="screen" >
