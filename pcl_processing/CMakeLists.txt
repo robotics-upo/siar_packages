@@ -41,15 +41,15 @@ include_directories(${libpointmatcher_INCLUDE_DIRS})
 set(EXTERNAL_LIBS ${EXTERNAL_LIBS} ${libpointmatcher_LIBRARIES})
 
 ## Declare a C++ executable
-#add_executable(point_cloud_subscriber src/point_cloud_subscriber.cpp src/processPointCloud.cpp)
+add_executable(point_cloud_subscriber src/point_cloud_subscriber.cpp src/processPointCloud.cpp)
 
-#add_executable(accumulate_cloud src/accumulateCloud.cpp src/processPointCloud.cpp)
+add_executable(accumulate_cloud src/accumulateCloud.cpp src/processPointCloud.cpp)
 
-#add_executable(point_cloud_save_ref src/point_cloud_save_ref.cpp src/processPointCloud.cpp)
+add_executable(point_cloud_save_ref src/point_cloud_save_ref.cpp src/processPointCloud.cpp)
 
-#add_executable(point_cloud_clean_ref src/point_cloud_clean_ref.cpp src/processPointCloud.cpp)
+add_executable(point_cloud_clean_ref src/point_cloud_clean_ref.cpp src/processPointCloud.cpp)
 
-#add_executable(point_cloud_compare src/point_cloud_compare.cpp src/processPointCloud.cpp)
+add_executable(point_cloud_compare src/point_cloud_compare.cpp src/processPointCloud.cpp)
 
 
 ## Add cmake target dependencies of the executable
@@ -57,24 +57,24 @@ set(EXTERNAL_LIBS ${EXTERNAL_LIBS} ${libpointmatcher_LIBRARIES})
 # add_dependencies(pcl_processing_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-#target_link_libraries(point_cloud_subscriber
-#  ${catkin_LIBRARIES}
-#)
+target_link_libraries(point_cloud_subscriber
+  ${catkin_LIBRARIES}
+)
 
-#target_link_libraries(accumulate_cloud
-#  ${catkin_LIBRARIES}
-#)
+target_link_libraries(accumulate_cloud
+  ${catkin_LIBRARIES}
+)
 
-#target_link_libraries(point_cloud_save_ref
-#  ${catkin_LIBRARIES}
-#)
+target_link_libraries(point_cloud_save_ref
+  ${catkin_LIBRARIES}
+)
 
-#target_link_libraries(point_cloud_clean_ref
-#  ${catkin_LIBRARIES}
-#)
+target_link_libraries(point_cloud_clean_ref
+  ${catkin_LIBRARIES}
+)
 
-#target_link_libraries(point_cloud_compare
-#  ${catkin_LIBRARIES}
-#)
+target_link_libraries(point_cloud_compare
+  ${catkin_LIBRARIES}
+)
 
 
