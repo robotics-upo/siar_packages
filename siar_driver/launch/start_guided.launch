@@ -58,6 +58,8 @@
   <include file="$(find siar_costmap)/launch/siar_costmap.launch">
     <arg name="obstacle_height" value="$(arg obstacle_height)"/>
     <arg name="resolution" value="$(arg resolution)"/>
+<!--  <arg name="robot_height" value="0.50"/> -->
+    
     <arg name="camera_1" value="/front_left"/>
     <arg name="camera_2" value="/front_right"/>
     <arg name="camera_3" value="/back_left"/>

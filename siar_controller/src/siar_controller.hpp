@@ -73,7 +73,6 @@ protected:
   geometry_msgs::Twist user_command, last_velocity, planned_cmd;
   CommandEvaluator *cmd_eval;
   double width_thres;
-  double weight_dis_2;
   
   // Include ways to escape the local minima
   double t_unfeasible,ang_scape_inc, max_t_unfeasible;
@@ -162,9 +161,6 @@ reconfigure_server_(),config_init_(false),occ_received(false), cmd_eval(NULL), t
 void SiarController::getParameters(ros::NodeHandle& pn)
 {
   config_init_ = true;
-  
-  pn.param("w_dis_2", weight_dis_2, 1e3);
-  
   pn.param("use_dynamic_reconfigure", use_dynamic_reconfigure, false);
   
   model = RobotCharacteristics(pn);
@@ -535,11 +531,12 @@ void SiarController::evaluateAndActualizeBest(const geometry_msgs::Twist& cmd_ve
   double m_w_l = min_wheel_left[operation_mode - 1];
   double m_w_r = min_wheel_right[operation_mode - 1];
   
-  
-  if (m_w_l < 1e-3 && m_w_r < 1e-3 ) {
+
+  if ((m_w_l < 1e-3 && m_w_r < 1e-3) || 
+    (m_w_l > 0.97 && m_w_r > 0.97)
+  ) {
     curr_cost = cmd_eval->evaluateTrajectory(v_ini, curr_cmd, cmd_vel, last_map, m);
   } else {
-    cmd_eval->setWeightDistance(weight_dis_2);
     cmd_eval->setMinWheelLeft(m_w_l);
     cmd_eval->setMinWheelRight(m_w_r);
     curr_cost = cmd_eval->evaluateTrajectoryRelaxed(v_ini, curr_cmd, cmd_vel, last_map, m);
@@ -601,8 +598,8 @@ void SiarController::statusCallback(const siar_driver::SiarStatus& msg)
   // Check if the width has changed enough to perform an actualization of the footprint
   
   if (fabs(msg.width - _conf.robot_width) < width_thres) {
-    cmd_eval->getFootprint()->setWidth(msg.width);
-    _conf.robot_width = msg.width;
+    cmd_eval->getFootprint()->setWidth(msg.width + width_thres);
+    _conf.robot_width = msg.width + width_thres;
     ROS_INFO("Setting new width footprint: %f", msg.width);
   }
 }

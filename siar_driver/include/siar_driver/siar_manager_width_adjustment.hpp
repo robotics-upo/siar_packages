@@ -308,7 +308,7 @@ width_to_lin_pos(NULL), x_elec_to_lin_pos(NULL)
   state.slow = false;
   state.reverse = false;
   state.width = 0.51;
-  state.electronics_x = 0.4;
+  state.electronics_x = 0.14;
   
   // Initialize inherited fields
   _config = config;
@@ -587,8 +587,8 @@ inline bool SiarManagerWidthAdjustment::setVelocity(double linear, double angula
   angular = _config.velocity_sat.apply(angular);
 
   // Following idMind driver --> v_r = (linear - L * angular)    ; v_l = -(linear + L * angular) 
-  double right_speed = -(linear - _config.half_axis_distance * angular);
-  double left_speed = (linear + _config.half_axis_distance * angular);
+  double right_speed = -(linear - state.width * angular * 0.75);
+  double left_speed = (linear + state.width * angular * 0.75);
   
   left_speed = _config.velocity_sat.apply(left_speed);
   right_speed = _config.velocity_sat.apply(right_speed);
