@@ -383,7 +383,7 @@ double CommandEvaluator::evaluateTrajectoryRelaxed(const geometry_msgs::Twist& v
   setParams(alt_map);
   
 //   if (pub) {
-//     ROS_INFO("Evaluate trajectory: dt = %f \tsteps=%d \tv_ini_x = %f\t th_dot_ini = %f", m_delta_T, steps, lv, av);
+     ROS_INFO("Evaluate trajectory: dt = %f \tsteps=%d \tv_ini_x = %f\t th_dot_ini = %f", m_delta_T, steps, lv, av);
 //     ROS_INFO("v_command_x = %f\t th_dot_command = %f", v_command.linear.x, v_command.angular.z);
 //     ROS_INFO("v_max = %f\t a_max = %f", m_model.v_max, m_model.a_max);
 //   }
@@ -481,10 +481,10 @@ int CommandEvaluator::applyFootprintRelaxed(double x, double y, double th,
   bool right_wheel = false;
   bool left_wheel = false;
   int size = fp.size();
-  int cont_left = (min_wheel_left * size) / 2;
-  int cont_right = (min_wheel_right * size) /2;
+  int cont_left = ( size) / 2;
+  int cont_right = ( size) /2;
   
-  for (unsigned int i = 0; i < size && !collision && cont_left > 0 && cont_right > 0; i++) {
+  for (unsigned int i = 0; i < size && !collision; i++) {
     
     index = point2index(fp[i].x, fp[i].y);
 //     ROS_INFO("Point2index(%f,%f) = %d,%d. Value = %d", fp.at(i).x, fp.at(i).y,index/alt_map.info.width, index%alt_map.info.width, alt_map.data[index]);
@@ -512,8 +512,9 @@ int CommandEvaluator::applyFootprintRelaxed(double x, double y, double th,
     } 
     
   }
-  collision |= 0 <= min_wheel_left;
-  collision |= 0 <= min_wheel_right;
+
+  collision |= ( (double)cont_left / (double)size * 2.0 ) < min_wheel_left;
+  collision |= ( (double)cont_right / (double)size * 2.0 ) < min_wheel_right;
   if (collision) {
 //     ROS_INFO("CommandEvaluator::applyFootprintRelaxed --> COLLISION. Cont_left: %d \t Cont_right: %d \t fp size: %d", cont_left, cont_right, (int)fp.size());
   }

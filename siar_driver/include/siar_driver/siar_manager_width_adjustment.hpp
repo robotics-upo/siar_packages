@@ -587,8 +587,8 @@ inline bool SiarManagerWidthAdjustment::setVelocity(double linear, double angula
   angular = _config.velocity_sat.apply(angular);
 
   // Following idMind driver --> v_r = (linear - L * angular)    ; v_l = -(linear + L * angular) 
-  double right_speed = -(linear - state.width * 0.5 * angular);
-  double left_speed = (linear + state.width * 0.5 * angular);
+  double right_speed = -(linear - state.width * angular * 0.75);
+  double left_speed = (linear + state.width * angular * 0.75);
   
   left_speed = _config.velocity_sat.apply(left_speed);
   right_speed = _config.velocity_sat.apply(right_speed);

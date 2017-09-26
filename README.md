@@ -26,9 +26,11 @@ Before compiling, please install the dependencies (see Dependencies section for 
  
  > git clone https://github.com/robotics-upo/nonlinear_optimization.git
  
+ > git clone https://github.com/robotics-upo/aruco_ros.git
+ 
  > git clone https://github.com/robotics-upo/siar_packages.git
  
- > sudo apt-get install libgsl0-dev libkml-dev libsuitesparse-metis-dev libsuperlu3-dev liblapack-dev libblas-dev
+ > sudo apt-get install libgsl0-dev libkml-dev libsuitesparse-metis-dev libsuperlu3-dev liblapack-dev libblas-dev libdxflib-dev
  
  > roscd
  
