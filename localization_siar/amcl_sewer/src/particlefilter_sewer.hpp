@@ -161,7 +161,7 @@ public:
     
     // Launch publishers
     m_posesPub = m_nh.advertise<geometry_msgs::PoseArray>(node_name+"/particle_cloud", 1, true);
-    m_graphPub = m_nh.advertise<visualization_msgs::Marker>(node_name+"/sewer_graph", 0);
+    m_graphPub = m_nh.advertise<visualization_msgs::Marker>(node_name+"/sewer_graph", 0, true);
     m_gpsPub = m_nh.advertise<sensor_msgs::NavSatFix>("/gps/fix", 2, true);
 
     // Launch updater timer

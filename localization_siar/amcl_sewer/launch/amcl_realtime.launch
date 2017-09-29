@@ -2,7 +2,7 @@
 -->
 <launch>
   <arg name="camera" default="/up"/>
-  <arg name="stats_file" default="~/stats_experiment_1.txt"/>
+  <arg name="stats_file" default="~/stats_aux.txt"/>
   <arg name="rgbd_odom" default="true"/>
 
   # Launch RGB-D odom: TODO: necessary??
@@ -79,7 +79,7 @@
 <!--   <node name="vis" type="rviz" pkg="rviz" args="-d $(find amcl_sewer)/launch/amcl3d.rviz"/> -->
   
   <node name="cnn_laber" type="cnn_detector.py" pkg="manhole_detector" args="/up $(find manhole_detector)/test/model.10-0.9861-0.9578.hdf5" output="screen">
-    <param name="thres" value="0.42"/>
+    <param name="thres" value="0.65"/>
   
   </node>
   
