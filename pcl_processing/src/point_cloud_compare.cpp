@@ -10,6 +10,9 @@
 #include <pcl/registration/icp.h>
 #include <pcl/filters/filter.h>
 #include <pcl/filters/voxel_grid.h>
+#include <pcl/filters/passthrough.h>
+#include <pcl/point_cloud.h>
+
 
 
 typedef pcl::PointCloud<pcl::PointXYZ> PointCloud;
@@ -28,6 +31,7 @@ PointCloud cloud;
   
 void callback(const PointCloud::ConstPtr& msg)
 {
+
   std::vector<int> indices; 
 
 
@@ -53,12 +57,20 @@ void callback(const PointCloud::ConstPtr& msg)
       pc_data->points[i].z = msg->points[i].z;
     }
   }
-  
-  pcl::removeNaNFromPointCloud(*pc_data,*pc_data,indices); 
 
-  
-  pcl::VoxelGrid< PointCloud > sor;
-  sor.setInputCloud(pc_data);
+//  pcl::removeNaNFromPointCloud(*pc_data,*pc_data,indices); 
+
+  //pcl::VoxelGrid<pcl::PCLPointCloud2> sor;
+  //pcl::VoxelGrid<PointCloud> sor;
+
+  pcl::IterativeClosestPoint<pcl::PointXYZ,pcl::PointXYZ> icp;
+  icp.setMaximumIterations(1);
+  icp.setInputSource(pc_data);
+  icp.setInputTarget(pc_ref);
+  icp.align(pc_output);
+    
+    
+    /*   sor.setInputCloud(pc_data);
   sor.setLeafSize(0.01f, 0.01f, 0.01f);
   sor.filter(*pc_data);
   
@@ -72,7 +84,7 @@ void callback(const PointCloud::ConstPtr& msg)
   std::cout << "has converged:" << icp.hasConverged() << " score: " <<
   icp.getFitnessScore() << std::endl;
   std::cout << icp.getFinalTransformation() << std::endl;
-
+*/
     pub_points_.publish(pc_output);
 
   
