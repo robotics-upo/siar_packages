@@ -16,11 +16,8 @@ int main( int argc, char **argv)
     while (ros::ok()) {
       if (client->isRunning()) {
         ros::spinOnce();
-      } else {
-        sleep(5);
-        delete client;
-        client = new UDPClient;
-      }
+        usleep(2000);
+      } 
       
     }
     delete client;

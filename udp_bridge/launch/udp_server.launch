@@ -13,7 +13,7 @@
   <arg name="joy_topic" default="/joy"/>
   
   <!-- Launch UDP BRIDGE-->
- <node pkg="udp_bridge" type="udp_server" name="udp_server" output="screen" unless="$(arg debug)">
+ <node pkg="udp_bridge" type="udp_server" name="udp_server" output="screen" unless="$(arg debug)" respawn="true">
    <param name="camera_1"  value="$(arg camera_1)"/>
    <param name="camera_2"  value="$(arg camera_2)"/>
    <param name="image_rate" value="$(arg image_rate)"/>

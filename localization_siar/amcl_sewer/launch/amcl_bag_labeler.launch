@@ -16,6 +16,8 @@
   
   <arg name="stats_file" default="$(find amcl_sewer)/stats.txt"/>
   <arg name="trajectory_file" default="$(find amcl_sewer)/traj.txt"/>
+  
+  <arg name="label_file" default="~/label.txt"/>
 
   # Bag file
   <node name="bag_player" type="play" pkg="rosbag" args="$(arg bag_file) --clock -s $(arg start) -r $(arg rate)" if="$(arg play_bag)" output="screen"/>
@@ -101,14 +103,16 @@
     
   <node name="vis" type="rviz" pkg="rviz" args="-d $(find amcl_sewer)/launch/amcl3d.rviz"/>
   
-  <node name="cnn_laber" type="cnn_detector.py" pkg="manhole_detector" args="/up $(find manhole_detector)/test/model.10-0.9861-0.9578.hdf5">
-    <param name="thres" value="0.55"/>
+<!--   <node name="cnn_laber" type="cnn_detector.py" pkg="manhole_detector" args="/up $(find manhole_detector)/test/model.10-0.9861-0.9578.hdf5"> -->
+<!--     <param name="thres" value="0.55"/> -->
   
-  </node>
+<!--   </node> -->
+
+<!--   <node name="labeler" type="fake_detector_plus_labeler.py" pkg="manhole_detector" output="screen" args="front $(arg label_file)"/> -->
   
-  <node name="ground_truth_laber" type="fake_detector.py" pkg="manhole_detector" args="/up $(find manhole_detector)/test/input_vector_2017-01-17-11_ground_truth" >
-    <remap from="manhole" to="ground_truth"/>
-  </node>
+<!--   <node name="ground_truth_laber" type="fake_detector.py" pkg="manhole_detector" args="/up $(find manhole_detector)/test/input_vector_2017-01-17-11_ground_truth" > -->
+<!--     <remap from="manhole" to="ground_truth"/> -->
+<!--   </node> -->
   
 
 </launch>	

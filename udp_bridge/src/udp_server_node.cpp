@@ -9,18 +9,15 @@ int main( int argc, char **argv)
   try
   {
     UDPServer *server;
-    while (ros::ok()) 
+    server = new UDPServer;
+    ros::Rate r(100.0);
+    while (server->isRunning() && ros::ok()) 
     {
-      server = new UDPServer;
-      ros::Rate r(100.0);
-      while (server->isRunning()) 
-      {
-        ros::spinOnce();
-        r.sleep();
-      }
-      delete server;
-      sleep(1);
+      ros::spinOnce();
+      r.sleep();
     }
+    delete server;
+    sleep(2);
   }
   catch (std::exception& e)
   {

@@ -405,8 +405,8 @@ int main(int argc, char** argv)
 	ROS_INFO("The show has started, please have fun.");
       }
       if ((ros::Time::now() - last_remote_joy_time).toSec() > max_joy_time &&
-        last_remote_joy_time.toSec() > last_joy_time.toSec()
-      ) {
+        last_remote_joy_time.toSec() > last_joy_time.toSec() )
+      {
         currentAngularVelocity *= max_time_decay;
         currentLinearVelocity *= max_time_decay;
       } 
