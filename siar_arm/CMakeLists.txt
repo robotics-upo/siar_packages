@@ -156,6 +156,7 @@ add_executable(get_repeater  src/get_repeater.cpp)
 add_executable(position_check  src/position_check.cpp)
 add_executable(attack_repeater  src/attack_repeater.cpp)
 # add_executable(marker_pose_test  src/marker_pose_test.cpp)
+add_executable(image_processing_test src/image_processing_test.cpp)
 
 
 ## Add cmake target dependencies of the library
@@ -217,7 +218,11 @@ target_link_libraries(position_check
 #  ${catkin_LIBRARIES}
 #)
 
-
+target_link_libraries(image_processing_test  
+   ${catkin_LIBRARIES}
+   ${Boost_LIBRARIES}   
+   ${aruco_LIBS}
+) 
 
 
 
