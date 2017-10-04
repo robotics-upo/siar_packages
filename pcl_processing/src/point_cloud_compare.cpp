@@ -137,9 +137,94 @@ void sectionT133()
   }
 }
  
+void sectionT164()
+{
+  for(int i=0; i<N/8; i++)
+  {
+    float k = i/(N/8.0);
+    for(int j=0; j<M; j++)
+    {
+      
+      pc_ref->points[i*M+j].x = 0.2*sin(PI/2*k);
+      pc_ref->points[i*M+j].y = 0.2*cos(PI/2*k);
+      pc_ref->points[i*M+j].z = center_z + depth * j / M;   
 
+      pc_ref->points[(i+N/8)*M+j].x = 0.2+k*0.4;
+      pc_ref->points[(i+N/8)*M+j].y = 0;
+      pc_ref->points[(i+N/8)*M+j].z = center_z + depth * j / M;   
 
+      pc_ref->points[(i+2*N/8)*M+j].x = 1.2/2.0;
+      pc_ref->points[(i+2*N/8)*M+j].y = -k*0.9;
+      pc_ref->points[(i+2*N/8)*M+j].z = center_z + depth * j / M;
+      
+ 
+      pc_ref->points[(i+3*N/8)*M+j].x = 0.6*sin(PI/2*k);
+      pc_ref->points[(i+3*N/8)*M+j].y = -(0.6*cos(PI/2*k)+0.9);
+      pc_ref->points[(i+3*N/8)*M+j].z = center_z + depth * j / M;   
+    
+      pc_ref->points[(i+N/2)*M+j].x = -pc_ref->points[i*M+j].x;
+      pc_ref->points[(i+N/2)*M+j].y = pc_ref->points[i*M+j].y;
+      pc_ref->points[(i+N/2)*M+j].z = pc_ref->points[i*M+j].z;  
+      
+      pc_ref->points[(i+N/2+N/8)*M+j].x = -pc_ref->points[(i+N/8)*M+j].x;
+      pc_ref->points[(i+N/2+N/8)*M+j].y = pc_ref->points[(i+N/8)*M+j].y;
+      pc_ref->points[(i+N/2+N/8)*M+j].z = pc_ref->points[(i+N/8)*M+j].z;
+      
+      pc_ref->points[(i+N/2+2*N/8)*M+j].x = -pc_ref->points[(i+2*N/8)*M+j].x;
+      pc_ref->points[(i+N/2+2*N/8)*M+j].y = pc_ref->points[(i+2*N/8)*M+j].y;
+      pc_ref->points[(i+N/2+2*N/8)*M+j].z = pc_ref->points[(i+2*N/8)*M+j].z;
+      
+      pc_ref->points[(i+N/2+3*N/8)*M+j].x = -pc_ref->points[(i+3*N/8)*M+j].x;
+      pc_ref->points[(i+N/2+3*N/8)*M+j].y = pc_ref->points[(i+3*N/8)*M+j].y;
+      pc_ref->points[(i+N/2+3*N/8)*M+j].z = pc_ref->points[(i+3*N/8)*M+j].z;
+    }
+  }
+}
 
+void sectionT168()
+{
+  for(int i=0; i<N/8; i++)
+  {
+    float k = i/(N/8.0);
+    for(int j=0; j<M; j++)
+    {
+      
+      pc_ref->points[i*M+j].x = 0.2*sin(PI/2*k);
+      pc_ref->points[i*M+j].y = 0.15*cos(PI/2*k);
+      pc_ref->points[i*M+j].z = center_z + depth * j / M;   
+
+      pc_ref->points[(i+N/8)*M+j].x = 0.2+k*0.4;
+      pc_ref->points[(i+N/8)*M+j].y = 0;
+      pc_ref->points[(i+N/8)*M+j].z = center_z + depth * j / M;   
+
+      pc_ref->points[(i+2*N/8)*M+j].x = 1.2/2.0;
+      pc_ref->points[(i+2*N/8)*M+j].y = -k*0.9;
+      pc_ref->points[(i+2*N/8)*M+j].z = center_z + depth * j / M;
+      
+ 
+      pc_ref->points[(i+3*N/8)*M+j].x = 0.6*sin(PI/2*k);
+      pc_ref->points[(i+3*N/8)*M+j].y = -(0.6*cos(PI/2*k)+0.9);
+      pc_ref->points[(i+3*N/8)*M+j].z = center_z + depth * j / M;   
+    
+      pc_ref->points[(i+N/2)*M+j].x = -pc_ref->points[i*M+j].x;
+      pc_ref->points[(i+N/2)*M+j].y = pc_ref->points[i*M+j].y;
+      pc_ref->points[(i+N/2)*M+j].z = pc_ref->points[i*M+j].z;  
+      
+      pc_ref->points[(i+N/2+N/8)*M+j].x = -pc_ref->points[(i+N/8)*M+j].x;
+      pc_ref->points[(i+N/2+N/8)*M+j].y = pc_ref->points[(i+N/8)*M+j].y;
+      pc_ref->points[(i+N/2+N/8)*M+j].z = pc_ref->points[(i+N/8)*M+j].z;
+      
+      pc_ref->points[(i+N/2+2*N/8)*M+j].x = -pc_ref->points[(i+2*N/8)*M+j].x;
+      pc_ref->points[(i+N/2+2*N/8)*M+j].y = pc_ref->points[(i+2*N/8)*M+j].y;
+      pc_ref->points[(i+N/2+2*N/8)*M+j].z = pc_ref->points[(i+2*N/8)*M+j].z;
+      
+      pc_ref->points[(i+N/2+3*N/8)*M+j].x = -pc_ref->points[(i+3*N/8)*M+j].x;
+      pc_ref->points[(i+N/2+3*N/8)*M+j].y = pc_ref->points[(i+3*N/8)*M+j].y;
+      pc_ref->points[(i+N/2+3*N/8)*M+j].z = pc_ref->points[(i+3*N/8)*M+j].z;
+    }
+  }
+}
+ 
 
 void callback(const PointCloud::ConstPtr& msg)
 {
@@ -224,7 +309,9 @@ int main(int argc, char** argv)
 
   //sectionD1400();
   //sectionNT120A();
-  sectionT133();
+  //sectionT133();
+  //sectionT164();
+  sectionT168();
   
   while(ros::ok())
   {
