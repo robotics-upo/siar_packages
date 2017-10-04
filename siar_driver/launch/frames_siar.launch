@@ -1,10 +1,7 @@
 <?xml version="1.0" ?>
 <launch>
 
-<node name="tf_front" pkg="tf" type="static_transform_publisher" args="0.18.5 0 0 0 0 0 sandwich_center front_link  10"/>
-<node name="tf_back" pkg="tf" type="static_transform_publisher" args="-0.18. 0 0 3.141593 0 0 sandwich_center back_link 10"/>
-<node name="tf_left" pkg="tf" type="static_transform_publisher" args="0 0.135 0 1.5708 0 0 sandwich_center left_link 10"/>
-<node name="tf_right" pkg="tf" type="static_transform_publisher" args="0 -0.135 0 -1.5708 0 0 sandwich_center right_link 10"/>
-<node name="tf_sandwich" pkg="tf" type="static_transform_publisher" args="0.03 0 0.58 0 0 0 /base_link /sandwich_center 10"/>
+  <include file="$(find siar_driver)/launch/frames_7_cam_new_platform.launch"/>
+  <include file="$(find siar_driver)/launch/electronics_transform_static.launch"/>
 
 </launch>
