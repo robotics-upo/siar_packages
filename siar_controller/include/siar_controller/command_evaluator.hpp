@@ -140,6 +140,8 @@ namespace siar_controller {
     double m_w_dist, m_w_safe; // Different weights. Respectively: Distance to commanded velocity, safety, collision penalty
     double orig_m_w_dist, orig_m_w_safe; // Different weights. Respectively: Distance to commanded velocity, safety, collision penalty
     
+    bool consider_two_wheels; // Flag: if true considers two wheels when turning in an intersection
+    
     RobotCharacteristics m_model;
     
     SiarFootprint *footprint, *footprint_params;
@@ -214,6 +216,7 @@ CommandEvaluator::CommandEvaluator(ros::NodeHandle& pn):m_model(pn),footprint(NU
   pn.param("negative_obs", negative_obs, -127);
   pn.param("min_wheel_l", min_wheel_left, 0.2); // Minimum fragment of the wheel that has to be without obstacle to be collision-free (in relaxed mode)
   pn.param("min_wheel_r", min_wheel_right, 0.2); // Minimum fragment of the wheel that has to be without obstacle to be collision-free (in relaxed mode)
+  pn.param("consider_two_wheels", consider_two_wheels, true); // If true --> considers the cost of two wheels when turning in a intersection (if not only considers the one that remains in the floor)
   footprint_params = new SiarFootprint(pn);
   orig_m_w_dist = m_w_dist;
   orig_m_w_safe = m_w_safe;
@@ -499,13 +502,13 @@ int CommandEvaluator::applyFootprintRelaxed(double x, double y, double th,
       if (orig[i].y > 0.0) {
         left_wheel = true;
         cont_left--;
-        if (min_wheel_left + 0.01 > min_wheel_right) {
+        if (min_wheel_left + 0.01 > min_wheel_right || consider_two_wheels) {
           ret_val += abs(alt_map.data[index]); 
         }
       } else {
         right_wheel = true;
         cont_right--;
-        if (min_wheel_right + 0.01 > min_wheel_left) {
+        if (min_wheel_right + 0.01 > min_wheel_left || consider_two_wheels) {
           ret_val += abs(alt_map.data[index]); 
         }
       }

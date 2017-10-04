@@ -45,6 +45,7 @@
 #include <exception>
 #include "siar_manager.hpp"
 #include <std_msgs/Bool.h>
+#include <std_msgs/Int8.h>
 #include <ros/ros.h>
 #include "functions/linear_interpolator.hpp"
 #include "siar_driver/arm_firewall.hpp"
@@ -253,7 +254,7 @@ class SiarManagerWidthAdjustment:public SiarManager
   bool first_odometry;
   bool controlled, has_joystick;
   ros::Publisher state_pub;
-  ros::Subscriber slow_motion_sub, reverse_sub;
+  ros::Subscriber slow_motion_sub, reverse_sub, op_sub;
   int bat_cont, bat_skip;
   
   // Linear interpolators data
@@ -272,6 +273,7 @@ class SiarManagerWidthAdjustment:public SiarManager
   bool actualizeBatteryStatus();
   void slowReceived(const std_msgs::Bool& cmd_vel);
   void reverseReceived(const std_msgs::Bool& reverse);
+  void opReceived(const std_msgs::Int8& mode);
   
   inline bool checkSum(unsigned char *buffer, int tam) {
     u_int16_t checksum = from_two_bytes(buffer[tam - 2], buffer[tam - 1]);
@@ -362,6 +364,7 @@ width_to_lin_pos(NULL), x_elec_to_lin_pos(NULL)
   state_pub = pn.advertise<siar_driver::SiarStatus>("/siar_status", 5);
   slow_motion_sub = pn.subscribe("/slow_motion", 1, &SiarManagerWidthAdjustment::slowReceived, this);
   reverse_sub = pn.subscribe("/reverse", 1, &SiarManagerWidthAdjustment::reverseReceived, this);
+  op_sub = pn.subscribe("/operation_mode", 1, &SiarManagerWidthAdjustment::opReceived, this);
   
   if (!pn.getParam("lin_mot_file", lin_mot_vec_file)) {
     lin_mot_vec_file = "lin_mot";
@@ -399,6 +402,12 @@ void SiarManagerWidthAdjustment::reverseReceived(const std_msgs::Bool& cmd_vel)
 //   reverse = cmd_vel.data;
   state.reverse = cmd_vel.data;
 }
+
+void SiarManagerWidthAdjustment::opReceived(const std_msgs::Int8& mode)
+{
+  state.operation_mode = mode.data;
+}
+
 
 inline SiarManagerWidthAdjustment::~SiarManagerWidthAdjustment() {
   if (siar_serial_1.isOpen() ) {

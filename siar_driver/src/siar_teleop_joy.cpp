@@ -45,8 +45,12 @@
 #define STOP_EXIT	      1
 #define FREQ                100 
 #define PANIC_FREQ          300
+
+// axes
 #define LINEAR_VELOCITY_AXIS  1
 #define ANGULAR_VELOCITY_AXIS 0
+
+// buttons
 #define AUTO_BUTTON           3
 #define SLOW_BUTTON   	      5
 #define MAX_VELOCITY_BUTTON   10
@@ -56,6 +60,7 @@
 #define START_BUTTON          9
 #define BACK_BUTTON           8
 #define REVERSE_BUTTON        0
+#define MED_WIDTH_BUTTON      1
 // New buttons ARM and width
 #define ARM_TORQUE_BUTTON     4
 #define WIDTH_AXIS            4
@@ -98,8 +103,11 @@ int front_light_button, rear_light_button;
 int slowButton;
 int auto_button;
 
+
+// Arm and width buttons and axes
 int arm_torque_button;
 int width_pos_axis, width_pos_axis_2, wheel_pos_axis, wheel_pos_axis_2;
+int med_width_button, last_med_width_button;
 uint8_t arm_torque = 0; // Current state of arm_torque
 int ant_arm_torque_button = 0;
 double ant_width_pos = 0.0;
@@ -223,7 +231,14 @@ void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
       std_msgs::Float32 msg;
       msg.data = width_pos_2;
       width_pos_pub.publish(msg);
+    } else if (joy->buttons[med_width_button] == 1 && last_med_width_button == 0) {
+      std_msgs::Float32 msg;
+      msg.data = 0.75; // TODO: configure it!
+      if (!backwards)
+        msg.data *= -1.0;
+      width_pos_pub.publish(msg);
     }
+    last_med_width_button = joy->buttons[med_width_button];
     
     double wheel_pos = joy->axes[wheel_pos_axis];
     double wheel_pos_2 = joy->axes[wheel_pos_axis_2];
@@ -332,6 +347,7 @@ int main(int argc, char** argv)
   
   pn.param<int>("width_pos_axis", width_pos_axis, WIDTH_AXIS);
   pn.param<int>("width_pos_axis_2", width_pos_axis_2, WIDTH_AXIS_2);
+  pn.param<int>("med_width_button", med_width_button, MED_WIDTH_BUTTON);
   pn.param<int>("wheel_pos_axis", wheel_pos_axis, WHEEL_AXIS);
   pn.param<int>("wheel_pos_axis_2", wheel_pos_axis_2, WHEEL_AXIS_2);
   pn.param<int>("arm_torque_button", arm_torque_button, ARM_TORQUE_BUTTON);

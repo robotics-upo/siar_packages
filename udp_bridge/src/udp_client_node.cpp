@@ -13,12 +13,9 @@ int main( int argc, char **argv)
     // Setup udp client node
     UDPClient *client = new UDPClient;
     // ROS spin forever
-    while (ros::ok()) {
-      if (client->isRunning()) {
-        ros::spinOnce();
-        usleep(2000);
-      } 
-      
+    while (ros::ok() && client->isRunning()) {
+      ros::spinOnce();
+      usleep(2000);
     }
     delete client;
   }    
@@ -27,5 +24,5 @@ int main( int argc, char **argv)
     std::cout << "Exception: " << e.what() << std::endl;
   }
   
-  return 0;
+  return -1;
 }
