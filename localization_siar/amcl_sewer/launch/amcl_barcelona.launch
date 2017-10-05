@@ -13,9 +13,9 @@
     <param name="min_particles" value="400" />
     <param name="max_particles" value="500" />
     
-    <param name="odom_x_mod" value="0.7" />
-    <param name="odom_y_mod" value="0.5" />
-    <param name="odom_a_mod" value="0.5" />
+    <param name="odom_x_mod" value="0.6" />
+    <param name="odom_y_mod" value="0.6" />
+    <param name="odom_a_mod" value="0.6" />
     
     <param name="resample_interval" value="0" />
     
@@ -26,9 +26,9 @@
 <!--     <param name="initial_y" value="3.0" /> -->
 <!--     <param name="initial_a" value="0.73" /> -->
     
-    <param name="initial_x_dev" value="0.5" />
-    <param name="initial_y_dev" value="0.5" />
-    <param name="initial_a_dev" value="0.2" />
+    <param name="initial_x_dev" value="1.0" />
+    <param name="initial_y_dev" value="1.0" />
+    <param name="initial_a_dev" value="0.5" />
     
     <param name="edgeDev" value="1.2"/>
     <param name="manholeThres" value="0.075"/>

@@ -20,6 +20,8 @@ public:
   //! @brief NON-ROS constructor
   FloorDetector(double delta, double epsilon, double gamma, int theta, const std::string &cam, const Eigen::Affine3d &T);
   
+  
+  
   ~FloorDetector();
   
   //! @brief Detects the floor and generates an altitude map (local)
@@ -32,6 +34,8 @@ protected:
   
   void infoCallback_1(const sensor_msgs::CameraInfoConstPtr &info);
   void imgCallback_1(const sensor_msgs::ImageConstPtr &img);
+  
+  void calculateRollPitch(const Plane &p, double &roll, double &pitch) const;
   
   inline void prepare_pc() {
     pcd_mod = new sensor_msgs::PointCloud2Modifier(pc);
@@ -75,15 +79,18 @@ FloorDetector::FloorDetector(ros::NodeHandle &nh, ros::NodeHandle &pnh): PlaneDe
   floor_tolerance = 0.15;
   link_1 = "/base_link";
   cam_1 = "/camera";
-  link_2 = cam_1 + "_depth_optical_frame";
+  
   
   pnh.getParam("floor_tolerance", floor_tolerance);
+  pnh.getParam("camera", cam_1);
+  link_2 = cam_1 + "_depth_optical_frame";
   pnh.getParam("link_1", link_1);
   pnh.getParam("link_2", link_2);
-  pnh.getParam("camera", cam_1);
   
-  img_topic_1 = cam_1 + "/image_raw";
-  info_topic_1 = cam_1 + "/camera_info";
+  
+  
+  img_topic_1 = cam_1 + "/depth_registered/image_raw";
+  info_topic_1 = cam_1 + "/depth_registered/camera_info";
   pc_topic = nh.resolveName("/out_cloud");
   
   getTransformFromTF();
@@ -140,83 +147,98 @@ void FloorDetector::detectFloor(const sensor_msgs::Image &img)
     if (fabs(p.v.dot(v_z)) > 0.9 && p.d < floor_tolerance) {
       // New floor plane detected
       ROS_INFO("Floor detector: New floor plane detected: %s", p.toString().c_str() );
+      ROS_INFO("Original plane: %s", _detected_planes.at(i).toString().c_str() );
       floor_planes.push_back(i);
+      double roll, pitch;
+      calculateRollPitch(p, roll, pitch);
+      ROS_INFO("Roll and pitch %f %f", roll, pitch);
     }
     
   }
   
   if (floor_planes.size() == 0) {
     ROS_INFO("No floor");
-  }
-  
-  // Header
-  pc.header = img.header;
-  
-  int size = 0;
-  sensor_msgs::PointCloud2Iterator<float> iter_x(pc, "x");
-  sensor_msgs::PointCloud2Iterator<float> iter_y(pc, "y");
-  sensor_msgs::PointCloud2Iterator<float> iter_z(pc, "z");
-  sensor_msgs::PointCloud2Iterator<uint8_t> iter_r(pc, "r");
-  sensor_msgs::PointCloud2Iterator<uint8_t> iter_g(pc, "g");
-  sensor_msgs::PointCloud2Iterator<uint8_t> iter_b(pc, "b");
-  
-  for (unsigned int i = 0; i < img.height * img.width; i++) {
-//     std::cout  << i << std::endl;
-    Eigen::Vector3d p = get3DPoint(i);
-//     std::cout  << "After point" << std::endl;
-    for (unsigned int j = 0; j < floor_planes.size(); j++) {
-      if ( _detected_planes.at(floor_planes.at(j)).distance(p) < floor_tolerance ) {
-        // Publish point if: TODO: check wether its a floor plane or its an unidentified plane
-        size++;
-        
-      }
-    }
-  }
-  
-  pcd_mod->resize(size);
-  
-  for (unsigned int i = 0; i < img.height * img.width; i++) {
-    Eigen::Vector3d p = get3DPoint(i);
-    for (unsigned int j = 0; j < floor_planes.size(); j++) {
-      if ( _detected_planes.at(floor_planes.at(j)).distance(p) < floor_tolerance ) {
-        // Publish point if: TODO: check wether its a floor plane or its an unidentified plane
-//         std::cout << "1" << std::endl;
-        *iter_x = p(0);
-//         std::cout << "2" << std::endl;
-        *iter_y = p(1);
-//         std::cout << "3" << std::endl;
-        *iter_z = p(2);
-//         std::cout << "4" << std::endl;
-        int c = status_vec.at(i)%color.size();
-//         std::cout << "5" << std::endl;
-        *iter_r = color[c](0);
-//         std::cout << "6" << std::endl;
-        *iter_g = color[c](1);
-//         std::cout << "7" << std::endl;
-        *iter_b = color[c](2);        
-//         std::cout << "8" << std::endl;
-        ++iter_x;++iter_y;++iter_z;
-//         std::cout << "9" << std::endl;
-        ++iter_r;++iter_g;++iter_b;
-      }
-    }
-  }
-  if (publish_cloud) {
-    pointcloud_pub.publish(pc);
+    
   } else {
-    ROS_INFO("Cloud size: %d", size);
+  
+    // Header
+    pc.header = img.header;
+    
+    int size = 0;
+    sensor_msgs::PointCloud2Iterator<float> iter_x(pc, "x");
+    sensor_msgs::PointCloud2Iterator<float> iter_y(pc, "y");
+    sensor_msgs::PointCloud2Iterator<float> iter_z(pc, "z");
+    sensor_msgs::PointCloud2Iterator<uint8_t> iter_r(pc, "r");
+    sensor_msgs::PointCloud2Iterator<uint8_t> iter_g(pc, "g");
+    sensor_msgs::PointCloud2Iterator<uint8_t> iter_b(pc, "b");
+    
+    for (unsigned int i = 0; i < img.height * img.width; i++) {
+  //     std::cout  << i << std::endl;
+      Eigen::Vector3d p = get3DPoint(i);
+  //     std::cout  << "After point" << std::endl;
+      for (unsigned int j = 0; j < floor_planes.size(); j++) {
+        if ( _detected_planes.at(floor_planes.at(j)).distance(p) < floor_tolerance ) {
+          // Publish point if: TODO: check wether its a floor plane or its an unidentified plane
+          size++;
+          
+        }
+      }
+    }
+    
+    pcd_mod->resize(size);
+    
+    for (unsigned int i = 0; i < img.height * img.width; i++) {
+      Eigen::Vector3d p = get3DPoint(i);
+      for (unsigned int j = 0; j < floor_planes.size(); j++) {
+        if ( _detected_planes.at(floor_planes.at(j)).distance(p) < floor_tolerance ) {
+          // Publish point if: TODO: check wether its a floor plane or its an unidentified plane
+  //         std::cout << "1" << std::endl;
+          *iter_x = p(0);
+  //         std::cout << "2" << std::endl;
+          *iter_y = p(1);
+  //         std::cout << "3" << std::endl;
+          *iter_z = p(2);
+  //         std::cout << "4" << std::endl;
+          int c = status_vec.at(i)%color.size();
+  //         std::cout << "5" << std::endl;
+          *iter_r = color[c](0);
+  //         std::cout << "6" << std::endl;
+          *iter_g = color[c](1);
+  //         std::cout << "7" << std::endl;
+          *iter_b = color[c](2);        
+  //         std::cout << "8" << std::endl;
+          ++iter_x;++iter_y;++iter_z;
+  //         std::cout << "9" << std::endl;
+          ++iter_r;++iter_g;++iter_b;
+        }
+      }
+    }
+    if (publish_cloud) {
+      pointcloud_pub.publish(pc);
+    } else {
+      ROS_INFO("Cloud size: %d", size);
+    }
   }
 }
 
 void FloorDetector::getTransformFromTF()
 {
   ROS_INFO("Waiting for transform between: %s and %s", link_1.c_str(), link_2.c_str());
-  while (!tfListener.waitForTransform(link_1, link_2, ros::Time::now(), ros::Duration(1.0))) {
-    sleep(1);
-  }
-  
+  bool ok = false;
   tf::StampedTransform tf_;
-  tfListener.lookupTransform(link_1, link_2, ros::Time::now(), tf_);
+  while (!tfListener.waitForTransform(link_1, link_2, ros::Time::now(), ros::Duration(1.0)) && ros::ok() && !ok) {
+      sleep(1);
+    try {
+    
+      
+      tfListener.lookupTransform(link_1, link_2, ros::Time::now(), tf_);
+      ok = true;
+    } catch (std::exception &e) {
+      
+    }
+  } 
+  
+  ROS_INFO("Got transform");
   
   // Get rotation
   tf::Quaternion q = tf_.getRotation();
@@ -256,6 +278,12 @@ void FloorDetector::imgCallback_1(const sensor_msgs::ImageConstPtr& img)
 {
   // Detecting planes with respect to the camera
   detectFloor(*img);
+}
+
+void FloorDetector::calculateRollPitch(const Plane& p, double& roll, double& pitch) const
+{
+  pitch = asin(p.v[1]);
+  roll = acos(p.v[2]/sqrt(1 - pow(p.v[1], 2)));
 }
 
 

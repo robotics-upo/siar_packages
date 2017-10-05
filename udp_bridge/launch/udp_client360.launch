@@ -11,7 +11,7 @@
   
   <!-- Launch udp bridge -->
   
-  <node pkg="udp_bridge" type="udp_client" name="udp_client" output="screen" unless="$(arg debug)">
+  <node pkg="udp_bridge" type="udp_client" name="udp_client" output="screen" unless="$(arg debug)" respawn="true" respawn_delay="2">
    <param name="camera_1"  value="$(arg camera_1)"/>
    <param name="camera_2"  value="$(arg camera_2)"/>
    <param name="ip_address" value="$(arg ip_address)"/>

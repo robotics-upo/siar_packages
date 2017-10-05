@@ -6,6 +6,7 @@ string motor_fw_version
 string battery_fw_version
 
 # Motor status
+int8 operation_mode
 bool reverse
 bool slow
 bool fan
