@@ -44,7 +44,7 @@ protected:
     pcd_mod->reserve(100000);
   }
   
-  double floor_tolerance;
+  double floor_tolerance, angular_tolerance;
   std::string link_1, link_2; // Link1 --> robot. Link2 --> camera
   std::string cam_1;
   std::string img_topic_1, info_topic_1, pc_topic;
@@ -80,8 +80,9 @@ FloorDetector::FloorDetector(ros::NodeHandle &nh, ros::NodeHandle &pnh): PlaneDe
   link_1 = "/base_link";
   cam_1 = "/camera";
   
-  
+  pnh.getParam("publish_cloud", publish_cloud);
   pnh.getParam("floor_tolerance", floor_tolerance);
+  pnh.getParam("angular_tolerance", angular_tolerance);
   pnh.getParam("camera", cam_1);
   link_2 = cam_1 + "_depth_optical_frame";
   pnh.getParam("link_1", link_1);
@@ -130,6 +131,8 @@ void FloorDetector::detectFloor(const sensor_msgs::Image &img)
   if (detectPlanes(img) == 0) {
     // Could not detect a floor plane --> exit
     ROS_INFO("Floor detector --> No planes" );
+    
+    
     return;
   }
   // Check which of the planes is horizontal and at a altitude --> it will give us the position of the floor
@@ -140,10 +143,10 @@ void FloorDetector::detectFloor(const sensor_msgs::Image &img)
   std::vector<int> floor_planes;
   for (unsigned int i = 0; i < _detected_planes.size() ; i++) {
     DetectedPlane p = _detected_planes.at(i);
-//     ROS_INFO("Detected plane: %s", p.toString().c_str());
+    ROS_INFO("Detected plane: %s", p.toString().c_str());
     
     p = p.affine(T_inv.matrix().block<3,3>(0,0), T_inv.matrix().block<3,1>(0,3));
-//     ROS_INFO("Transformed plane: %s", p.toString().c_str());
+    ROS_INFO("Transformed plane: %s. \tdot product = %f. \t Distance: %f", p.toString().c_str(), p.v.dot(v_z), p.d);
     if (fabs(p.v.dot(v_z)) > 0.9 && p.d < floor_tolerance) {
       // New floor plane detected
       ROS_INFO("Floor detector: New floor plane detected: %s", p.toString().c_str() );
@@ -158,6 +161,7 @@ void FloorDetector::detectFloor(const sensor_msgs::Image &img)
   
   if (floor_planes.size() == 0) {
     ROS_INFO("No floor");
+//     printPlanes(_detected_planes);
     
   } else {
   
@@ -192,23 +196,14 @@ void FloorDetector::detectFloor(const sensor_msgs::Image &img)
       for (unsigned int j = 0; j < floor_planes.size(); j++) {
         if ( _detected_planes.at(floor_planes.at(j)).distance(p) < floor_tolerance ) {
           // Publish point if: TODO: check wether its a floor plane or its an unidentified plane
-  //         std::cout << "1" << std::endl;
           *iter_x = p(0);
-  //         std::cout << "2" << std::endl;
           *iter_y = p(1);
-  //         std::cout << "3" << std::endl;
           *iter_z = p(2);
-  //         std::cout << "4" << std::endl;
           int c = status_vec.at(i)%color.size();
-  //         std::cout << "5" << std::endl;
           *iter_r = color[c](0);
-  //         std::cout << "6" << std::endl;
           *iter_g = color[c](1);
-  //         std::cout << "7" << std::endl;
           *iter_b = color[c](2);        
-  //         std::cout << "8" << std::endl;
           ++iter_x;++iter_y;++iter_z;
-  //         std::cout << "9" << std::endl;
           ++iter_r;++iter_g;++iter_b;
         }
       }
@@ -229,8 +224,6 @@ void FloorDetector::getTransformFromTF()
   while (!tfListener.waitForTransform(link_1, link_2, ros::Time::now(), ros::Duration(1.0)) && ros::ok() && !ok) {
       sleep(1);
     try {
-    
-      
       tfListener.lookupTransform(link_1, link_2, ros::Time::now(), tf_);
       ok = true;
     } catch (std::exception &e) {
@@ -242,7 +235,7 @@ void FloorDetector::getTransformFromTF()
   
   // Get rotation
   tf::Quaternion q = tf_.getRotation();
-//   std::cout << "Quaternion: " << q.getW() << " " << q.getX() << " " << q.getY() << " " << q.getZ() << std::endl;
+  std::cout << "Quaternion: " << q.getW() << " " << q.getX() << " " << q.getY() << " " << q.getZ() << std::endl;
   Eigen::Quaterniond q_eigen;
   q_eigen.w() = q.getW();
   q_eigen.x() = q.getX();
@@ -256,9 +249,9 @@ void FloorDetector::getTransformFromTF()
   T.matrix()(1,3) = trans_tf.getY();
   T.matrix()(2,3) = trans_tf.getZ();
   
-  T_inv = T.inverse();
-  ROS_INFO("Transform OK");
+   std::cout << "Translation: " << trans_tf.getX() << " " << trans_tf.getY() << " " << trans_tf.getZ() << std::endl;
   
+  T_inv = T.inverse();
   
   std::cout << T.matrix() << std::endl;
   std::cout << T_inv.matrix() << std::endl;

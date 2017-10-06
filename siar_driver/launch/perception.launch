@@ -18,8 +18,8 @@
   
   <include file="$(find siar_driver)/launch/bag.launch" if="$(arg bag)"/>
   
-  <node name="rgbd_odom_node" type="rgbd_odom_node" pkg="rgbd_odom" if="$(arg rgbd_odom)" >
-    <param name="camera_topic" value="$(arg camera)" />
+<!--  <node name="rgbd_odom_node" type="rgbd_odom_node" pkg="rgbd_odom" >
+    <param name="camera_topic" value="/front" />
     <param name="tf_topic_out" value="/rgbd_odom/transform" />
     <param name="max_features" value="800" />
     <param name="flow_threshold" value="10" />
@@ -42,6 +42,6 @@
     <param name="pc_outlier_neighbors" value="10" />
     <param name="ground_height_topic" value="/ground_estimator_node/ground_height" />
     <param name="ground_alpha" value="0.8" />
-  </node>
+  </node>-->
   
 </launch>
