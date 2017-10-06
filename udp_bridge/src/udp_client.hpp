@@ -19,6 +19,7 @@
 #include "udp_manager.hpp"
 #include "joy_translator.hpp"
 #include <boost/thread/scoped_thread.hpp>
+#include <geometry_msgs/TransformStamped.h>
 
 class UDPClient : public UDPManager
 {
@@ -30,7 +31,7 @@ private:
   std::string camera_1, camera_2, camera_up;
   std::string camTopic, camTopic_2, depthCamTopic, depthCamTopic_2, depthCamTopic_up;
   std::string allCamerasTopic, publishDepthTopic, joyTopic, rssi_topic, slowTopic;
-  std::string point_topic, siar_status_topic;
+  std::string point_topic, siar_status_topic, geo_tf_topic;
   
   // ROS stuff
   ros::Publisher image_pub, odom_pub, odom_pub_2, image_pub_2, depth_pub, depth_pub_2, depth_pub_up;
@@ -39,7 +40,7 @@ private:
   
   ros::Subscriber publish_depth_sub, all_cameras_sub, joy_sub, slow_sub;
   ros::NodeHandle nh;
-//   tf::TransformBroadcaster tf_broadcaster;
+  tf::TransformBroadcaster tf_broadcaster;
   std::string base_frame_id, odom_frame_id;
   
   // Camera Info stuff
@@ -91,6 +92,7 @@ public:
     depthTopic = camera_1 + "/depth_registered/image_raw/compressedDepth";
     depthTopic_2 = camera_2 + "/depth_registered/image_raw/compressedDepth";
     depthTopic_up = camera_up + "/depth_registered/image_raw/compressedDepth";
+    geo_tf_topic = "/rgbd_odom/transform";
           
     // Create publishers
     image_pub = nh.advertise<sensor_msgs::CompressedImage>(imageTopic, 1);
@@ -373,6 +375,16 @@ protected:
       {
         ROS_INFO("Deserializing and publishing topic %s", topic.c_str());
         deserializePublish<sensor_msgs::PointCloud2>(buffer.data(), buffer.size(), point_pub);
+      }
+      if (topic == geo_tf_topic) 
+      {
+        geometry_msgs::TransformStamped odom_trans = deserialize<geometry_msgs::TransformStamped>(buffer.data(), buffer.size());
+        odom_trans.header.frame_id = odom_frame_id;
+        odom_trans.child_frame_id = base_frame_id;
+        odom_trans.header.stamp = ros::Time::now();
+      
+        // Publish the odometry TF
+        tf_broadcaster.sendTransform(odom_trans);
       }
     }
   }

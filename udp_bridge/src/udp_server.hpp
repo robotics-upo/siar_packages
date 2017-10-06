@@ -8,6 +8,7 @@
 #include <nav_msgs/Odometry.h>
 #include <sensor_msgs/CompressedImage.h>
 #include <sensor_msgs/PointCloud2.h>
+#include <geometry_msgs/TransformStamped.h>
 #include <rssi_get/Nvip_status.h>
 #include <siar_driver/SiarStatus.h>
 #include <std_msgs/UInt32.h>
@@ -32,7 +33,7 @@ private:
   double odomRate, imageRate, depthRate, siar_status_rate, rssiRate, point_rate;
   std::string odomTopic, imageTopic, imageTopic_2, depthTopic, depthTopic_2, depthTopic_up;
   std::string allCamerasTopic, publishDepthTopic, joyTopic, rssi_topic, point_topic;
-  std::string siar_status_topic, slowTopic;
+  std::string siar_status_topic, slowTopic, geo_tf_topic;
   std::string camera_1, camera_2, camera_up;
   int jpeg_quality, min_quality;
   bool quality_set, quality_set_2;
@@ -43,7 +44,7 @@ private:
   
   // Publishers and subscribers
   ros::Publisher publish_depth_pub, all_cameras_pub, joy_pub, slow_pub;
-  ros::Subscriber odom_sub, image_sub, image_sub_2, depth_sub, depth_sub_2, rssi_sub, depth_sub_up;
+  ros::Subscriber odom_sub, image_sub, image_sub_2, depth_sub, depth_sub_2, rssi_sub, depth_sub_up, geo_tf_sub;
   ros::Subscriber  siar_status_sub, point_sub;
   ros::NodeHandle nh;
   
@@ -87,14 +88,14 @@ public:
       point_topic = "/rgbd_odom_node/point_cloud";
     if (!lnh.getParam("point_cloud_rate", point_rate))
       point_rate = 1.0;
-    
-    
+       
     // Set the image topics 
     imageTopic = camera_1 + "/rgb/image_raw/compressed";
     imageTopic_2 = camera_2 + "/rgb/image_raw/compressed";
     depthTopic = camera_1 + "/depth_registered/image_raw/compressedDepth";
     depthTopic_2 = camera_2 + "/depth_registered/image_raw/compressedDepth";
     depthTopic_up = camera_up + "/depth_registered/image_raw/compressedDepth";
+    geo_tf_topic = "/rgbd_odom/transform";
     
     allCamerasTopic = "/all_cameras";
     publishDepthTopic = "/publish_depth";
@@ -125,6 +126,7 @@ public:
     siarStatusCycle.init(siar_status_rate);
     point_sub = nh.subscribe(point_topic, 1, &UDPServer::pointCallback, this);
     pointCycle.init(point_rate);
+    geo_tf_sub = nh.subscribe(geo_tf_topic, 1, &UDPServer::tfCallback, this);
     
     // Set default compression quality 
     int i = 0;
@@ -282,6 +284,12 @@ protected:
     // Check for quality set
     // Serialize msg and write over UDP
     serializeWrite<siar_driver::SiarStatus>(siar_status_topic, *msg); 
+  }
+  
+  void tfCallback(const geometry_msgs::TransformStamped::ConstPtr& msg)
+  {
+    serializeWrite<geometry_msgs::TransformStamped>(geo_tf_topic, *msg);
+    
   }
   
   void readThread()

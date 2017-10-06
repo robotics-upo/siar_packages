@@ -22,10 +22,6 @@
     <param name="update_min_d" value="0.5" />
     <param name="update_min_a" value="0.2" />
     
-<!--     <param name="initial_x" value="3.0" /> NOTE: the inital position should be configured by hand by the operator-->
-<!--     <param name="initial_y" value="3.0" /> -->
-<!--     <param name="initial_a" value="0.73" /> -->
-    
     <param name="initial_x_dev" value="1.0" />
     <param name="initial_y_dev" value="1.0" />
     <param name="initial_a_dev" value="0.5" />
