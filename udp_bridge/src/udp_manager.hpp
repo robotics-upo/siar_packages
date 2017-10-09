@@ -31,7 +31,7 @@ class UDPManager
 public:
 
   //!Intialize the serial port to the given values
-  UDPManager():max_udp_length(1460),max_topic_length(256), max_msgs(5),msg_sent(0),header("UDPHEAD"),start("UDPSTART"),max_length(200000L),max_time(2),running(false) 
+  UDPManager():max_udp_length(1460),max_topic_length(256), max_msgs(5),msg_sent(0),header("UDPHEAD"),start("UDPSTART"),max_length(200000L),max_time(5),running(false) 
   {
 //     ROS_INFO("In UDPManager()");
     buf_s.resize(max_udp_length);
