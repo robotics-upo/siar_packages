@@ -36,17 +36,17 @@ public:
     if(!lnh.getParam("frame_skip", frameSkip))
       frameSkip = 3;     
     if(!lnh.getParam("use_depth", use_depth)) 
-      use_depth = false;
+      use_depth = true;
     if(!lnh.getParam("publish_depth", publish_depth)) 
-      publish_depth = false;
+      publish_depth = true;
     if(!lnh.getParam("scale", scale))
       scale = 1.0;
     if(!lnh.getParam("publish_all", publish_all))
       publish_all = false;
+    if(!lnh.getParam("downsample_depth", downsample_depth))
+      downsample_depth = true;
     
     reverse = false;
-    
-    
     // Create bool subscribers
     sub_all = nh.subscribe(allCamerasTopic, 1, &ImageSplitter::publishAllCallback, this);
     sub_reverse = nh.subscribe(reverseTopic, 1, &ImageSplitter::reverseCallback, this);
@@ -109,14 +109,22 @@ public:
       return;
     }
     depthCount = 0;
-    cv_bridge::CvImagePtr img_cv = cv_bridge::toCvCopy(msg, "32FC1");
-    cv::Mat dst(msg->width * scale,msg->height * scale,img_cv->image.type());
-    cv::resize(img_cv->image, dst, cv::Size(0,0), scale, scale);
-    img_cv->image = dst;
-    
-    sensor_msgs::ImagePtr pt = img_cv->toImageMsg();
     if (publish_depth)
     {
+      cv_bridge::CvImagePtr img_cv = cv_bridge::toCvCopy(msg, "32FC1");
+      
+      double scale = downsample_depth?this->scale*0.5:this->scale;
+      
+      cv::Mat dst(msg->width * scale,msg->height * scale,img_cv->image.type());
+      
+      
+      
+      cv::resize(img_cv->image, dst, cv::Size(0,0), scale, scale);
+      img_cv->image = dst;
+    
+      sensor_msgs::ImagePtr pt = img_cv->toImageMsg();
+    
+      
       if (reverse && publish_all) 
 	depth_pub_2.publish(pt);
       if (!reverse)
@@ -211,7 +219,7 @@ protected:
   int imgCount, depthCount;
   int imgCount_2, depthCount_2;
   double scale; // Scaling in the image
-  bool publish_depth, use_depth, reverse, publish_all;
+  bool publish_depth, use_depth, reverse, publish_all, downsample_depth;
 };
 
 int main(int argc, char **argv)

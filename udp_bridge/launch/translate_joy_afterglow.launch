@@ -1,5 +1,4 @@
 <?xml version="1.0"?>
-<!-- Launches frame dropper and serial comms for the server side -->
 <launch>
   
   <!-- Launch translator-->

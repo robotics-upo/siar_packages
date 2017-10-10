@@ -42,7 +42,7 @@
   
   <!-- Representation stuff-->
 <!--   <node pkg="rviz" type="rviz" name="rviz" args="-d ../.rviz/barcelona_junio.rviz"/> -->
-  <node pkg="rqt_gui" type="rqt_gui" name="rqt" />
+<!--   <node pkg="rqt_gui" type="rqt_gui" name="rqt" /> -->
   <include file="$(find siar_stl_model)/launch/siar.launch"/>
   
   <!-- Joystick node that will be sent over the UDP link-->

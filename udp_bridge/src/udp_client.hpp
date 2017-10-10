@@ -135,43 +135,79 @@ public:
     
     // Set the general camera info
     general_info.D.resize(5);
-    general_info.height = 480;
-    general_info.width = 640;
+    int aux;
+    if (!lnh.getParam("height", aux)) 
+      general_info.height = 480;
+    else
+      general_info.height = aux;
+    if (!lnh.getParam("width", aux))
+      general_info.width = 640;
+    else 
+      general_info.width = aux;
+    
+    
     for (int i = 0; i < 5; i++) {
       general_info.D[i] = 0.0;
     }
-    general_info.K[0] = 570.3422241210938;
-    general_info.K[1] = 0.0;
-    general_info.K[2] = 319.5;
-    general_info.K[3] = 0.0;
-    general_info.K[4] = 570.3422241210938;
-    general_info.K[5] = 239.5;
-    general_info.K[6] = 0.0;
-    general_info.K[7] = 0.0;
-    general_info.K[8] = 1.0;
     
-    general_info.P[0] = 570.3422241210938;
-    general_info.P[1] = 0.0;
-    general_info.P[2] = 319.5;
-    general_info.P[3] = 0.0;
-    general_info.P[4] = 0.0;
-    general_info.P[5] = 570.3422241210938;
-    general_info.P[6] = 239.5;
-    general_info.P[7] = 0.0;
-    general_info.P[8] = 0.0;
-    general_info.P[9] = 0.0;
-    general_info.P[10] = 1.0;
-    general_info.P[11] = 0.0;
+    std::vector<double> vec;
     
-    general_info.R[0] = 1.0;
-    general_info.R[1] = 0.0;
-    general_info.R[2] = 0.0;
-    general_info.R[3] = 0.0;
-    general_info.R[4] = 1.0;
-    general_info.R[5] = 0.0;
-    general_info.R[6] = 0.0;
-    general_info.R[7] = 0.0;
-    general_info.R[8] = 1.0;
+    if (!lnh.getParam("K", vec)) {
+      general_info.K[0] = 570.3422241210938;
+      general_info.K[1] = 0.0;
+      general_info.K[2] = 319.5;
+      general_info.K[3] = 0.0;
+      general_info.K[4] = 570.3422241210938;
+      general_info.K[5] = 239.5;
+      general_info.K[6] = 0.0;
+      general_info.K[7] = 0.0;
+      general_info.K[8] = 1.0;
+    } else {
+      for (size_t i = 0;i < vec.size() && i < 9; i++) {
+        general_info.K[i] = vec[i];
+      }
+      
+    }
+    
+    if (!lnh.getParam("P", vec)) {
+      general_info.P[0] = 570.3422241210938;
+      general_info.P[1] = 0.0;
+      general_info.P[2] = 319.5;
+      general_info.P[3] = 0.0;
+      general_info.P[4] = 0.0;
+      general_info.P[5] = 570.3422241210938;
+      general_info.P[6] = 239.5;
+      general_info.P[7] = 0.0;
+      general_info.P[8] = 0.0;
+      general_info.P[9] = 0.0;
+      general_info.P[10] = 1.0;
+      general_info.P[11] = 0.0;
+    } else {
+      for (size_t i = 0;i < vec.size() && i < 12; i++) {
+        general_info.P[i] = vec[i];
+      }
+      
+    }
+    
+    if (!lnh.getParam("R", vec)) {
+      general_info.R[0] = 1.0;
+      general_info.R[1] = 0.0;
+      general_info.R[2] = 0.0;
+      general_info.R[3] = 0.0;
+      general_info.R[4] = 1.0;
+      general_info.R[5] = 0.0;
+      general_info.R[6] = 0.0;
+      general_info.R[7] = 0.0;
+      general_info.R[8] = 1.0;
+    } else {
+      for (size_t i = 0;i < vec.size() && i < 9; i++) {
+        general_info.R[i] = vec[i];
+      }
+      
+    }
+    
+    
+    
     
     general_info.roi.do_rectify = false;
     general_info.roi.x_offset = 0;
@@ -181,7 +217,7 @@ public:
     
     general_info.distortion_model = "plumb_bob";
     
-    // Set the general camera info
+    // Set the downsampled camera info
     downsampled_info.D.resize(5);
     downsampled_info.height = 240;
     downsampled_info.width = 320;
