@@ -51,7 +51,9 @@ class SiarArmControl{
 		int read_values[5];
 		int write_values[5];
 	
-			  
+		bool busy = false;
+		
+		
 		void writeServos()
 		{	
 			int command_time = 0;
@@ -66,7 +68,7 @@ class SiarArmControl{
 					
 		//	cout << servo_command.joint_values[0] << ", "<< servo_command.joint_values[1] << ", "<< servo_command.joint_values[2] << ", "<< servo_command.joint_values[3] << ", "<< servo_command.joint_values[4] << endl;			
 				
-			    bool ret_val = (write_values[0]<805 && write_values[0]>208);
+			bool ret_val = (write_values[0]<805 && write_values[0]>208);
 			ret_val &= (write_values[1]<1568 && write_values[1]>220);
 			ret_val &= (write_values[2]<2020 && write_values[2]>191); // Limits from the Arm Reference Value spreadsheet of Carlos Marques
 			ret_val &= (write_values[3]<958 && write_values[3]>30);
