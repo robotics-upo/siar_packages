@@ -14,7 +14,12 @@
 #include <string>
 #include <queue>
 #include <aruco_msgs/MarkerArray.h>
-
+#include <sensor_msgs/image_encodings.h>
+#include <vector>
+#include <image_transport/image_transport.h>
+#include <opencv2/highgui/highgui.hpp>
+#include <cv_bridge/cv_bridge.h>
+#include "opencv2/imgproc/imgproc.hpp"
 
 //#include <actionlib/client/simple_action_client.h>
 //#include <actionlib/server/simple_action_server.h>
@@ -35,6 +40,8 @@ using siar_driver::SiarArmCommand;
 using namespace siar_driver;
 using namespace functions;
 using namespace std;
+using namespace cv;
+
 
 class SiarArmControl{
 	
@@ -50,8 +57,17 @@ class SiarArmControl{
 
 		int read_values[5];
 		int write_values[5];
-	
-		bool busy = false;
+		
+		bool ball_detected;
+		Point2f mc_ball;
+				
+		int height;
+		int width;
+		
+		int ball_aprox = 0;
+		
+		geometry_msgs::Point marker_point;
+		bool marker_detected;
 		
 		
 		void writeServos()
@@ -347,9 +363,80 @@ class SiarArmControl{
 				
 				
 			}
+			
+			
 
 			
 		}
+		
+		void detectBall(const sensor_msgs::Image::ConstPtr& msg)
+		{ 
+		
+		  sensor_msgs::Image image = *msg;
+
+		  height = image.height;
+		  width = image.width;
+		  
+		  cv_bridge::CvImagePtr cv_ptr; 
+		  cv_bridge::CvImagePtr cv_ptr_color; 
+		  
+		  int morph_elem = 2;
+		  int morph_size = 5;
+		  int morph_operator = 2;
+
+		  Mat canny_output;
+		  vector<vector<Point> > contours;
+		  vector<Vec4i> hierarchy;
+		  int thresh = 100;
+		  int max_thresh = 255;
+		  RNG rng(12345);
+		  float max_circle_y = 10000;
+		  int circle_i = 0;
+			  
+	  
+		  cv_ptr = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::MONO8);
+		  cv_ptr_color = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::RGB8);
+
+		  
+		  medianBlur(cv_ptr->image, cv_ptr->image, 10);
+		  threshold(cv_ptr->image, cv_ptr->image, 250, 255,3 );
+		  
+		  Mat element = getStructuringElement( morph_elem, Size( 2*morph_size + 1, 2*morph_size+1 ), Point( morph_size, morph_size ) );
+		  morphologyEx( cv_ptr->image, cv_ptr->image, morph_operator, element );
+		  
+
+		  Canny( cv_ptr->image, canny_output, thresh, thresh*2, 3 );
+		  /// Find contours
+		  findContours( canny_output, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
+
+		  vector<Moments> mu(contours.size() );
+		  for( int i = 0; i < contours.size(); i++ )
+		    { mu[i] = moments( contours[i], false ); }
+
+		  vector<Point2f> mc( contours.size() );
+		  for( int i = 0; i < contours.size(); i++ )
+		    { mc[i] = Point2f( mu[i].m10/mu[i].m00 , mu[i].m01/mu[i].m00 ); }
+
+		    
+		  for( int i = 0; i< contours.size(); i++ )
+		  {
+		    if(mc[i].y<max_circle_y)
+		    {
+		      max_circle_y = mc[i].y;
+		      circle_i = i;
+		    }  
+		  }
+		  if(contours.size()>0)
+		  {
+		    mc_ball = mc[circle_i];
+		    ball_detected = true;
+		  }
+		  else
+		  {
+		    ball_detected = false;
+		  }
+		}
+
 
 /*	void followMarker()
 	{
