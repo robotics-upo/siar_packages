@@ -14,8 +14,9 @@
     <param name="max_particles" value="500" />
     
     <param name="odom_x_mod" value="0.7" />
-    <param name="odom_y_mod" value="0.5" />
-    <param name="odom_a_mod" value="0.5" />
+    <param name="odom_y_mod" value="0.7" />
+    <param name="odom_a_mod" value="0.6" />
+    <param name="odom_a_noise" value="0.05" />
     
     <param name="resample_interval" value="0" />
     

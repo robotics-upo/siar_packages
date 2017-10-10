@@ -1,4 +1,4 @@
-<!--
+  <!--
 -->
 <launch>
   <arg name="camera" default="/up"/>
@@ -13,8 +13,8 @@
     <param name="min_particles" value="400" />
     <param name="max_particles" value="500" />
     
-    <param name="odom_x_mod" value="0.6" />
-    <param name="odom_y_mod" value="0.6" />
+    <param name="odom_x_mod" value="0.8" />
+    <param name="odom_y_mod" value="0.8" />
     <param name="odom_a_mod" value="0.6" />
     
     <param name="resample_interval" value="0" />

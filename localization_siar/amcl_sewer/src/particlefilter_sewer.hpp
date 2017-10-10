@@ -76,6 +76,8 @@ public:
       m_odomYMod = 0.2;
     if(!lnh.getParam("odom_a_mod", m_odomAMod))
       m_odomAMod = 0.2;
+    if(!lnh.getParam("odom_a_noise", m_odomANoise))
+      m_odomANoise = 0.05;
     if(!lnh.getParam("initial_x", m_initX))
       m_initX = 0.0;
     if(!lnh.getParam("initial_y", m_initY))
@@ -424,7 +426,7 @@ private:
     float xDev, yDev, aDev;
     xDev = fabs(delta_x*m_odomXMod);
     yDev = fabs(delta_y*m_odomYMod);
-    aDev = fabs(delta_a*m_odomAMod); 
+    aDev = fabs(delta_a*m_odomAMod) + fabs(m_odomANoise); 
     
     //Make a prediction for all particles according to the odometry
     for(int i=0; i<(int)m_p.size(); i++)
@@ -700,7 +702,7 @@ private:
   int m_minParticles;
   
   //! Odometry characterization
-  double m_odomXMod, m_odomYMod, m_odomZMod, m_odomAMod;
+  double m_odomXMod, m_odomYMod, m_odomZMod, m_odomAMod, m_odomANoise;
   double m_initX, m_initY, m_initA;
   double m_initXDev, m_initYDev, m_initADev;
   
