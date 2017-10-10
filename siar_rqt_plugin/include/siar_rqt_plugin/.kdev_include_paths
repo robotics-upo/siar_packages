@@ -1,0 +1,12 @@
+/home/chur/test_ws/devel/include
+/home/chur/test_ws/src/siar_packages/localization_siar/functions/include
+/home/chur/test_ws/src/siar_packages/localization_siar/sewer_graph/include
+/home/chur/test_ws/src/siar_packages/siar_planner/include
+/home/chur/test_ws/src/siar_packages/siar_arm/include
+/home/chur/test_ws/src/siar_packages/siar_controller/include
+/opt/ros/indigo/include
+/home/chur/test_ws/devel/include
+/home/siar/siar_ws/src/siar_packages/siar_planner/include
+/home/siar/siar_ws/src/siar_packages/siar_driver/include
+/home/siar/siar_ws/devel/include
+/home/siar/siar_ws/src/plane_detector/include
