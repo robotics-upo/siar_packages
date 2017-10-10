@@ -3,6 +3,7 @@
 <launch>
   <arg name="camera" default="/up"/>
   <arg name="stats_file" default="~/stats_experiment_1.txt"/>
+  <arg name="visualization" default="true"/>
   
   <node name="amcl_node" type="amcl_node" pkg="amcl_sewer" output="screen" >
     <param name="rate" value="10.0" />
@@ -13,8 +14,8 @@
     <param name="min_particles" value="400" />
     <param name="max_particles" value="500" />
     
-    <param name="odom_x_mod" value="0.8" />
-    <param name="odom_y_mod" value="0.8" />
+    <param name="odom_x_mod" value="1.0" />
+    <param name="odom_y_mod" value="1.0" />
     <param name="odom_a_mod" value="0.6" />
     
     <param name="resample_interval" value="0" />
@@ -42,7 +43,7 @@
     
   </node>
     
-  <node name="vis" type="rviz" pkg="rviz" args="-d $(find amcl_sewer)/launch/amcl3d.rviz"/>
+  <node name="vis" type="rviz" pkg="rviz" args="-d $(find amcl_sewer)/launch/amcl3d.rviz" if="$(arg visualization)"/>
   
 <!--   <node name="cnn_laber" type="cnn_detector.py" pkg="manhole_detector" args="/up $(find manhole_detector)/test/model.10-0.9861-0.9578.hdf5"> -->
 <!--     <param name="thres" value="0.42"/> -->

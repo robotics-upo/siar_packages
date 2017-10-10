@@ -162,19 +162,28 @@ public:
     {
       return;
     }
-    depthCount_2 = 0;
-    cv_bridge::CvImagePtr img_cv = cv_bridge::toCvCopy(msg, "32FC1");
-    cv::Mat dst(msg->width * scale,msg->height * scale,img_cv->image.type());
-    cv::resize(img_cv->image, dst, cv::Size(0,0), scale, scale);
-    img_cv->image = dst;
     
-    sensor_msgs::ImagePtr pt = img_cv->toImageMsg();
-    if (publish_depth) 
+    
+    
+    depthCount_2 = 0;
+    
+    if (publish_depth)
     {
+      cv_bridge::CvImagePtr img_cv = cv_bridge::toCvCopy(msg, "32FC1");
+      
+      double scale = downsample_depth?this->scale*0.5:this->scale;
+      
+      cv::Mat dst(msg->width * scale,msg->height * scale,img_cv->image.type());
+      cv::resize(img_cv->image, dst, cv::Size(0,0), scale, scale);
+      img_cv->image = dst;
+    
+      sensor_msgs::ImagePtr pt = img_cv->toImageMsg();
+    
+      
+      if (!reverse && publish_all) 
+        depth_pub_2.publish(pt);
       if (reverse)
-	depth_pub.publish(pt);
-      else if (publish_all)
-	depth_pub_2.publish(pt);
+        depth_pub.publish(pt);
     }
   }
   
