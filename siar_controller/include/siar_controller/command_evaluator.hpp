@@ -221,7 +221,7 @@ CommandEvaluator::CommandEvaluator(ros::NodeHandle& pn):m_model(pn),footprint(NU
   orig_m_w_dist = m_w_dist;
   orig_m_w_safe = m_w_safe;
   
-  ROS_INFO("Created the evaluater. Positive obstacle: %d", positive_obs);
+  ROS_INFO("Created the evaluator. Positive obstacle: %d", positive_obs);
 }
 
 

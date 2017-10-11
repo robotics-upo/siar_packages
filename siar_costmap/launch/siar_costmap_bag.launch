@@ -18,8 +18,8 @@
   <arg name="camera_2" default="/back_left"/>
   <arg name="camera_3" default="/front_right"/>
   <arg name="camera_4" default="/back_right"/>
-  <arg name="camera_5" default="/front"/>
-  <arg name="camera_6" default="/back"/>
+  <arg name="camera_5" default="/fron"/>
+  <arg name="camera_6" default="/bac"/>
   
   # Use simulation time fro TFs
   <param name="use_sim_time" value="true" />
@@ -48,7 +48,7 @@
   <node name="republish_bd_depth6" type="republish" pkg="image_transport" output="screen" args="compressedDepth in:=/$(arg camera_6)/depth_registered/image_raw raw out:=/$(arg camera_6)/depth_registered/image_raw"/>
 
   # Point cloud computation
-  <node pkg="depth2cloud" type="depth2cloud_node" name="depth2cloud_front_down" output="screen" >
+  <node pkg="depth2cloud" type="depth2cloud_node" name="depth2cloud_front_down" >
     <remap from="depth" to="$(arg camera_1)/depth_registered/image_raw"/>                   # Topic for the camera depth
     <remap from="info" to="$(arg camera_1)/depth_registered/camera_info"/>                  # Topic for the camera info
     <remap from="cloud" to="$(arg camera_1)/point_cloud"/>                                                  # Topic name for output point cloud
@@ -60,7 +60,7 @@
     <param name="roi_w" value="$(arg roi_w)"/>
     <param name="roi_h" value="$(arg roi_h)"/>
   </node>
-  <node pkg="depth2cloud" type="depth2cloud_node" name="depth2cloud_back_down" output="screen" >
+  <node pkg="depth2cloud" type="depth2cloud_node" name="depth2cloud_back_down" >
     <remap from="depth" to="$(arg camera_2)/depth_registered/image_raw"/>                    # Topic for the camera depth
     <remap from="info" to="$(arg camera_2)/depth_registered/camera_info"/>                   # Topic for the camera info
     <remap from="cloud" to="$(arg camera_2)/point_cloud"/>                                                   # Topic name for output point cloud
@@ -72,7 +72,7 @@
     <param name="roi_w" value="$(arg roi_w)"/>
     <param name="roi_h" value="$(arg roi_h)"/>
   </node>
-  <node pkg="depth2cloud" type="depth2cloud_node" name="depth2cloud_front_down_2" output="screen" >
+  <node pkg="depth2cloud" type="depth2cloud_node" name="depth2cloud_front_down_2"  >
     <remap from="depth" to="$(arg camera_3)/depth_registered/image_raw"/>                    # Topic for the camera depth
     <remap from="info" to="$(arg camera_3)/depth_registered/camera_info"/>                   # Topic for the camera info
     <remap from="cloud" to="$(arg camera_3)/point_cloud"/>                                                   # Topic name for output point cloud
@@ -85,7 +85,7 @@
     <param name="roi_h" value="$(arg roi_h)"/>
     <param name="down_sampling" value = "1"/>                                                           # Camera down sampling factor. Values: 1, 2 or 4. The bigger the faster.
   </node>
-  <node pkg="depth2cloud" type="depth2cloud_node" name="depth2cloud_4" output="screen" >
+  <node pkg="depth2cloud" type="depth2cloud_node" name="depth2cloud_4" >
     <remap from="depth" to="$(arg camera_4)/depth_registered/image_raw"/>                    # Topic for the camera depth
     <remap from="info" to="$(arg camera_4)/depth_registered/camera_info"/>                   # Topic for the camera info
     <remap from="cloud" to="$(arg camera_4)/point_cloud"/>                                                   # Topic name for output point cloud
@@ -97,7 +97,7 @@
     <param name="roi_h" value="$(arg roi_h)"/>
     <param name="down_sampling" value = "1"/>                                                           # Camera down sampling factor. Values: 1, 2 or 4. The bigger the faster.
   </node>
-  <node pkg="depth2cloud" type="depth2cloud_node" name="depth2cloud_5" output="screen" >
+  <node pkg="depth2cloud" type="depth2cloud_node" name="depth2cloud_5" >
     <remap from="depth" to="$(arg camera_5)/depth_registered/image_raw"/>                    # Topic for the camera depth
     <remap from="info" to="$(arg camera_5)/depth_registered/camera_info"/>                   # Topic for the camera info
     <remap from="cloud" to="$(arg camera_5)/point_cloud"/>                                                   # Topic name for output point cloud
@@ -109,7 +109,7 @@
     <param name="roi_h" value="$(arg roi_h)"/>
     <param name="down_sampling" value = "1"/>                                                           # Camera down sampling factor. Values: 1, 2 or 4. The bigger the faster.
   </node>
-  <node pkg="depth2cloud" type="depth2cloud_node" name="depth2cloud_6" output="screen" >
+  <node pkg="depth2cloud" type="depth2cloud_node" name="depth2cloud_6" >
     <remap from="depth" to="$(arg camera_6)/depth_registered/image_raw"/>                    # Topic for the camera depth
     <remap from="info" to="$(arg camera_6)/depth_registered/camera_info"/>                   # Topic for the camera info
     <remap from="cloud" to="$(arg camera_6)/point_cloud"/>                                                   # Topic name for output point cloud
@@ -131,13 +131,15 @@
 
     <param name="hz" value = "5.0"/>							# Costmap update rate
     <param name="obstacle_height" value = "0.1"/>				# Absolute value of obstacle height (or hole depth)
-    <param name="obstacle_height_negative" value = "-0.05"/>                               # Absolute value of obstacle height (or hole depth)
+<!--     <param name="obstacle_height_negative" value = "-0.05"/>                               # Absolute value of obstacle height (or hole depth) -->
     <param name="exp_decay" value = "7.0"/>					    # Obstacle exponential decay (it is counted in cells)
     <remap from="/costmap_node/costmap" to="/test_costmap"/>
     <param name="tilt_compensate" value="$(arg tilt_compensate)"/>
     <param name="consider_sign" value="$(arg consider_sign)"/>
     <remap from="imu" to="/arduimu_v3/imu"/>
     <param name="robot_height" value="0.5"/>
+    <param name="min_radius" value="0.65"/>
+    <param name="max_radius" value="1.2"/>
   </node>
 
 </launch>
