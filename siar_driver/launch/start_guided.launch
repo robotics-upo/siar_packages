@@ -15,7 +15,7 @@
   <arg name="perception" default="true"/>
   <arg name="bag" default="true"/>
   <arg name="publish_tf" default="false"/>
-  <arg name="obstacle_height" default="0.075"/>
+  <arg name="obstacle_height" default="0.065"/>
   <arg name="resolution" default ="0.025"/>
   <arg name="localize" default="false"/>
   

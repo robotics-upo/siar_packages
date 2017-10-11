@@ -108,7 +108,6 @@
     <param name="tilt_compensate" value="$(arg tilt_compensate)"/>
     <param name="consider_sign" value="$(arg consider_sign)"/>
     <remap from="imu" to="/arduimu_v3/imu"/>
-    <remap from="/costmap_node/costmap" to="/test_costmap"/>    
   </node>
 
 </launch>

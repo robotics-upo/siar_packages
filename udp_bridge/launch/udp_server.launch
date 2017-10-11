@@ -6,7 +6,7 @@
   <arg name="scale" default="0.5"/>
   <arg name="frame_skip" default="0"/>
   <arg name="image_rate" default="7"/>
-  <arg name="depth_rate" default="2"/>
+  <arg name="depth_rate" default="5"/>
   <arg name="jpeg_quality" default="25"/>
   <arg name="odom_cam_topic" default="/rgbd_odom_node/odom"/>
   <arg name="debug" default="false"/>
