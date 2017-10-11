@@ -435,8 +435,11 @@ private:
   {
     if (m_inflate_negative < 0)
       m_inflate_negative = 0;
-    for (int j =0; j<=m_inflate_negative;j++) {
-      for (int i = 0; i <= m_inflate_negative;i++) {
+    for (int j = -m_inflate_negative; j<=m_inflate_negative;j++) {
+      for (int i = -m_inflate_negative; i <= m_inflate_negative;i++) {
+        int new_index = index+i+j*m_costmap.info.width;
+        if (new_index <0 || new_index >= m_costmap.data.size())
+          continue;
         m_costmap.data[index+i+j*m_costmap.info.width] = m_considerSign?SC_NEGATIVE_OBS:SC_POSITIVE_OBS;
       }
     }
