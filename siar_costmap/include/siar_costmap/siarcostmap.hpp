@@ -94,6 +94,8 @@ public:
       m_min_radius = 0.6;
     if(!lnh.getParam("max_radius", m_max_radius))
       m_max_radius = 1.5;
+    if(!lnh.getParam("inflate_negative", m_inflate_negative))
+      m_inflate_negative = 1;
     
     m_min_radius*=m_min_radius;
     m_max_radius*=m_max_radius;
@@ -232,7 +234,7 @@ public:
             else if (z < m_obstacleHeightNeg) 
             {
               SiarCostmap::PointPix p;
-              m_costmap.data[index] = m_considerSign?SC_NEGATIVE_OBS:SC_POSITIVE_OBS;
+              addNegativeObstacle(index);
               index2pix(index, p);
               obstacles.push_back(p);                                    
             } else 
@@ -429,6 +431,17 @@ private:
     pix.y = index%m_costmap.info.width;
   }
   
+  void addNegativeObstacle(int index)
+  {
+    if (m_inflate_negative < 0)
+      m_inflate_negative = 0;
+    for (int j =0; j<=m_inflate_negative;j++) {
+      for (int i = 0; i <= m_inflate_negative;i++) {
+        m_costmap.data[index+i+j*m_costmap.info.width] = m_considerSign?SC_NEGATIVE_OBS:SC_POSITIVE_OBS;
+      }
+    }
+  }
+  
   // Params
   double m_hz, m_obstacleHeight, m_obstacleHeightNeg, m_expDecay;
   double m_width, m_height, m_resolution, m_robotHeight;
@@ -454,6 +467,7 @@ private:
   float m_divRes;
   nav_msgs::OccupancyGrid m_costmap; 
   bool m_considerSign;
+  int m_inflate_negative;
 };
 
 
