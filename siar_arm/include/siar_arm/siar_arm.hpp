@@ -63,6 +63,7 @@ class SiarArmControl{
 				
 		int height;
 		int width;
+		int wait = 0; 
 		
 		int ball_aprox = 0;
 		

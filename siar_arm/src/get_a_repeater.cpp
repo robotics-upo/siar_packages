@@ -80,6 +80,7 @@ void GetRepeaterCallback(const std_msgs::Bool::ConstPtr& a )
     goal_point.y += mov_dir.y;
     arm1.movelArm2Point(goal_point,0);
     arm1.ball_aprox++;
+    arm1.wait = 0;
   }
   else if(arm1.ball_aprox == 20){
     
@@ -88,8 +89,8 @@ void GetRepeaterCallback(const std_msgs::Bool::ConstPtr& a )
     goal_point.z += 0.2;    
     arm1.movelArm2Point(goal_point,0);
     arm1.ball_aprox = 0;
-    moveArmHL(0);
-
+    arm1.moveArmHL(0);
+    arm1.wait = 0;
   }
   else 
   {
@@ -98,7 +99,7 @@ void GetRepeaterCallback(const std_msgs::Bool::ConstPtr& a )
     {
       arm1.wait = 0;
       arm1.ball_aprox = 0;
-      moveArmHL(0);
+      arm1.moveArmHL(0);
     }
   }
    
