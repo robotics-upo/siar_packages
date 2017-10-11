@@ -52,57 +52,17 @@ void DetectBallCallback(const sensor_msgs::Image::ConstPtr& msg)
   
   
   
-void GetRepeaterCallback(const std_msgs::Bool::ConstPtr& a )
+void PickUpCallback(const std_msgs::Bool::ConstPtr& a )
 {
-   geometry_msgs::Point goal_point;
-   geometry_msgs::PoseStamped actual_pose;
+   arm1.pick_up = true;
+   arm1.ball_aprox = 0;
+}
 
-
-  if( arm1.ball_aprox < 1 && arm1.marker_detected)
-  {
-    arm1.moveArm2Point(arm1.marker_point);
-    arm1.ball_aprox++;
-  }
-  else if(arm1.ball_aprox < 20 && arm1.ball_detected)
-  {
-    geometry_msgs::Point mov_dir;
-    
-    mov_dir.z = (arm1.mc_ball.x - arm1.width/2)*MOV; 
-    mov_dir.x = -(arm1.mc_ball.y - arm1.height/2)*MOV;
-    mov_dir.y = MOV;
-    
-    actual_pose = arm1.forwardKinematics(arm1.read_values);
-    goal_point = actual_pose.pose.position;
-    goal_point.x += mov_dir.x;
-    goal_point.z += mov_dir.z;
-    
-    arm1.movelArm2Point(goal_point,0);	
-    goal_point.y += mov_dir.y;
-    arm1.movelArm2Point(goal_point,0);
-    arm1.ball_aprox++;
-    arm1.wait = 0;
-  }
-  else if(arm1.ball_aprox == 20){
-    
-    actual_pose = arm1.forwardKinematics(arm1.read_values);    
-    goal_point = actual_pose.pose.position;
-    goal_point.z += 0.2;    
-    arm1.movelArm2Point(goal_point,0);
-    arm1.ball_aprox = 0;
-    arm1.moveArmHL(0);
-    arm1.wait = 0;
-  }
-  else 
-  {
-    arm1.wait++;
-    if(arm1.wait>10)
-    {
-      arm1.wait = 0;
-      arm1.ball_aprox = 0;
-      arm1.moveArmHL(0);
-    }
-  }
-   
+void DeployCallback(const std_msgs::Bool::ConstPtr& a )
+{
+   arm1.deploy = true;
+   arm1.ball_aprox = 0;
+   arm1.moveArmHL(5);
 
 }
 
@@ -122,7 +82,8 @@ int main(int argc, char** argv)
   
   ros::Subscriber arm_camera_sub = nh.subscribe< sensor_msgs::Image >("/mv_25001872/image_raw", 1, DetectBallCallback);  
 
-  ros::Subscriber order_sub = nh.subscribe< std_msgs::Bool >("/get_repeater", 1, GetRepeaterCallback);  
+  ros::Subscriber pick_up_sub = nh.subscribe< std_msgs::Bool >("/pick_up_repeater", 1, PickUpCallback);  
+  ros::Subscriber deploy_sub = nh.subscribe< std_msgs::Bool >("/deploy_repeater", 1, DeployCallback);  
 
   ros::Subscriber arm_pos_sub = nh.subscribe("/siar_status", 2, ReadServosCallback);
 
@@ -131,8 +92,133 @@ int main(int argc, char** argv)
 
   
   ros::Rate loop_rate(20);
+  
+  
+  arm1.pick_up = false;
+  arm1.deploy = true;
+  
   while (nh.ok()) {
     ros::spinOnce();
+    
+   geometry_msgs::Point goal_point;
+   geometry_msgs::PoseStamped actual_pose;
+    
+    if( arm1.pick_up )
+    {
+      if( arm1.ball_aprox < 1 && arm1.marker_detected)
+      {
+	arm1.moveArm2Point(arm1.marker_point);
+	arm1.ball_aprox++;
+      }
+      else if(arm1.ball_aprox < 20 && arm1.ball_detected)
+      {
+	geometry_msgs::Point mov_dir;
+	
+	mov_dir.z = (arm1.mc_ball.x - arm1.width/2)*MOV; 
+	mov_dir.x = -(arm1.mc_ball.y - arm1.height/2)*MOV;
+	mov_dir.y = MOV;
+	
+	actual_pose = arm1.forwardKinematics(arm1.read_values);
+	goal_point = actual_pose.pose.position;
+	goal_point.x += mov_dir.x;
+	goal_point.z += mov_dir.z;
+	
+	arm1.movelArm2Point(goal_point,0);	
+	goal_point.y += mov_dir.y;
+	arm1.movelArm2Point(goal_point,0);
+	arm1.ball_aprox++;
+	arm1.wait = 0;
+      }
+      else if(arm1.ball_aprox == 20){
+      
+	actual_pose = arm1.forwardKinematics(arm1.read_values);    
+	goal_point = actual_pose.pose.position;
+	goal_point.z += 0.2;    
+	arm1.movelArm2Point(goal_point,0);
+	arm1.ball_aprox = 0;
+	arm1.moveArmHL(1);
+	arm1.moveArmHL(2);
+	arm1.moveArmHL(3);
+	arm1.moveArmHL(4);
+	arm1.moveArmHL(5);
+	arm1.moveArmHL(3);
+	arm1.moveArmHL(2);
+	arm1.moveArmHL(1);
+	arm1.pick_up = false;
+	arm1.wait = 0;
+      }
+      else 
+      {
+	arm1.wait++;
+	if(arm1.wait>10)
+	{
+	  arm1.wait = 0;
+	  arm1.ball_aprox = 0;
+	  arm1.moveArmHL(1);
+	  arm1.pick_up = false;
+	}
+      }
+    } 
+    
+    
+    if( arm1.deploy )
+    {
+      if(arm1.ball_aprox < 20 && arm1.ball_detected)
+      {
+	geometry_msgs::Point mov_dir;
+	
+	mov_dir.z = (arm1.mc_ball.x - arm1.width/2)*MOV; 
+	mov_dir.x = -(arm1.mc_ball.y - arm1.height/2)*MOV;
+	mov_dir.y = MOV;
+	
+	actual_pose = arm1.forwardKinematics(arm1.read_values);
+	goal_point = actual_pose.pose.position;
+	goal_point.x += mov_dir.x;
+	goal_point.z += mov_dir.z;
+	
+	arm1.movelArm2Point(goal_point,0);	
+	goal_point.y += mov_dir.y;
+	arm1.movelArm2Point(goal_point,0);
+	arm1.ball_aprox++;
+	arm1.wait = 0;
+      }
+      else if(arm1.ball_aprox == 20){
+      
+	actual_pose = arm1.forwardKinematics(arm1.read_values);    
+	goal_point = actual_pose.pose.position;
+	goal_point.z += 0.2;    
+	arm1.movelArm2Point(goal_point,0);
+	arm1.ball_aprox = 0;
+	arm1.moveArmHL(3);
+	arm1.moveArmHL(2);
+	arm1.moveArmHL(1);
+	arm1.moveArmHL(6);
+	arm1.moveArmHL(7);
+	arm1.moveArmHL(1);
+	arm1.deploy = false;
+	arm1.wait = 0;
+
+      }
+      else 
+      {
+	arm1.wait++;
+	if(arm1.wait>10)
+	{
+	  arm1.wait = 0;
+	  arm1.ball_aprox = 0;
+	  arm1.moveArmHL(1);
+	  arm1.deploy = false;
+	}
+      }
+      
+      
+      
+    }
+    
+    
+    
+    
     loop_rate.sleep();
   }
+  
 }

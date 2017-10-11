@@ -64,6 +64,8 @@ class SiarArmControl{
 		int height;
 		int width;
 		int wait = 0; 
+		bool pick_up;
+		bool deploy;
 		
 		int ball_aprox = 0;
 		
@@ -296,78 +298,85 @@ class SiarArmControl{
 		
 		void moveArmHL(const uint option)  // Move the arm from to a point to another by a high level function
 		{
-			SiarArmCommand com;
-			vector<vector<double> > mat;
-			
-			string f_path;
-			if (option < 12)
-			{
-				switch( option)
-				{
-					case 0: f_path = "/paths/home2base"; break;
-					case 1: f_path = "/paths/base2home"; break;
-					case 2: f_path = "/paths/base2deploy12ground"; break;
-					case 3: f_path = "/paths/base2deploy22ground"; break;
-					case 4: f_path = "/paths/base2deploy32ground"; break;
-					case 5: f_path = "/paths/base2deploy42ground"; break;
-					case 6: f_path = "/paths/base2deploy52ground"; break;
-					case 7: f_path = "/paths/base2deploy12base"; break;
-					case 8: f_path = "/paths/base2deploy22base"; break;
-					case 9: f_path = "/paths/base2deploy32base"; break;
-					case 10: f_path = "/paths/base2deploy42base"; break;
-					case 11: f_path = "/paths/base2deploy52base"; break;
-				}
-				
-							
-				
-				if (getMatrixFromFile(f_path, mat)) {
-					for (size_t i = 0; i < mat.size(); i++) {
-						for (int j = 0; j < 5; j++) {
-							write_values[j] = mat[i][j];
-							writeServos();
-						}
-					
-					}
-				} else {
-				  cerr << "Arm Tester: could not open the file: " <<  f_path << "\n";
-				}
+		  switch( option)
+		  {
+		    case 0: break; 
+		  }
+		  
+		  
+		  /*
+		  SiarArmCommand com;
+		  vector<vector<double> > mat;
+		  
+		  string f_path;
+		  if (option < 12)
+		  {
+		    switch( option)
+		    {
+		      case 0: f_path = "/paths/home2base"; break;
+		      case 1: f_path = "/paths/base2home"; break;
+		      case 2: f_path = "/paths/base2deploy12ground"; break;
+		      case 3: f_path = "/paths/base2deploy22ground"; break;
+		      case 4: f_path = "/paths/base2deploy32ground"; break;
+		      case 5: f_path = "/paths/base2deploy42ground"; break;
+		      case 6: f_path = "/paths/base2deploy52ground"; break;
+		      case 7: f_path = "/paths/base2deploy12base"; break;
+		      case 8: f_path = "/paths/base2deploy22base"; break;
+		      case 9: f_path = "/paths/base2deploy32base"; break;
+		      case 10: f_path = "/paths/base2deploy42base"; break;
+		      case 11: f_path = "/paths/base2deploy52base"; break;
+		    }
+		    
+					    
+		    
+		    if (getMatrixFromFile(f_path, mat)) {
+			    for (size_t i = 0; i < mat.size(); i++) {
+				    for (int j = 0; j < 5; j++) {
+					    write_values[j] = mat[i][j];
+					    writeServos();
+				    }
+			    
+			    }
+		    } else {
+		      cerr << "Arm Tester: could not open the file: " <<  f_path << "\n";
+		    }
 
-							
-			}
-			if (option == 12)
-			{
-				
-				geometry_msgs::PoseStamped base_pose;
-				
-				///////////////////////////////////////////////////
-				///////////////////////////////////////////////////
-				///////////////////////////////////////////////////
-				///////////////////////////////////////////////////
-				///////////////////////////////////////////////////				
-				///////////////////////////////////////////////////
-				//////      INDICAR CUAL ES LA POSE BASE //////////
-				///////////////////////////////////////////////////
-				///////////////////////////////////////////////////
-				///////////////////////////////////////////////////
-				///////////////////////////////////////////////////
-				///////////////////////////////////////////////////				
-				///////////////////////////////////////////////////						
-				
-				movelArm2Pose( base_pose, 10);
-				
-				
-			}
-			
-			if (option == 13)
-			{
-				
-				
-				
-			}
-			
-			
+						  
+		  }
+		  if (option == 12)
+		  {
+			  
+		    geometry_msgs::PoseStamped base_pose;
+		    
+		    ///////////////////////////////////////////////////
+		    ///////////////////////////////////////////////////
+		    ///////////////////////////////////////////////////
+		    ///////////////////////////////////////////////////
+		    ///////////////////////////////////////////////////				
+		    ///////////////////////////////////////////////////
+		    //////      INDICAR CUAL ES LA POSE BASE //////////
+		    ///////////////////////////////////////////////////
+		    ///////////////////////////////////////////////////
+		    ///////////////////////////////////////////////////
+		    ///////////////////////////////////////////////////
+		    ///////////////////////////////////////////////////				
+		    ///////////////////////////////////////////////////						
+		    
+		    movelArm2Pose( base_pose, 10);
+			  
+			  
+		  }
+		  
+		  if (option == 13)
+		  {
+			  
+			  
+			  
+		  }
+		  
+		  
 
-			
+		  */
 		}
 		
 		void detectBall(const sensor_msgs::Image::ConstPtr& msg)
