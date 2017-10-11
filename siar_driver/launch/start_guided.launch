@@ -70,6 +70,8 @@
     <arg name="roi_w" value="300"/>
     <arg name="roi_y" value="5"/>
     <arg name="roi_h" value="230"/>
+    <param name="min_radius" value="0.64"/>
+    <param name="max_radius" value="1.2"/>
   </include>
   
   <!-- Comms -->

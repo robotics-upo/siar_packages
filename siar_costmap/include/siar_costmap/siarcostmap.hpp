@@ -90,6 +90,13 @@ public:
       m_tiltCompesante = false;
     if(!lnh.getParam("consider_sign", m_considerSign))
       m_considerSign = true;
+    if(!lnh.getParam("min_radius", m_min_radius))
+      m_min_radius = 0.6;
+    if(!lnh.getParam("max_radius", m_max_radius))
+      m_max_radius = 1.5;
+    
+    m_min_radius*=m_min_radius;
+    m_max_radius*=m_max_radius;
     
     // NOTE: Changes for demo --> ignore obstacles exceeding a height
     if(!lnh.getParam("robot_height", m_robotHeight))
@@ -260,7 +267,10 @@ public:
       {
         for(int j=0; j<m_costmap.info.width; j++, k++)
         {
-          if(m_costmap.data[k] != SC_POSITIVE_OBS && m_costmap.data[k] != SC_NEGATIVE_OBS)
+          if(m_costmap.data[k] == SC_UNKNOWN && isInRoi(k))
+          {
+          }
+          else if(m_costmap.data[k] != SC_POSITIVE_OBS && m_costmap.data[k] != SC_NEGATIVE_OBS)
           {
             // Compute distance to closest obstacle
             queryPt[0] = i;
@@ -285,6 +295,20 @@ public:
     //  m_cloudNew[i] = false;
       
     return m_costmap;
+  }
+  
+  bool isInRoi(int index) {
+    bool ret_val = false;
+    float x,y;
+    index2point(x, y, index);
+    float r = x*x + y*y;
+    ROS_INFO("x=%f\ty=%f\tr=%f", x,y,r);
+    if ( r > m_min_radius && r < m_max_radius ) {
+      ret_val = true;
+      
+    }
+    
+    return ret_val;
   }
   
   nav_msgs::OccupancyGrid &getCostmap(void)
@@ -394,6 +418,11 @@ private:
     pix.y = m_costmap.info.width - (int)((y-m_minY)*m_divRes);
   }
   
+  inline void index2point(float &x, float &y, const int &index) {
+    x = index/m_costmap.info.width * m_resolution + m_minX;
+    y = m_minY + index%m_costmap.info.width * m_resolution;
+  }
+  
   inline void index2pix(int &index, SiarCostmap::PointPix &pix)
   {
     pix.x = index/m_costmap.info.width;
@@ -421,6 +450,7 @@ private:
   
   // Compute costmap
   float m_minX, m_maxX, m_minY, m_maxY;
+  float m_min_radius, m_max_radius;
   float m_divRes;
   nav_msgs::OccupancyGrid m_costmap; 
   bool m_considerSign;
