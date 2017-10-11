@@ -31,20 +31,20 @@ private:
 
   // ROS params
   double odomRate, imageRate, depthRate, siar_status_rate, rssiRate, point_rate;
-  std::string odomTopic, imageTopic, imageTopic_2, depthTopic, depthTopic_2, depthTopic_up;
+  std::string odomTopic, imageTopic, imageTopic_2, depthTopic, depthTopic_2, depthTopic_3, depthTopic_4;
   std::string allCamerasTopic, publishDepthTopic, joyTopic, rssi_topic, point_topic;
   std::string siar_status_topic, slowTopic, geo_tf_topic;
-  std::string camera_1, camera_2, camera_up;
+  std::string camera_1, camera_2, camera_3, camera_4;
   int jpeg_quality, min_quality;
   bool quality_set, quality_set_2;
   
   // Subscriber rates
-  Cycle odomCycle, imageCycle, imageCycle_2, depthCycle, depthCycle_2, rssiCycle, depthCycle_up;
+  Cycle odomCycle, imageCycle, imageCycle_2, depthCycle, depthCycle_2, rssiCycle, depthCycle_3, depthCycle_4;
   Cycle siarStatusCycle, pointCycle;
   
   // Publishers and subscribers
   ros::Publisher publish_depth_pub, all_cameras_pub, joy_pub, slow_pub;
-  ros::Subscriber odom_sub, image_sub, image_sub_2, depth_sub, depth_sub_2, rssi_sub, depth_sub_up, geo_tf_sub;
+  ros::Subscriber odom_sub, image_sub, image_sub_2, depth_sub, depth_sub_2, rssi_sub, depth_sub_3, depth_sub_4, geo_tf_sub;
   ros::Subscriber  siar_status_sub, point_sub;
   ros::NodeHandle nh;
   
@@ -64,12 +64,14 @@ public:
       joyTopic = "/joy";
     if(!lnh.getParam("camera_1", camera_1))
       camera_1 = "/front";
-    if(!lnh.getParam("camera_up", camera_up))
-      camera_up = "/up";
+    if(!lnh.getParam("camera_3", camera_3))
+      camera_3 = "/front_left_web";
+    if(!lnh.getParam("camera_4", camera_4))
+      camera_4 = "/front_right_web";
     if(!lnh.getParam("image_rate", imageRate))
       imageRate = 5.0; 
     if(!lnh.getParam("depth_rate", depthRate))
-      depthRate = 2.0; 
+      depthRate = 4.0; 
     if(!lnh.getParam("camera_2", camera_2))
       camera_2 = "/back";
     if(!lnh.getParam("jpeg_quality", jpeg_quality))
@@ -94,7 +96,8 @@ public:
     imageTopic_2 = camera_2 + "/rgb/image_raw/compressed";
     depthTopic = camera_1 + "/depth_registered/image_raw/compressedDepth";
     depthTopic_2 = camera_2 + "/depth_registered/image_raw/compressedDepth";
-    depthTopic_up = camera_up + "/depth_registered/image_raw/compressedDepth";
+    depthTopic_3 = camera_3 + "/depth_registered/image_raw/compressedDepth";
+    depthTopic_4 = camera_4 + "/depth_registered/image_raw/compressedDepth";
     geo_tf_topic = "/rgbd_odom/transform";
     
     allCamerasTopic = "/all_cameras";
@@ -118,8 +121,10 @@ public:
     depthCycle.init(depthRate);
     depth_sub_2 = nh.subscribe(depthTopic_2, 1, &UDPServer::depthCallback_2, this);
     depthCycle_2.init(depthRate);
-    depth_sub_up = nh.subscribe(depthTopic_up, 1, &UDPServer::depthCallback_up, this);
-    depthCycle_up.init(depthRate);
+    depth_sub_3 = nh.subscribe(depthTopic_3, 1, &UDPServer::depthCallback_3, this);
+    depthCycle_3.init(depthRate);
+    depth_sub_4 = nh.subscribe(depthTopic_4, 1, &UDPServer::depthCallback_4, this);
+    depthCycle_4.init(depthRate);
     rssi_sub = nh.subscribe(rssi_topic, 1, &UDPServer::rssiCallback, this);
     rssiCycle.init(rssiRate);
     siar_status_sub = nh.subscribe(siar_status_topic, 1, &UDPServer::siarStatusCallback, this);
@@ -250,16 +255,27 @@ protected:
     serializeWrite<sensor_msgs::CompressedImage>(depthTopic_2, *msg); 
   } 
   
-  void depthCallback_up(const sensor_msgs::CompressedImage::ConstPtr& msg)
+  void depthCallback_3(const sensor_msgs::CompressedImage::ConstPtr& msg)
   {
     // Check if it is time for sending new data 
-    if(!depthCycle_up.newCycle())
+    if(!depthCycle_3.newCycle())
     {
       return;
     }
     // Check for quality set
     // Serialize msg and write over UDP
-    serializeWrite<sensor_msgs::CompressedImage>(depthTopic_up, *msg); 
+    serializeWrite<sensor_msgs::CompressedImage>(depthTopic_3, *msg); 
+  }
+  void depthCallback_4(const sensor_msgs::CompressedImage::ConstPtr& msg)
+  {
+    // Check if it is time for sending new data 
+    if(!depthCycle_4.newCycle())
+    {
+      return;
+    }
+    // Check for quality set
+    // Serialize msg and write over UDP
+    serializeWrite<sensor_msgs::CompressedImage>(depthTopic_4, *msg); 
   } 
   
   void rssiCallback(const rssi_get::Nvip_status::ConstPtr& msg)

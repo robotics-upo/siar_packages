@@ -16,4 +16,17 @@
  
  <!-- Splitter nodes -->
  <include file="$(find frame_dropper)/launch/splitter.launch"/>
+ <include file="$(find frame_dropper)/launch/splitter.launch">
+   <param name="camera_1" value="front_right"/>
+   <param name="camera_2" value="back_right"/>
+   <param name="downsample_depth" value="true"/>
+   <paran name="only_depth" value="true"/>
+ </include>
+ <include file="$(find frame_dropper)/launch/splitter.launch">
+   <param name="camera_1" value="front_left"/>
+   <param name="camera_2" value="back_left"/>
+   <param name="downsample_depth" value="true"/>
+   <paran name="only_depth" value="true"/>
+ </include>
+ 
 </launch>

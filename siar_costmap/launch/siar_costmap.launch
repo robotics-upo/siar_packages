@@ -108,6 +108,7 @@
     <param name="tilt_compensate" value="$(arg tilt_compensate)"/>
     <param name="consider_sign" value="$(arg consider_sign)"/>
     <remap from="imu" to="/arduimu_v3/imu"/>
+    <param name="min_radius" value="2.0"/>
   </node>
 
 </launch>

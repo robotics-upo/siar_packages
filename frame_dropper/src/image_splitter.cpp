@@ -45,30 +45,32 @@ public:
       publish_all = false;
     if(!lnh.getParam("downsample_depth", downsample_depth))
       downsample_depth = true;
+    if(!lnh.getParam("only_depth", only_depth))
+      only_depth = false;
     
     reverse = false;
     // Create bool subscribers
     sub_all = nh.subscribe(allCamerasTopic, 1, &ImageSplitter::publishAllCallback, this);
     sub_reverse = nh.subscribe(reverseTopic, 1, &ImageSplitter::reverseCallback, this);
-    sub_depth = nh.subscribe(publishDepthTopic, 1, &ImageSplitter::publishDepthCallback, this);
+    if (!only_depth)
+      sub_depth = nh.subscribe(publishDepthTopic, 1, &ImageSplitter::publishDepthCallback, this);
     
-    // Create image subscribers
-    sub = it.subscribe(imageTopic, 1, &ImageSplitter::imageCb, this); 
-    if (use_depth) 
+    // Create RGB subscribers and pubs
+    if (!only_depth) {
+      sub = it.subscribe(imageTopic, 1, &ImageSplitter::imageCb, this); 
+      sub_2 = it.subscribe(imageTopic_2, 1, &ImageSplitter::imageCb_2, this); 
+      pub = it.advertise(imageOutTopic, 1);
+      pub_2 = it.advertise(imageOutTopic_2, 1);
+    }
+    // Create depth sub and pub
+    if (use_depth || only_depth) 
+    {
       depth_sub = it.subscribe(depthTopic, 1, &ImageSplitter::depthCb, this);
-    sub_2 = it.subscribe(imageTopic_2, 1, &ImageSplitter::imageCb_2, this); 
-    if (use_depth) 
       depth_sub_2 = it.subscribe(depthTopic_2, 1, &ImageSplitter::depthCb_2, this);
-    
-    // Advertise image topics
-//     ROS_INFO("Depth topic: %s Depth out topic: %s PUblish depth = %d", depthTopic.c_str(), depthOutTopic.c_str(), publish_depth);
-    pub = it.advertise(imageOutTopic, 1);
-    if (use_depth)
       depth_pub = it.advertise(depthOutTopic, 1);
-    pub_2 = it.advertise(imageOutTopic_2, 1);
-    if (use_depth)
       depth_pub_2 = it.advertise(depthOutTopic_2, 1);
-    
+    }
+      
     imgCount = 0;
     depthCount = 0;
     imgCount_2 = 0;
@@ -109,16 +111,13 @@ public:
       return;
     }
     depthCount = 0;
-    if (publish_depth)
+    if (publish_depth || only_depth)
     {
       cv_bridge::CvImagePtr img_cv = cv_bridge::toCvCopy(msg, "32FC1");
       
       double scale = downsample_depth?this->scale*0.5:this->scale;
       
       cv::Mat dst(msg->width * scale,msg->height * scale,img_cv->image.type());
-      
-      
-      
       cv::resize(img_cv->image, dst, cv::Size(0,0), scale, scale);
       img_cv->image = dst;
     
@@ -163,11 +162,9 @@ public:
       return;
     }
     
-    
-    
     depthCount_2 = 0;
     
-    if (publish_depth)
+    if (publish_depth || only_depth)
     {
       cv_bridge::CvImagePtr img_cv = cv_bridge::toCvCopy(msg, "32FC1");
       
@@ -228,7 +225,7 @@ protected:
   int imgCount, depthCount;
   int imgCount_2, depthCount_2;
   double scale; // Scaling in the image
-  bool publish_depth, use_depth, reverse, publish_all, downsample_depth;
+  bool publish_depth, use_depth, reverse, publish_all, downsample_depth, only_depth;
 };
 
 int main(int argc, char **argv)

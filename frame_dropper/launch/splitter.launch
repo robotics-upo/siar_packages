@@ -7,24 +7,12 @@
   <arg name="frame_skip_web" default="0"/>
   <arg name="publish_depth" default="false"/>
   <arg name="publish_all" default="false"/>
-  <arg name="publish_serial" default="false"/>
   <arg name="camera_1" default="/front"/>
   <arg name="camera_2" default="/back"/>
+  <arg name="only_depth" default="false"/>
+  <arg name="downsample_depth" default="true"/>
 
-  <!-- If serial comms are allowed, a version with low quality and no depth can be emitted in with the following node-->
-  <node pkg="frame_dropper" type="image_splitter_node" name="image_splitter_serial" output="screen" if="$(arg publish_serial)">
-    <remap from="in" to="$(arg camera_1)" />
-    <remap from="out" to="$(arg camera_1)_serial" />
-    <remap from="in_2" to="$(arg camera_2)" />
-    <remap from="out_2" to="$(arg camera_2)_serial" />
-    <param name="/scale" value="$(arg scale_serial)"/>
-    <param name="/frame_skip" value="$(arg frame_skip_serial)" />
-    <param name="/use_depth" value="false" />
-    <param name="/publish_depth" value="false" />
-    <param name="/publish_all" value="false" />
-  </node>
-  
-  <!-- Also, a reproduction of the real images in nice quality is used, so its quality can be modified without disturbing the bag record -->
+  <!-- a reproduction of the real images in nice quality is used, so its quality can be modified without disturbing the bag record -->
   <node pkg="frame_dropper" type="image_splitter_node" name="image_splitter_web">
     <remap from="in" to="$(arg camera_1)" />
     <remap from="out" to="$(arg camera_1)_web" />
@@ -35,6 +23,8 @@
     <param name="/publish_depth" value="$(arg publish_depth)" />
     <param name="/publish_all" value="$(arg publish_all)" />
     <param name="/scale" value="$(arg scale_web)"/>
+    <param name="/downsample_depth" value="$(arg downsample_depth)"/>
+    <param name="/only_depth" value="$(arg only_depth)"/>
   </node>
   
 </launch>
