@@ -35,7 +35,7 @@ void  Move2MarkerCallback(const aruco_msgs::MarkerArray::ConstPtr& markers_read)
 	geometry_msgs::Point near_point;
 	geometry_msgs::Point up_point;
 
-
+	ROS_INFO("number of markers: %d", markers_read->markers.size());
 int i = 0;//	for( int i=0; i<markers_read->markers.size();i++) 
 	{
 	  near_point = markers_read->markers[i].pose.pose.position;
@@ -52,7 +52,7 @@ int i = 0;//	for( int i=0; i<markers_read->markers.size();i++)
 	  	
 		  
 	}
-
+	//ROS_INFO("goal_point: %f %f %f", goal_point.x, goal_point.y, goal_point.z);
 }
 
 
