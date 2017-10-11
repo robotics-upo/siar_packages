@@ -1,5 +1,5 @@
 <launch>
-  <node name="siar_controller" pkg="siar_controller" type="siar_controller_node">
+  <node name="siar_controller" pkg="siar_controller" type="siar_controller_node" output="screen">
       <remap from="/cmd_vel_in" to="/user_cmd_vel"/>
       <remap from="/cmd_vel_out" to="/cmd_vel"/>
       <remap from="/altitude_map" to="/costmap_node/costmap"/>
