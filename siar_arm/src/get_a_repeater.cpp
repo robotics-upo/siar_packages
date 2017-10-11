@@ -89,7 +89,7 @@ void GetRepeaterCallback(const std_msgs::Bool::ConstPtr& a )
     goal_point.z += 0.2;    
     arm1.movelArm2Point(goal_point,0);
     arm1.ball_aprox = 0;
-    moveArmHL(0);
+    arm1.moveArmHL(0);
     arm1.wait = 0;
   }
   else 
@@ -99,7 +99,7 @@ void GetRepeaterCallback(const std_msgs::Bool::ConstPtr& a )
     {
       arm1.wait = 0;
       arm1.ball_aprox = 0;
-      moveArmHL(0);
+      arm1.moveArmHL(0);
     }
   }
    
