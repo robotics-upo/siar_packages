@@ -302,7 +302,7 @@ public:
     float x,y;
     index2point(x, y, index);
     float r = x*x + y*y;
-    ROS_INFO("x=%f\ty=%f\tr=%f", x,y,r);
+//     ROS_INFO("x=%f\ty=%f\tr=%f", x,y,r);
     if ( r > m_min_radius && r < m_max_radius ) {
       ret_val = true;
       
