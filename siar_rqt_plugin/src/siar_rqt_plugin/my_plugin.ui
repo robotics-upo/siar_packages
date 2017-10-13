@@ -7,11 +7,14 @@
     <x>0</x>
     <y>0</y>
     <width>911</width>
-    <height>645</height>
+    <height>695</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>SIAR Info</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true"/>
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
@@ -19,7 +22,7 @@
      <property name="currentIndex">
       <number>0</number>
      </property>
-     <widget class="QWidget" name="tabWidgetPage1" native="true">
+     <widget class="QWidget" name="tabWidgetPage1">
       <attribute name="title">
        <string>Siar info</string>
       </attribute>
@@ -53,6 +56,21 @@
           </item>
           <item>
            <widget class="QCheckBox" name="reverse">
+            <property name="enabled">
+             <bool>true</bool>
+            </property>
+            <property name="styleSheet">
+             <string notr="true">unchecked{
+     width: 18px;
+     height: 18px;
+    color:	background-color: rgb(255, 0, 0);
+	selection-color: rgb(255, 0, 0);
+ }
+
+
+
+</string>
+            </property>
             <property name="text">
              <string>Reverse</string>
             </property>
@@ -130,8 +148,8 @@
                  <rect>
                   <x>0</x>
                   <y>0</y>
-                  <width>700</width>
-                  <height>117</height>
+                  <width>681</width>
+                  <height>127</height>
                  </rect>
                 </property>
                 <layout class="QVBoxLayout" name="verticalLayout_12">
@@ -202,9 +220,9 @@
                 <property name="geometry">
                  <rect>
                   <x>0</x>
-                  <y>-18</y>
-                  <width>672</width>
-                  <height>117</height>
+                  <y>0</y>
+                  <width>650</width>
+                  <height>127</height>
                  </rect>
                 </property>
                 <layout class="QVBoxLayout" name="verticalLayout_13">
@@ -275,9 +293,9 @@
                 <property name="geometry">
                  <rect>
                   <x>0</x>
-                  <y>-19</y>
-                  <width>711</width>
-                  <height>117</height>
+                  <y>0</y>
+                  <width>695</width>
+                  <height>127</height>
                  </rect>
                 </property>
                 <layout class="QVBoxLayout" name="verticalLayout_14">
@@ -349,8 +367,8 @@
                  <rect>
                   <x>0</x>
                   <y>0</y>
-                  <width>709</width>
-                  <height>117</height>
+                  <width>691</width>
+                  <height>127</height>
                  </rect>
                 </property>
                 <layout class="QVBoxLayout" name="verticalLayout_15">
@@ -413,21 +431,21 @@
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_11">
           <item>
-           <widget class="QLabel" name="label_3">
+           <widget class="QLabel" name="elecBattery">
             <property name="text">
              <string>Elec_battery</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QLabel" name="label_6">
+           <widget class="QLabel" name="motorBattery">
             <property name="text">
              <string>Motor battery</string>
             </property>
            </widget>
           </item>
           <item>
-           <widget class="QLabel" name="label_7">
+           <widget class="QLabel" name="powerSupply">
             <property name="text">
              <string>Power supply</string>
             </property>
@@ -438,7 +456,7 @@
        </item>
       </layout>
      </widget>
-     <widget class="QWidget" name="tabWidgetPage2" native="true">
+     <widget class="QWidget" name="tabWidgetPage2">
       <attribute name="title">
        <string>All Info </string>
       </attribute>

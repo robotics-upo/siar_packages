@@ -29,6 +29,8 @@ MyPlugin::MyPlugin()
 
   // give QObjects reasonable names
   setObjectName("MyPlugin");
+  //setWindowIcon(QIcon("~/catkin_ws/src/siar_packages/siar_rqt_plugin/icon.png"));
+ // widget_->setWindowIcon(QIcon("~/catkin_ws/src/siar_packages/siar_rqt_plugin/icon.png"));
 }
 
 void MyPlugin::initPlugin(qt_gui_cpp::PluginContext& context)
@@ -41,6 +43,7 @@ void MyPlugin::initPlugin(qt_gui_cpp::PluginContext& context)
   ui_.setupUi(widget_);
   // add widget to the user interface
   context.addWidget(widget_);
+
   
   my_subscriber = getNodeHandle().subscribe("/siar_status", 1, &MyPlugin::ros_data_callback, this);
 }
@@ -88,6 +91,18 @@ void MyPlugin::ros_data_callback(const siar_driver::SiarStatus msg)
   sstm.str("");
   sstm << "Position:{ x: " << float(msg.x)<<"; y: "<< float(msg.x)<< "}";
   ui_.xy->setText(QString::fromStdString(sstm.str()));  
+  
+  sstm.str("");
+  sstm << "Electric battery: { Percentage:"<< float(msg.elec_battery.percentage)<<"; Voltage: "<< float(msg.elec_battery.voltage) << "V; Current :" << float(msg.elec_battery.current)<< "A }";
+  ui_.elecBattery->setText(QString::fromStdString(sstm.str()));  
+  sstm.str("");
+  sstm << "Motor battery: { Percentage:"<< float(msg.motor_battery.percentage)<<"; Voltage: "<< float(msg.motor_battery.voltage) << "V; Current :" << float(msg.motor_battery.current)<< "A }";
+  ui_.motorBattery->setText(QString::fromStdString(sstm.str()));  
+ // sstm.str("");
+ // sstm << "Power supply:"<< float(msg.x);
+ // ui_.powerSupply->setText(QString::fromStdString(sstm.str()));  
+  
+  
   
   ui_.slow->setChecked(msg.slow); 
   ui_.slow_2->setChecked(msg.slow); 
