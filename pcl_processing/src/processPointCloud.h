@@ -17,6 +17,13 @@ void filterHeight(pcl::PointCloud<pcl::PointXYZ> cloud, pcl::PointCloud<pcl::Poi
 void getPlane(pcl::PointCloud<pcl::PointXYZ> cloud, pcl::PointCloud<pcl::PointXYZ> & points_msg);
 void removeOutliers(pcl::PointCloud<pcl::PointXYZ> cloud, pcl::PointCloud<pcl::PointXYZ> & points_msg);
 void detectGround(pcl::PointCloud<pcl::PointXYZ> cloud, pcl::PointCloud<pcl::PointXYZ> & points_msg);
+void generateNT120A(pcl::PointCloud<pcl::PointXYZ> & points_msg, double ang_resolution, double length, double z_resolution,double offset_z);
+void generateT133(pcl::PointCloud<pcl::PointXYZ> & points_msg, double ang_resolution, double length, double z_resolution,double offset_z);
+void generateT164(pcl::PointCloud<pcl::PointXYZ> & points_msg, double ang_resolution, double length, double z_resolution,double offset_z);
+void generateT181(pcl::PointCloud<pcl::PointXYZ> & points_msg, double ang_resolution, double length, double z_resolution,double offset_z);
+void generateD1400(pcl::PointCloud<pcl::PointXYZ> & points_msg, double ang_resolution, double length, double z_resolution,double offset_z);
+void generateGenericSection(pcl::PointCloud<pcl::PointXYZ> & points_msg, double ang_resolution, double length, double z_resolution, double offset_z,double radius_gutter, double corridor,double radius_roof, double height);
+
 
 
 

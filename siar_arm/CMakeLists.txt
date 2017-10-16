@@ -158,6 +158,7 @@ add_executable(attack_repeater  src/attack_repeater.cpp)
 # add_executable(marker_pose_test  src/marker_pose_test.cpp)
 add_executable(image_processing_test src/image_processing_test.cpp)
 add_executable(get_a_repeater src/get_a_repeater.cpp)
+add_executable(open_loop src/open_loop.cpp)
 
 
  
@@ -229,6 +230,12 @@ target_link_libraries(image_processing_test
 ) 
 
 target_link_libraries(get_a_repeater
+   ${catkin_LIBRARIES}
+   ${Boost_LIBRARIES}   
+   ${aruco_LIBS}
+) 
+
+target_link_libraries(open_loop
    ${catkin_LIBRARIES}
    ${Boost_LIBRARIES}   
    ${aruco_LIBS}
