@@ -35,7 +35,7 @@ extern tf::TransformListener tfListener;
 
 //PCL viewer. This is just an example. It seems that this is not the best option for a multi-threaded program
 //The cloud can be also seen in RViz
-pcl::visualization::CloudViewer viewer_("view");
+//pcl::visualization::CloudViewer viewer_("view");
 
 /**
 * This function receives a PCL point cloud and segment a cylinder. The results is returned as a PointCloud msg of ROS
@@ -150,7 +150,7 @@ void getCylinder(pcl::PointCloud<PointT> cloud, pcl::PointCloud<PointT> & points
 	 
   }
 
-  viewer_.showCloud(cloud_cylinder);
+ //viewer_.showCloud(cloud_cylinder);
 
   points_msg = *cloud_cylinder;
 
@@ -245,7 +245,7 @@ void getPlane(pcl::PointCloud<PointT> cloud, pcl::PointCloud<PointT> & points_ms
   extract.filter (*cloud_plane);
   
 
-  viewer_.showCloud(cloud_plane);
+  //viewer_.showCloud(cloud_plane);
 
   points_msg = *cloud_plane;
 
@@ -275,6 +275,194 @@ void removeOutliers(pcl::PointCloud<PointT> cloud, pcl::PointCloud<PointT> & poi
 
 
 }
+
+void generateNT120A(pcl::PointCloud<PointT> & points_msg, double ang_resolution, double length, double z_resolution,double offset_z)
+{
+	double radius_gutter = 0.20;
+	double corridor = 0.18;
+	double radius_roof = 0.5;
+	double height = 0.85;
+
+	generateGenericSection(points_msg,ang_resolution,length,z_resolution,offset_z,radius_gutter,corridor,radius_roof,height);
+
+	
+
+}
+
+
+
+
+void generateT164(pcl::PointCloud<PointT> & points_msg, double ang_resolution, double length, double z_resolution,double offset_z)
+{
+	double radius_gutter = 0.20;
+	double corridor = 0.40;
+	double radius_roof = 0.6;
+	double height = 0.9;
+
+	generateGenericSection(points_msg,ang_resolution,length,z_resolution,offset_z,radius_gutter,corridor,radius_roof,height);
+
+}
+
+void generateT181(pcl::PointCloud<PointT> & points_msg, double ang_resolution, double length, double z_resolution,double offset_z)
+{
+	double radius_gutter = 0.20;
+	double corridor = 0.40;
+	double radius_roof = 0.6;
+	double height = 1.0;
+
+	generateGenericSection(points_msg,ang_resolution,length,z_resolution,offset_z,radius_gutter,corridor,radius_roof,height);
+
+}
+
+void generateT133(pcl::PointCloud<PointT> & points_msg, double ang_resolution, double length, double z_resolution,double offset_z)
+{
+	double radius_gutter = 0.20;
+	double corridor = 0.20;
+	double radius_roof = 0.5;
+	double height = 1.0;
+
+	generateGenericSection(points_msg,ang_resolution,length,z_resolution,offset_z,radius_gutter,corridor,radius_roof,height);
+
+}
+
+
+void generateD1400(pcl::PointCloud<PointT> & points_msg, double ang_resolution, double length, double z_resolution,double offset_z)
+{
+
+	double radius_roof = 0.7;
+
+	double angle = 0.0;
+	int n_points = 2*M_PI/ang_resolution;
+
+	points_msg.clear();
+
+
+	std::vector<PointT> slice;
+	double x,y;
+
+	for(int i=0;i<n_points;i++)
+	{
+		double a = angle + ang_resolution*i;
+
+		if(a>=(3.0/2.0-1.0/9.0)*M_PI && a<=(3.0/2.0+1.0/9.0)*M_PI)
+			continue;
+
+		x = radius_roof*cos(a);
+		y = radius_roof*sin(a); 
+
+		PointT p;
+		p.x=x;
+		p.y=-y;
+		p.z=0.0;
+		slice.push_back(p);
+
+	}
+
+	int z_points = length / z_resolution;
+
+	for(int j=0; j < z_points; j++)
+	{
+		for(int i=0; i < slice.size(); i++)
+		{
+			PointT aux = slice[i];
+
+			aux.z += j*z_resolution + offset_z;
+			points_msg.points.push_back(aux);
+
+		}
+
+	}
+	
+
+}
+
+void generateGenericSection(pcl::PointCloud<PointT> & points_msg, double ang_resolution, double length, double z_resolution, double offset_z,
+				double radius_gutter, double corridor,double radius_roof, double height)
+{
+
+	double daux = radius_roof - (radius_gutter + corridor);
+
+	double angle = 0.0;
+	int n_points = 2*M_PI/ang_resolution;
+
+	points_msg.clear();
+
+	double alpha1 = atan2(height,radius_gutter + corridor);
+	double alpha3 = atan2(radius_gutter,height);
+	double alpha2 = M_PI/2.0-(alpha1 + alpha3);
+
+	std::vector<PointT> slice;
+	double x,y;
+
+	for(int i=0;i<n_points;i++)
+	{
+		double a = angle + ang_resolution*i;
+
+		if (a>=0.0 && a <= M_PI)
+		{
+			x = radius_roof*cos(a);
+			y = radius_roof*sin(a); 
+
+		}else if (a>M_PI && a<= M_PI + alpha1)
+		{
+			double B = height/daux;
+			double A = -B*(radius_gutter+corridor)-height;
+			double r = A/(sin(a)+B*cos(a));
+
+			x = r*cos(a);
+			y = r*sin(a);
+			
+
+		}else if((a>M_PI + alpha1 && a <= M_PI + alpha1 + alpha2) || (a>3*M_PI/2 + alpha3 && a <= 3*M_PI/2 + alpha3 + alpha2))
+		{
+
+			//continue;
+			double r = height/sin(a);
+
+			x = r*cos(a);
+			y= -height;
+			
+		}
+		else if(a>3*M_PI/2+alpha3+alpha2 && a < 2*M_PI)
+		{
+
+			double B = height/daux;
+			double A = -B*(radius_gutter+corridor)-height;
+
+			double r = A/(sin(a)-B*cos(a));
+
+			x = r*cos(a);
+			y = r*sin(a);
+
+		}else
+			continue;
+		
+		PointT p;
+		p.x=x;
+		p.y=-y;
+		p.z=0.0;
+		slice.push_back(p);
+
+	}
+
+	int z_points = length / z_resolution;
+
+	for(int j=0; j < z_points; j++)
+	{
+		for(int i=0; i < slice.size(); i++)
+		{
+			PointT aux = slice[i];
+
+			aux.z += j*z_resolution + offset_z;
+			points_msg.points.push_back(aux);
+
+		}
+
+	}
+
+}
+
+
 
 
 /*

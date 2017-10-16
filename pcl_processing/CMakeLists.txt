@@ -55,6 +55,8 @@ add_executable(point_cloud_clean_ref src/point_cloud_clean_ref.cpp src/processPo
 
 add_executable(point_cloud_compare src/point_cloud_compare.cpp src/processPointCloud.cpp)
 
+add_executable(map_analysis src/map_analysis.cpp src/siar_map_analysis.cpp src/siar_section.cpp src/processPointCloud.cpp)
+
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
@@ -79,6 +81,10 @@ target_link_libraries(point_cloud_clean_ref
 
 target_link_libraries(point_cloud_compare
   ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${PCL_LIBRARIES}
+)
+
+target_link_libraries(map_analysis
+  ${catkin_LIBRARIES}
 )
 
 
