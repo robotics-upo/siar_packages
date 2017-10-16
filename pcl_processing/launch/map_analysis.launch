@@ -4,7 +4,7 @@
 <arg name="camera" default="/front"/>
 <arg name="min_thres_defects" default="0.005"/>
 <arg name="max_thres_defects" default="0.04"/>
-<arg name="global_align_thres" default="0.9"/>
+<arg name="global_align_thres" default="0.02"/>
 <!-- Point cloud generation -->
   <node name="uncompresser" pkg="image_transport" type="republish"
         args="compressedDepth in:=/front_web/depth_registered/image_raw raw out:=/front/depth_registered/image_raw"/>

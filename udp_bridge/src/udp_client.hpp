@@ -227,8 +227,14 @@ public:
     
     // Set the downsampled camera info
     downsampled_info.D.resize(5);
-    downsampled_info.height = 120;
-    downsampled_info.width = 160;
+    if (!lnh.getParam("height2", aux)) 
+      downsampled_info.height = 120;
+    else
+      downsampled_info.height = aux;
+    if (!lnh.getParam("width2", aux))
+      downsampled_info.width = 160;
+    else 
+      downsampled_info.width = aux;
     for (int i = 0; i < 5; i++) {
       downsampled_info.D[i] = 0.0;
     }

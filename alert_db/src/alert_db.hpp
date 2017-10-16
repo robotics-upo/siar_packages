@@ -39,6 +39,8 @@ public:
   
   bool exportHTML(const std::string &folder);
   
+  std::string toString() const;
+  
 protected:
   std::vector<Alert> alerts;
   ros::Publisher marker_pub;
@@ -123,6 +125,7 @@ bool AlertDB::generateAlert(GenerateAlert::Request& req, GenerateAlert::Response
   if (ret_val && alerts.size() > 0) {
     if (alerts[alerts.size() - 1].getType() == END) {
       exportKMLFile(kml_out_file);
+      ROS_INFO("Alerts content:\n%s", toString().c_str());
     }
   }
   
@@ -176,6 +179,17 @@ bool AlertDB::exportKMLFile(const string& file)
   }
   
   return ret;
+}
+
+string AlertDB::toString() const
+{
+  std::ostringstream os;
+  
+  for (unsigned int i = 0; i < alerts.size(); i++) {
+    os << alerts[i].toString() << std::endl;  // kml takes ownership.
+  }
+  
+  return os.str();
 }
 
 

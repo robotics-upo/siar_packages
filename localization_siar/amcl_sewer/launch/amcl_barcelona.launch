@@ -1,4 +1,4 @@
-  <!--
+<!--
 -->
 <launch>
   <arg name="camera" default="/up"/>
@@ -26,6 +26,10 @@
     <param name="initial_x_dev" value="1.0" />
     <param name="initial_y_dev" value="1.0" />
     <param name="initial_a_dev" value="0.5" />
+    
+    <param name="initial_x" value="98.9293441772" />
+    <param name="initial_y" value="-195.20526123" />
+    <param name="initial_a" value="-0.562" />
     
     <param name="edgeDev" value="1.2"/>
     <param name="manholeThres" value="0.075"/>

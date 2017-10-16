@@ -93,7 +93,7 @@
                 }, 
                 "dock_widget_title": {
                   "type": "repr", 
-                  "repr": "u'amcl_base.rviz[*] - RViz'"
+                  "repr": "u'amcl_base_station.rviz[*] - RViz'"
                 }
               }, 
               "groups": {}
