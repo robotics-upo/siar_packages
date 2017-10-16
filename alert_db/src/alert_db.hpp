@@ -42,7 +42,7 @@ public:
 protected:
   std::vector<Alert> alerts;
   ros::Publisher marker_pub;
-  ros::Subscriber gps_fix_sub;
+  ros::Subscriber gps_fix_sub, image_sub;
   ros::ServiceServer generate_alert_server;
   sensor_msgs::NavSatFix fix;
   sewer_graph::EarthLocation center;
@@ -73,6 +73,7 @@ AlertDB::AlertDB(ros::NodeHandle &nh, ros::NodeHandle &lnh):fix_init(false), ini
   marker_pub = nh.advertise<visualization_msgs::Marker>("/alerts", 10);
   generate_alert_server = nh.advertiseService("/generate_alert", &AlertDB::generateAlert, this);
   gps_fix_sub = nh.subscribe("/gps_fix", 2, &AlertDB::gpsFixCb, this);
+//   image_sub = nh.subscribe("/front_web/rgb/image_raw/compressed", 2, &AlertDB::gpsFixCb, this);
   
   factory = kmldom::KmlFactory::GetFactory();
 }

@@ -52,16 +52,16 @@ void callback(const sensor_msgs::PointCloud2::ConstPtr& msg)
 	  pub_points_.publish(points_msg2);
 
 
-	  section_marker.header.frame_id = msg->header.frame_id;//"back_depth_optical_frame";
-	  section_marker.header.stamp = msg->header.stamp;
-	  section_marker.text = type;
-
-	  //Publish marker with the section
-	  vis_pub.publish( section_marker );
+	  
 
   }
 
+  section_marker.header.frame_id = msg->header.frame_id;//"back_depth_optical_frame";
+  section_marker.header.stamp = msg->header.stamp;
+  section_marker.text = type;
 
+  //Publish marker with the section
+  vis_pub.publish( section_marker );
 
 }
 
@@ -74,11 +74,19 @@ int main(int argc, char** argv)
   // --- Inicializacion de ROS. No hace falta tocar
   ros::init(argc, argv, "detect_pcl");
 
-  ros::NodeHandle nh;
+  ros::NodeHandle nh, lnh("~");
+  
+  double min_thres_defects = 0.005;
+  double max_thres_defects = 0.04;
+  double global_align_thres = 0.02;
 
-	map_analysis.setMinThresholdDefects(0.005);
-	map_analysis.setMaxThresholdDefects(0.04);
-	map_analysis.setGlobalAlignThreshold(0.02);
+  lnh.getParam("min_thres_defects", min_thres_defects);
+  lnh.getParam("max_thres_defects", max_thres_defects);
+  lnh.getParam("global_align_thres", global_align_thres);
+  
+  map_analysis.setMinThresholdDefects(min_thres_defects);
+  map_analysis.setMaxThresholdDefects(max_thres_defects);
+  map_analysis.setGlobalAlignThreshold(global_align_thres);
 
   
   section_marker.id = 0;

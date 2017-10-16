@@ -25,21 +25,6 @@
     
   </include>
   
-  <!-- Point cloud generation -->
-  <node name="uncompresser" pkg="image_transport" type="republish"
-        args="compressedDepth in:=/front_web/depth_registered/image_raw raw out:=/front/depth_registered/image_raw"/>
-
-<node pkg="nodelet" type="nodelet" args="manager" name="depth_transforms_manager" />
-<node pkg="nodelet" type="nodelet" name="cloudify"
-      args="load depth_image_proc/point_cloud_xyz depth_transforms_manager">
-  <!-- Input: Rectified depth image, registered to the RGB camera. -->
-  <remap from="image_rect" to="/front/depth_registered/image_raw"/> 
-  <remap from="camera_info" to="/front_web/depth_registered/camera_info"/>
-  <!-- Output: XYZRGB point cloud. -->
-  <remap from="points" to="/front/points"/>
-</node>
-
-  
   <!-- Representation stuff-->
 <!--   <node pkg="rviz" type="rviz" name="rviz" args="-d ../.rviz/barcelona_junio.rviz"/> -->
   <node pkg="rqt_gui" type="rqt_gui" name="rqt" />

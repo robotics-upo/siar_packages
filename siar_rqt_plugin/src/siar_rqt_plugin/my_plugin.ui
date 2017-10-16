@@ -135,6 +135,27 @@
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_6">
          <item>
+          <widget class="QLabel" name="label_6">
+           <property name="text">
+            <string>Position</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QSpinBox" name="spinBox">
+           <property name="minimum">
+            <number>1</number>
+           </property>
+           <property name="maximum">
+            <number>12</number>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_7">
+         <item>
           <widget class="QComboBox" name="alertTypeCombo">
            <item>
             <property name="text">
@@ -161,7 +182,7 @@
          <item>
           <widget class="QCheckBox" name="checkBox">
            <property name="text">
-            <string>Attach images from cameras</string>
+            <string>Attach images</string>
            </property>
           </widget>
          </item>
