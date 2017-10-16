@@ -3,9 +3,14 @@
 #include <pluginlib/class_list_macros.h>
 #include <QStringList>
 #include <QLabel>
+#include <QCheckBox>
 #include <QString>
+#include <QTextEdit>
+#include <QMessageBox>
+#include <QComboBox>
 #include "siar_driver/SiarStatus.h"
 #include <ros/ros.h>
+#include "alert_db/GenerateAlert.h"
 
 #include <sstream>
 #include <string>
@@ -31,6 +36,7 @@ MyPlugin::MyPlugin()
   setObjectName("MyPlugin");
   //setWindowIcon(QIcon("~/catkin_ws/src/siar_packages/siar_rqt_plugin/icon.png"));
  // widget_->setWindowIcon(QIcon("~/catkin_ws/src/siar_packages/siar_rqt_plugin/icon.png"));
+  
 }
 
 void MyPlugin::initPlugin(qt_gui_cpp::PluginContext& context)
@@ -46,6 +52,12 @@ void MyPlugin::initPlugin(qt_gui_cpp::PluginContext& context)
 
   
   my_subscriber = getNodeHandle().subscribe("/siar_status", 1, &MyPlugin::ros_data_callback, this);
+  
+  alert_service = getNodeHandle().serviceClient<alert_db::GenerateAlert>("/generate_alert");
+  
+  connect(ui_.pushButton, SIGNAL(pressed()), SLOT(click()));
+  connect(ui_.pushButton, SIGNAL(pressed()), SLOT(cleanAlert()));
+  
 }
 
 void MyPlugin::shutdownPlugin()
@@ -183,6 +195,34 @@ void MyPlugin::ros_data_callback(const siar_driver::SiarStatus msg)
   ui_.herculexStatus5->setText(QString::fromStdString(sstm.str()));   
 
   
+}
+
+void MyPlugin::click() {
+  alert_db::GenerateAlert::Request req;
+  alert_db::GenerateAlert::Response res;
+  req.head.stamp = ros::Time::now();
+  req.description = ui_.textEdit->toPlainText().toStdString();
+  req.position = 0; // TODO: Add position according to clock hours
+//   QCheckBox b;b.set
+  req.attach_images = ui_.checkBox->checkState();
+  
+  QComboBox &cb = *ui_.alertTypeCombo;
+  int index = cb.currentIndex();
+  if (index > 0)
+    index++;
+  
+  ROS_INFO("Calling generate alert service");
+  alert_service.call(req, res);
+  if (res.result == 0) {
+    // Show error
+//     QMessageBox::critical(&ui_, "Service error", "Could not create the alert");
+  }
+}
+
+void MyPlugin::cleanAlert() {
+  
+  ui_.textEdit->setText("");
+  ui_.checkBox->setCheckState(Qt::CheckState(false));
 }
 
 /*bool hasConfiguration() const

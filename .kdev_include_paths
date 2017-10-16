@@ -9,4 +9,8 @@
 /home/siar/siar_ws/src/siar_packages/siar_planner/include
 /home/siar/siar_ws/src/siar_packages/siar_driver/include
 /home/siar/siar_ws/devel/include
-/home/siar/siar_ws/src/plane_detector/include
+/home/chur/test_ws/src/siar_packages/plane_detector/include
+/home/chur/test_ws/src/siar_packages/siar_rqt_plugin/include
+/home/chur/test_ws/build/siar_packages/siar_rqt_plugin
+/usr/include/qt4/QtCore/
+/usr/include/qt4/QtGui/

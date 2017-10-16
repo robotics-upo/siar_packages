@@ -20,7 +20,7 @@
    <item>
     <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
-      <number>0</number>
+      <number>1</number>
      </property>
      <widget class="QWidget" name="tabWidgetPage1">
       <attribute name="title">
@@ -111,9 +111,85 @@
        </item>
       </layout>
      </widget>
+     <widget class="QWidget" name="tab_2">
+      <property name="whatsThis">
+       <string>This tabs allows the user to add an alert that will be registered in the Alert Database</string>
+      </property>
+      <property name="accessibleName">
+       <string>Generate alert</string>
+      </property>
+      <attribute name="title">
+       <string>Alert</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayout_16">
+       <item>
+        <widget class="QLabel" name="label_3">
+         <property name="text">
+          <string>Alert Description</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QTextEdit" name="textEdit"/>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_6">
+         <item>
+          <widget class="QComboBox" name="alertTypeCombo">
+           <item>
+            <property name="text">
+             <string>INIT</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>STRUCTURAL DEFECT</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>SERVICEABILITY LOSS</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>END</string>
+            </property>
+           </item>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="checkBox">
+           <property name="text">
+            <string>Attach images from cameras</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_5">
+         <item>
+          <widget class="QPushButton" name="pushButton">
+           <property name="text">
+            <string>Generate</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pushButton_2">
+           <property name="text">
+            <string>Clean</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
+       </item>
+      </layout>
+     </widget>
      <widget class="QWidget" name="tab">
       <attribute name="title">
-       <string>Arm and battery info</string>
+       <string>Arm and battery</string>
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout_9">
        <item>
@@ -458,7 +534,7 @@
      </widget>
      <widget class="QWidget" name="tabWidgetPage2">
       <attribute name="title">
-       <string>All Info </string>
+       <string>All</string>
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayout_8">
        <item>
@@ -615,6 +691,25 @@
    </item>
   </layout>
  </widget>
+ <tabstops>
+  <tabstop>reverse</tabstop>
+  <tabstop>slow</tabstop>
+  <tabstop>frontLight</tabstop>
+  <tabstop>rearLight</tabstop>
+  <tabstop>hPosArea</tabstop>
+  <tabstop>scrollArea_2</tabstop>
+  <tabstop>scrollArea_3</tabstop>
+  <tabstop>scrollArea_4</tabstop>
+  <tabstop>armPanic2</tabstop>
+  <tabstop>reverse_2</tabstop>
+  <tabstop>slow_2</tabstop>
+  <tabstop>frontLight_2</tabstop>
+  <tabstop>rearLight_2</tabstop>
+  <tabstop>armPanic</tabstop>
+  <tabstop>fan</tabstop>
+  <tabstop>hardStop</tabstop>
+  <tabstop>isStopped</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

@@ -1,0 +1,7 @@
+Header head
+string description
+bool attach_images
+int8 position
+uint8 type
+---
+bool result
