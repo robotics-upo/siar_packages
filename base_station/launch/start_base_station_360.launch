@@ -55,4 +55,9 @@
   <include file="$(find amcl_sewer)/launch/amcl_barcelona.launch">
     <arg name="visualization" value="false"/>
   </include>
+  
+  <node pkg="alert_db" type="alert_db_node" name="alert_db" output="screen"/>
+  
+  
+  <include file="$(find pcl_processing)/launch/map_analysis.launch"/>
 </launch>

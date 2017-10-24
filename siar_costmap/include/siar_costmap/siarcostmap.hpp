@@ -74,7 +74,7 @@ public:
       m_hz = 10.0;
     if(!lnh.getParam("obstacle_height", m_obstacleHeight))
       m_obstacleHeight = 0.05;
-    if(!lnh.getParam("obstacle_height_negative", m_obstacleHeight))
+    if(!lnh.getParam("obstacle_height_negative", m_obstacleHeightNeg))
       m_obstacleHeightNeg = -m_obstacleHeight;
     if(!lnh.getParam("exp_decay", m_expDecay))
       m_expDecay = 0.0;

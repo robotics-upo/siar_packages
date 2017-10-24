@@ -8,6 +8,7 @@
 #include <QTextEdit>
 #include <QMessageBox>
 #include <QComboBox>
+#include <QSpinBox>
 #include "siar_driver/SiarStatus.h"
 #include <ros/ros.h>
 #include "alert_db/GenerateAlert.h"
@@ -202,20 +203,22 @@ void MyPlugin::click() {
   alert_db::GenerateAlert::Response res;
   req.head.stamp = ros::Time::now();
   req.description = ui_.textEdit->toPlainText().toStdString();
-  req.position = 0; // TODO: Add position according to clock hours
-//   QCheckBox b;b.set
+  req.position = ui_.spinBox->value(); // TODO: Add position according to clock hours
   req.attach_images = ui_.checkBox->checkState();
   
   QComboBox &cb = *ui_.alertTypeCombo;
   int index = cb.currentIndex();
   if (index > 0)
     index++;
+  req.type = index;
   
   ROS_INFO("Calling generate alert service");
   alert_service.call(req, res);
   if (res.result == 0) {
     // Show error
-//     QMessageBox::critical(&ui_, "Service error", "Could not create the alert");
+    QMessageBox::critical(widget_, "Service error", "Could not create the alert");
+  } else {
+    QMessageBox::information(widget_, "Alert OK", "Alert generated successfully");
   }
 }
 

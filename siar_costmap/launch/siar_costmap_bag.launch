@@ -9,10 +9,10 @@
   
   <arg name="tilt_compensate" default="true"/>
   <arg name="consider_sign" default="true"/>
-  <arg name="roi_x" default="3"/>
-  <arg name="roi_y" default="3"/>
-  <arg name="roi_w" default="314"/>
-  <arg name="roi_h" default="234"/>
+  <arg name="roi_x" default="5"/>
+  <arg name="roi_y" default="5"/>
+  <arg name="roi_w" default="310"/>
+  <arg name="roi_h" default="230"/>
   
   <arg name="camera_1" default="/front_left"/>
   <arg name="camera_2" default="/back_left"/>
@@ -131,15 +131,16 @@
 
     <param name="hz" value = "5.0"/>							# Costmap update rate
     <param name="obstacle_height" value = "0.1"/>				# Absolute value of obstacle height (or hole depth)
-<!--     <param name="obstacle_height_negative" value = "-0.05"/>                               # Absolute value of obstacle height (or hole depth) -->
+    <param name="obstacle_height_negative" value = "-0.06"/>                               # Value of obstacle height (or hole depth)
     <param name="exp_decay" value = "7.0"/>					    # Obstacle exponential decay (it is counted in cells)
     <remap from="/costmap_node/costmap" to="/test_costmap"/>
     <param name="tilt_compensate" value="$(arg tilt_compensate)"/>
     <param name="consider_sign" value="$(arg consider_sign)"/>
     <remap from="imu" to="/arduimu_v3/imu"/>
     <param name="robot_height" value="0.5"/>
-    <param name="min_radius" value="0.65"/>
+    <param name="min_radius" value="3.65"/>
     <param name="max_radius" value="1.2"/>
+    <param name="inflate_negative" value="1"/>
   </node>
 
 </launch>

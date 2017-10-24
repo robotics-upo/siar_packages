@@ -16,6 +16,8 @@
 #include "kml/convenience/convenience.h"
 #include "kml/base/string_util.h"
 
+#include "functions/functions.h"
+
 using kmldom::CoordinatesPtr;
 using kmldom::KmlFactory;
 using kmldom::LineStringPtr;
@@ -49,7 +51,7 @@ protected:
   sensor_msgs::NavSatFix fix;
   sewer_graph::EarthLocation center;
   bool fix_init, init;
-  std::string kml_out_file;
+  std::string kml_out_file, text_out_file;
   
   std::string map_tf, base_tf;
   
@@ -68,13 +70,16 @@ AlertDB::AlertDB(ros::NodeHandle &nh, ros::NodeHandle &lnh):fix_init(false), ini
   map_tf = lnh.resolveName("/map");
   base_tf = lnh.resolveName("/base_link");
   if (!lnh.getParam("kml_out_file", kml_out_file)) {
-    kml_out_file = "~/test_alert_kml.kml";
+    kml_out_file = "/home/chur/DemoOct2017/test_alert_kml.kml";
+  }
+  if (!lnh.getParam("text_out_file", text_out_file)) {
+    text_out_file = "/home/chur/DemoOct2017/alert_text.txt";
   }
   
   // Publishers, Subscribers and Services
   marker_pub = nh.advertise<visualization_msgs::Marker>("/alerts", 10);
   generate_alert_server = nh.advertiseService("/generate_alert", &AlertDB::generateAlert, this);
-  gps_fix_sub = nh.subscribe("/gps_fix", 2, &AlertDB::gpsFixCb, this);
+  gps_fix_sub = nh.subscribe("/gps/fix", 2, &AlertDB::gpsFixCb, this);
 //   image_sub = nh.subscribe("/front_web/rgb/image_raw/compressed", 2, &AlertDB::gpsFixCb, this);
   
   factory = kmldom::KmlFactory::GetFactory();
@@ -107,14 +112,12 @@ bool AlertDB::generateAlert(GenerateAlert::Request& req, GenerateAlert::Response
     pose.orientation.y = q.getY();
     pose.orientation.z = q.getZ();
     
-    
-    
     Alert curr_alert(alerts.size(), loc, req, pose);
     alerts.push_back(curr_alert);
     ret_val = true;
     publishMarker();
     
-    ROS_INFO("New alert generated. Description = %s", req.description.c_str());
+    ROS_INFO("New alert generated. Type = %d. Description = %s", req.type, req.description.c_str());
   } catch (std::exception &e) {
     
     ROS_ERROR("Could not generate alert. Exception content: %s", e.what());
@@ -123,9 +126,11 @@ bool AlertDB::generateAlert(GenerateAlert::Request& req, GenerateAlert::Response
   res.result = (ret_val)?1:0;
   
   if (ret_val && alerts.size() > 0) {
-    if (alerts[alerts.size() - 1].getType() == END) {
+//     if (alerts[alerts.size() - 1].getType() == END) {
+    if (req.type >= 4) { // end!
       exportKMLFile(kml_out_file);
       ROS_INFO("Alerts content:\n%s", toString().c_str());
+      functions::writeStringToFile(text_out_file, toString());
     }
   }
   

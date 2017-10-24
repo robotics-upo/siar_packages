@@ -53,6 +53,7 @@ string Alert::toString() const
   
   os << "Alert ID: " << m_id << "\t";
   os << "Type: " << m_type << "\n";
+  os << "Stamp: " << m_alert.head.stamp << "\n";
   os << "Location: " << m_location.toString() << std::endl;
   os << "Description: " << m_alert.description << std::endl;
   

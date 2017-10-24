@@ -1,5 +1,5 @@
 {T: 0.1, T_hor: 2.5, a_max: 0.5, a_max_theta: 1.0, consider_two_wheels: false, delta_T: 0.1, n_ang: 12, n_interpols: 5, n_lin: 3,
-  omega_max: 0.4, robot_longitude: 0.9, robot_width: 0.56, use_dynamic_reconfigure: false,
-  v_max: 0.5, v_min: 0.075, w_safe: 1.0, wheel_width: 0.1,
-  min_wheel_left: [0.99, 0.3, 0.9, 0.2], min_wheel_right: [0.99, 0.9, 0.3, 0.2]
+  omega_max: 0.4, robot_longitude: 0.9, robot_width: 0.67, use_dynamic_reconfigure: false,
+  v_max: 0.5, v_min: 0.075, w_safe: 1.0, wheel_width: 0.07,
+  min_wheel_left: [0.8, 0.3, 0.8, 0.4], min_wheel_right: [0.8, 0.8, 0.3, 0.4]
 }
