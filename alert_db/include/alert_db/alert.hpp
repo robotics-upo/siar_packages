@@ -130,7 +130,7 @@ visualization_msgs::Marker Alert::getMarker(const std::string &map_frame) const
       m.color.g = 0.4;
       m.color.r = 0.4;
       m.color.b = 0.4;
-      m.text = "init";
+      m.text = "repeater";
       m.type = visualization_msgs::Marker::CUBE;
       break;
   }

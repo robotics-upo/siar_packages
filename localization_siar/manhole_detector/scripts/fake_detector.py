@@ -8,8 +8,11 @@ from sensor_msgs.msg import CompressedImage
 from std_msgs.msg import Bool
 from std_msgs.msg import Int32
 from geometry_msgs.msg import Pose2D
+from tf.transformations import euler_from_quaternion, quaternion_from_euler
 import numpy as np
 import sys
+import tf
+import math
 
 class FakeDetector:    
 
@@ -47,25 +50,26 @@ class FakeDetector:
         bool_msg.data = True
         
         if len(self.detected_vector[i]) > 4:
-          print 'Hereeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
           pose_msg.x = self.detected_vector[i][3]
           pose_msg.y = self.detected_vector[i][4]
+          # save a file with the distance to the manhole
+          try:
+            (trans,rot) = listener.lookupTransform('/base_link', '/map', rospy.Time(0))
+            dist = math.sqrt( (trans[0] - pose_msg.x) ** 2 + (trans[1] - pose_msg.y) ** 2)
+            orientation_q = rot
+            orientation_list = [orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w]
+            (roll, pitch, yaw) = euler_from_quaternion (orientation_list)
+            text_ = '{0}\t{1}\t{2}\t{3}\t\t{4}{5}'.format(id_msg.data, trans[0], trans[1], yaw, pose_msg.x, pose_msg.y)
+            
+            stats_file.write(text_);
+          except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
+            print "Exception catched while waiting for transform"
         break
     self.bool_pub.publish(bool_msg)
     self.id_pub.publish(id_msg)
     self.pose_pub.publish(pose_msg)
     
-  def depth_callback(self, img):
-    print "Depth Callback"
-    #seq = img.header.seq
-    #bool_msg = Bool(False)
-    #for i in range(len(self.detected_vector)):
-      #if self.detected_vector[i][0] < seq and self.detected_vector[i][1] > seq:
-        ##bool_msg.data = True
-        #break
-    #self.bool_pub.publish(bool_msg)
-        
-  def __init__(self, camera, filename):
+  def __init__(self, camera, filenam, out_file):
     self.load_vector(filename)
     np.set_printoptions(precision=3, threshold=10000, linewidth=10000)
     rgb_image = camera + "/rgb/image_raw/compressed"
@@ -79,6 +83,10 @@ class FakeDetector:
     # Spin until ctrl + c
     rospy.spin()
     
+    # For statistics stuff
+    self.listener = listener = tf.TransformListener()
+    self.stats_file = open(out_file, ”w”)
+    
   def load_vector(self, filename):
     self.detected_vector = np.loadtxt(filename)
     print "Loaded_vector"
@@ -87,7 +95,10 @@ class FakeDetector:
 if __name__ == '__main__':
   if len(sys.argv) > 2:
     rospy.init_node(sys.argv)
-    detector = FakeDetector(sys.argv[1], sys.argv[2])
+    out_file = "stats_python.txt"
+    if len(sys.argv) > 3:
+      out_file = sys.argv[3]
+    detector = FakeDetector(sys.argv[1], sys.argv[2], out_file)
   else:
-    print "usage: %s <camera> <vector_file>" % sys.argv[0]
+    print "usage: %s <camera> <vector_file> [<stats file>]" % sys.argv[0]
     sys.exit()

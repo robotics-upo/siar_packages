@@ -127,7 +127,7 @@ void SewerGraph::addEdge(int i, int j) {
   e.distance = origin.distance(dest);
   RealVector v = dest.toRelative(origin);
   e.route = atan2(v[1], v[0]);
-  cout << "v = " << v.toString() << "\tRoute: " << e.route << endl;
+//   cout << "v = " << v.toString() << "\tRoute: " << e.route << endl;
   SimpleGraph::addEdge(i, j, e);
   SimpleGraph::addEdge(j, i, e);
 }

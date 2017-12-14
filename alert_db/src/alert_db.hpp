@@ -101,7 +101,7 @@ bool AlertDB::generateAlert(GenerateAlert::Request& req, GenerateAlert::Response
     sewer_graph::EarthLocation loc(center);
     double x = transf.getOrigin().getX();
     double y = transf.getOrigin().getY();
-    loc.shift(x, y);
+    loc.shift(y, x);
     geometry_msgs::Pose pose;
     pose.position.x = x;
     pose.position.y = y;
