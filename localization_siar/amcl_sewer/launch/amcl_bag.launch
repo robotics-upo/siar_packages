@@ -7,6 +7,18 @@
   <arg name="play_bag" default="true"/>
   <arg name="rgbd_odom" default="true"/>
   <arg name="rate" default="1"/>
+  <arg name="initial_x" default="98.9293441772" />
+  <arg name="initial_y" default="-195.20526123" />
+  <arg name="initial_a" default="-0.562" />
+  <arg name="detector" default="false"/>
+  <arg name="vis" default="true"/>
+  <arg name="ground_truth" default="(find manhole_detector)/test/input_vector_2017-01-17-11_ground_truth"/>
+  <arg name="ground_truth_out" default="(find manhole_detector)/test/input_vector_2017-01-17-11_ground_truth_out.txt"/>
+  <arg name="odom_x_mod" default="0.4" />
+  <arg name="odom_y_mod" default="0.4" />
+  <arg name="odom_a_mod" default="0.2" />
+  <arg name="odom_a_noise" default="0.075" />
+  <arg name="yaw_estimator" default="false" />
   
   # Use simulation time fro TFs
   <param name="use_sim_time" value="true" />
@@ -55,7 +67,7 @@
   <node pkg="odom_to_tf" type="odom_to_tf.py" name="odom_to_tf" unless="$(arg rgbd_odom)"/>
 
   
-  <node name="amcl_node" type="amcl_node" pkg="amcl_sewer" output="screen" >
+  <node name="amcl_node" type="amcl_node" pkg="amcl_sewer">
     <param name="rate" value="10.0" />
     <param name="base_frame_id" value="base_link" />
     <param name="odom_frame_id" value="odom" />
@@ -64,29 +76,31 @@
     <param name="min_particles" value="400" />
     <param name="max_particles" value="600" />
     
-    <param name="odom_x_mod" value="0.6" />
-    <param name="odom_y_mod" value="0.6" />
-    <param name="odom_a_mod" value="0.8" />
+    <param name="odom_x_mod" value="$(arg odom_x_mod)" />
+    <param name="odom_y_mod" value="$(arg odom_y_mod)" />
+    <param name="odom_a_mod" value="$(arg odom_a_mod)" />
+    <param name="odom_a_noise" value="$(arg odom_a_noise)" />
     
     <param name="resample_interval" value="0" />
     
-    <param name="update_min_d" value="0.4" />
-    <param name="update_min_a" value="0.3" />
+    <param name="update_min_d" value="0.5" />
+    <param name="update_min_a" value="0.2" />
     
-    <param name="initial_x" value="98.9293441772" />
-    <param name="initial_y" value="-195.20526123" />
-    <param name="initial_a" value="-0.562" />
+    <param name="initial_x" value="$(arg initial_x)" />
+    <param name="initial_y" value="$(arg initial_y)" />
+    <param name="initial_a" value="$(arg initial_a)" />
     
-    <param name="initial_x_dev" value="0.7" />
-    <param name="initial_y_dev" value="0.7" />
-    <param name="initial_a_dev" value="0.6" />
+    <param name="initial_x_dev" value="0.5" />
+    <param name="initial_y_dev" value="0.5" />
+    <param name="initial_a_dev" value="0.1" />
     
-    <param name="edgeDev" value="0.5"/>
+    <param name="edgeDev" value="0.4"/>
     <param name="manholeThres" value="0.00075"/>
     <param name="manholeDev" value="0.7" />
     <param name="min_manhole_detected" value="2"/>
     <param name="forkDev" value="0.7"/>
-    <param name="fork_dist" value="3.0"/>
+    <param name="fork_dist" value="8.0"/>
+    <param name="angleDev" value="0.08"/>
     
     <param name="sewer_graph_file" value="$(find sewer_graph)/test/gis_graph_reduced"/>
     
@@ -99,16 +113,25 @@
     
   </node>
     
-  <node name="vis" type="rviz" pkg="rviz" args="-d $(find amcl_sewer)/launch/amcl3d.rviz"/>
+  <node name="vis" type="rviz" pkg="rviz" args="-d $(find amcl_sewer)/launch/amcl_pure.rviz" if="$(arg vis)"/>
   
-  <node name="cnn_laber" type="cnn_detector.py" pkg="manhole_detector" args="/up $(find manhole_detector)/test/model.10-0.9861-0.9578.hdf5">
+  <node name="cnn_laber" type="cnn_detector.py" pkg="manhole_detector" args="/up $(find manhole_detector)/test/model.10-0.9861-0.9578.hdf5" if="$(arg detector)">
     <param name="thres" value="0.55"/>
   
   </node>
+
   
-  <node name="ground_truth_laber" type="fake_detector.py" pkg="manhole_detector" args="/up $(find manhole_detector)/test/input_vector_2017-01-17-11_ground_truth" >
+  <node name="ground_truth_laber" type="fake_detector.py" pkg="manhole_detector" args="/up $(arg ground_truth) $(arg ground_truth_out)" output="screen" >
     <remap from="manhole" to="ground_truth"/>
   </node>
+  
+  <node name="yaw_estimator" type="test_wall_detector" pkg="plane_calibrator" if="$(arg yaw_estimator)">
+   <param name="camera" value="$(arg camera)/depth_registered"/>
+   <param name="link_1" value="/base_link"/>
+   <param name="link_2" value="$(arg camera)_depth_optical_frame"/>
+  </node>
+  
+  <include file="$(find siar_driver)/launch/frames_siar.launch"/>
   
 
 </launch>	
