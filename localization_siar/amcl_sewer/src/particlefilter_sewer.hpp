@@ -23,6 +23,8 @@
 #include <math.h>
 #include <sewer_graph/sewer_graph.h>
 #include <fstream>
+#include <plane_detector/WallInfo.h>
+#include <cmath>
 
 //Struct that contains the data concerning one Particle
 struct Particle
@@ -31,7 +33,7 @@ struct Particle
   float x;
   float y;
   
-  // Yaw angle (from north or with respect to MAP?)
+  // Yaw angle (with respect to MAP frame)
   float a;
 
   // Weight (One weight)
@@ -128,6 +130,11 @@ public:
     manholeConst1 = 1./(m_manholeDev*sqrt(2*M_PI)); 
     manholeConst2 = 1./(2*m_manholeDev*m_manholeDev);
     
+    if (!lnh.getParam("angleDev", m_angleDev))
+      m_angleDev = 0.03;
+    angleConst1 = 1./(m_angleDev*sqrt(2*M_PI)); 
+    angleConst2 = 1./(2*m_angleDev*m_angleDev);
+    
     // Init the statistic stuff
     stats_file_open = false;
     if (!lnh.getParam("stats_file", stats_filename))
@@ -160,6 +167,7 @@ public:
     // Launch subscribers
     m_detect_manhole_Sub = m_nh.subscribe(m_detectManholeTopic, 1, &ParticleFilter::manholeDetectedCallback, this);
     m_initialPoseSub = m_nh.subscribe(node_name+"/initial_pose", 2, &ParticleFilter::initialPoseReceived, this);
+    wall_info_sub = m_nh.subscribe("/wall_info", 1, &ParticleFilter::wallInfoCallback, this);
     
     // Launch publishers
     m_posesPub = m_nh.advertise<geometry_msgs::PoseArray>(node_name+"/particle_cloud", 1, true);
@@ -307,6 +315,16 @@ public:
   }
                                        
 private:
+  
+  inline bool isFork() {
+    float x, y, z, xDev, yDev, aDev;
+    computeDev(x, y, z, xDev, yDev, aDev);
+    return isFork(x,y);
+  }
+  
+  inline bool isFork(double x, double y) {
+    return (s_g->getDistanceToClosestVertex(x, y, sewer_graph::FORK) < m_fork_dist);
+  }
 
   void checkUpdateThresholdsTimer(const ros::TimerEvent& event)
   {
@@ -337,11 +355,12 @@ private:
     tf::poseMsgToTF(msg->pose.pose, pose);
     double x = pose.getOrigin().x();
     double y = pose.getOrigin().y();
+    int i,j;
     
     ROS_INFO("Setting pose: %.3f %.3f %.3f", pose.getOrigin().x(), pose.getOrigin().y(), getYawFromTf(pose));
     
     
-    ROS_INFO("Distance to closest Edge = %f", s_g->getDistanceToClosestEdge(x , y));
+    ROS_INFO("Distance to closest Edge = %f", s_g->getDistanceToClosestEdge(x , y, i, j));
     ROS_INFO("Distance to closest Manhole = %f", s_g->getDistanceToClosestManhole(x, y));
     
     // Initialize the filter
@@ -352,6 +371,13 @@ private:
   void manholeDetectedCallback(const std_msgs::BoolConstPtr& msg)
   {    
     manhole_hist.push_back(msg->data);
+  }
+  
+  void wallInfoCallback(const plane_detector::WallInfoConstPtr &msg) {
+    if (msg->d_left > 0.0 && !isFork()) {
+      ROS_INFO("Updating angle measurement. Angle = %f", msg->angle);
+      updateParticlesAngle(msg->angle);
+    }
   }
   
   //! 3D point-cloud callback
@@ -461,22 +487,22 @@ private:
     
     if (detected_manhole) 
       ROS_INFO("Performing Update with Manhole");
-    else if (s_g->getDistanceToClosestVertex(x, y, sewer_graph::FORK) < m_fork_dist) {
-      fork = true;
-      ROS_INFO("In a fork");
-    }
+    else 
+      fork = isFork(x, y);
     
     for(int i=0; i<(int)m_p.size(); i++)
     {
       double tx = m_p[i].x;
       double ty = m_p[i].y;
       // Evaluate the weight of the range sensors
-      m_p[i].w = computeEdgeWeight(tx, ty); // Compute weight as a function of the distance to the closest edge
+      
       if (detected_manhole) {
         
         m_p[i].w = computeManholeWeight(tx, ty);
       } else if (fork) {
         m_p[i].w = computeForkWeight(tx, ty);
+      } else {
+	m_p[i].w = computeEdgeWeight(tx, ty); // Compute weight as a function of the distance to the closest edge
       }
         
     //Update the particle weight
@@ -514,14 +540,63 @@ private:
     return true;
   }
   
+  bool updateParticlesAngle(double angle) {
+    float x,y,a,xd,yd,ad;
+    computeDev(x,y,a,xd,yd,ad);
+    bool ret_val = true;
+    
+    if (s_g->getDistanceToClosestVertex(x, y, sewer_graph::FORK) < m_fork_dist) {
+      ROS_INFO("In a fork");
+      return false;
+    }
+    
+    // First relate each particle with its closest vertex and infere the angle
+    double wt = 0.0;
+    for(int i=0; i<(int)m_p.size(); i++)
+    {
+      double tx = m_p[i].x;
+      double ty = m_p[i].y;
+      double ta = m_p[i].a;
+      
+      double man_angle_1 = s_g->getClosestEdgeAngle(tx, ty);
+      double man_angle_2 = man_angle_1 + M_PI;
+      double rel_angle_1 = man_angle_1 - ta;
+      double rel_angle_2 = man_angle_2 - ta;
+      if (fabs(rel_angle_1) > M_PI) 
+	rel_angle_1 -= 2.0 * M_PI * ((std::signbit(rel_angle_1))? -1.0:1.0);
+      if (fabs(rel_angle_2) > M_PI) 
+	rel_angle_2 -= 2.0 * M_PI * ((std::signbit(rel_angle_1))? -1.0:1.0);
+      
+      if (fabs (rel_angle_1) < fabs(rel_angle_2))
+	m_p[i].w = angleConst1*exp(-rel_angle_1*rel_angle_1*angleConst2);
+      else 
+	m_p[i].w = angleConst1*exp(-rel_angle_2*rel_angle_2*angleConst2);
+      
+      wt += m_p[i].w;
+    }
+    //Normalize all weights
+    for(int i=0; i<(int)m_p.size(); i++)
+    {
+      m_p[i].w /= wt;  
+    }  
+    
+    // Re-compute global TF according to new weight of samples
+    computeGlobalTf();
+
+    resample();
+    return ret_val;
+  }
+  
   double computeEdgeWeight(double x, double y) {
-    double dist = s_g->getDistanceToClosestEdge(x,y);
+    int i,j;
+    double dist = s_g->getDistanceToClosestEdge(x,y,i, j);
     
     return edgeConst1*exp(-dist*dist*edgeConst2);
   }
   
   double computeForkWeight(double x, double y) {
-    double dist = s_g->getDistanceToClosestEdge(x,y);
+    int i,j;
+    double dist = s_g->getDistanceToClosestEdge(x,y,i,j);
     return forkConst1*exp(-dist*dist*forkConst2);
     
   }
@@ -728,7 +803,7 @@ private:
   ros::NodeHandle m_nh;
   tf::TransformBroadcaster m_tfBr;
   tf::TransformListener m_tfListener;
-  ros::Subscriber m_detect_manhole_Sub, m_initialPoseSub, m_odomTfSub;
+  ros::Subscriber m_detect_manhole_Sub, m_initialPoseSub, m_odomTfSub, wall_info_sub;
   ros::Publisher m_posesPub, m_graphPub, m_gpsPub;
   ros::Timer updateTimer;
   
@@ -744,9 +819,10 @@ private:
 
   std::vector<bool> manhole_hist;
   int m_min_manhole_detected;
-  double m_edgeDev, m_manholeDev, m_manholeThres;
+  double m_edgeDev, m_manholeDev, m_manholeThres, m_angleDev;
   double edgeConst1, edgeConst2;
   double manholeConst1, manholeConst2;
+  double angleConst1, angleConst2;
   double m_forkDev, forkConst1, forkConst2, m_fork_dist;
   
   //For saving stats
@@ -762,5 +838,3 @@ private:
 };
 
 #endif
-
-
