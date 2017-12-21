@@ -2,12 +2,11 @@
 
 This metapackage contains most of the development for localization of the SIAR platform inside a sewer network. 
 
-This localization system is presented in the paper "RGBD-based Robot Localization in Sewer Networks" of D. Alejo, F. Caballero and L. Merino that
-has been submitted to 2017 IEEE/RSJ International Conference on Intelligent Robots and Systems.
+This localization system is presented in the paper "RGBD-based Robot Localization in Sewer Networks" of D. Alejo, F. Caballero and L. Merino that has been accepted for publication in the 2017 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS 2017).
 
 The video attachment to the paper in HD can be found at:
 
-- https://www.youtube.com/watch?v=LHX4IV81O0o
+-  https://youtu.be/N_tUhdBN7Z4
 
 The bags for reproducing the presented experiments can be found at:
 

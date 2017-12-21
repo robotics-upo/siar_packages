@@ -41,6 +41,9 @@ This node uses the CNN for generating a bool message that will be true whenever 
 This node loads the handmade label file that identifies the sequence number of the images that are below a manhole and uses it to generate
 a bool message indicating it.
 
+In the subdirectory test/ you can find the label files used in Experiments 1 & 2. V2 of the input label files are shortened and give best results. Groundtruth files are even shorter with instants in which the robot is just under the manhole. These are used for generating the localization statistics of the paper "RGBD-based Robot Localization in Sewer Networks" of D. Alejo, F. Caballero and L. Merino that has been accepted for publication in the 2017 IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS 2017).
+
+
 ### Use:
  fake_detector.py \<camera name\> \<label_file\>
  
@@ -54,7 +57,7 @@ a bool message indicating it.
 
 ## generate_dataset_learning
 
-Loads a bag file and generates four data files with downsampled depth (80x60) images.:
+Loads a bag file and generates four data files with downsampled depth (80x60) images. A label file is necessary in order to distinguish images under manhole and images without manhole:
 
 1 - "positive_depth": All depth images that are below a manhole according to the label file. It will include each positive image and its 180º deg rotation in order to enlarge the test data set and make it invariant to the track direction.
 
@@ -66,6 +69,6 @@ Loads a bag file and generates four data files with downsampled depth (80x60) im
 
 ### Use:
 
- * *generate_dataset_learning*  \<bag file\> \<input_file\> \[\<camera_name\>\] \[\<skip first n images\>\] 
+ * *generate_dataset_learning*  \<bag file\> \<label_file\> \[\<camera_name\>\] \[\<skip the starting n images\>\] 
  
  (camera_name defaults to "/up")
