@@ -196,12 +196,30 @@ double SewerGraph::getDistanceToClosestVertex(double x, double y, SewerVertexTyp
   return ret_val;
 }
 
-double SewerGraph::getDistanceToClosestEdge(double x, double y) const {
+double SewerGraph::getClosestEdgeAngle(double x, double y) const {
+  double ret_val = -1000.0;
+  int id1, id2;
+  int manhole = getDistanceToClosestEdge(x, y, id1, id2);
+  if (id1 >= 0) {
+    SewerEdge e;
+    if (getEdgeContent(id1, id2, e)) {
+      
+      ret_val = e.route;
+    }
+  }
+  
+  return ret_val;
+  
+}
+
+double SewerGraph::getDistanceToClosestEdge(double x, double y, int &id1, int &id2) const {
   double ret_val = -1.0;
   
   RealVector pos;
   pos.push_back(x);
   pos.push_back(y);
+  id1 = -1;
+  id2 = -1;
   
   RealVector v1(2),v2(2);
   for (int i = 0; i < nVertices(); i++) {
@@ -218,6 +236,8 @@ double SewerGraph::getDistanceToClosestEdge(double x, double y) const {
       v2[0] = v.x;v2[1] = v.y;
       double dis = pos.distanceToSegment(v1, v2);
       if (ret_val < 0.0 || ret_val > dis) {
+	id1 = i;
+	id2 = *it;
         ret_val = dis;
       }
       
@@ -305,7 +325,7 @@ void SewerGraph::addKMLStyle(kmldom::DocumentPtr& doc) const
 }
 
 std::vector<visualization_msgs::Marker> SewerGraph::getMarkers(std::string ref_frame) const {
-  visualization_msgs::Marker points, forks, lines;
+  visualization_msgs::Marker points, forks, lines, normal;
   points.header.frame_id = ref_frame;
   points.header.stamp = ros::Time::now();
   points.ns = "sewer_graph";
@@ -347,6 +367,9 @@ std::vector<visualization_msgs::Marker> SewerGraph::getMarkers(std::string ref_f
   lines.color.g = 1.0;
   lines.color.b = 1.0;
   lines.color.a = 0.7;
+  normal.color.r = 1.0;
+  normal.color.g = 1.0;
+  normal.color.a = 1.0;
 
   geometry_msgs::Point p, p1;
   
@@ -358,8 +381,10 @@ std::vector<visualization_msgs::Marker> SewerGraph::getMarkers(std::string ref_f
     
     if (v.type == MANHOLE) 
       points.points.push_back(p);
-    else
+    else if (v.type == FORK)
       forks.points.push_back(p);
+    else 
+      normal.points.push_back(p);
   
   // TODO: Represent edges
   
@@ -381,7 +406,7 @@ std::vector<visualization_msgs::Marker> SewerGraph::getMarkers(std::string ref_f
   ret.push_back(lines);
   ret.push_back(points);
   ret.push_back(forks);
-  
+  ret.push_back(normal);
   
   return ret;
 }

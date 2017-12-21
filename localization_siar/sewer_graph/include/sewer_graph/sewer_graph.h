@@ -79,7 +79,9 @@ public:
   
   int getClosestVertex(double x, double y, SewerVertexType type = ALL) const;
   
-  double getDistanceToClosestEdge(double x, double y) const;
+  double getDistanceToClosestEdge(double x, double y, int &id1, int &id2) const;
+  
+  double getClosestEdgeAngle(double x, double y) const;
   
   //! @brief Exports the trajectory information into KML format
   //! @param filename Output filename
