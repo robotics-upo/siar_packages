@@ -37,7 +37,7 @@ class FakeDetector:
 
   def rgb_callback(self, img):
     seq = img.header.seq
-    print "RGB Callback. Seq: %d"%seq
+    #print "RGB Callback. Seq: %d"%seq
     bool_msg = Bool(False)
     id_msg = Int32(-1)
     pose_msg = Pose2D(float('nan'), float('nan'), float('nan'))
@@ -54,14 +54,13 @@ class FakeDetector:
           pose_msg.y = self.detected_vector[i][4]
           # save a file with the distance to the manhole
           try:
-            (trans,rot) = listener.lookupTransform('/base_link', '/map', rospy.Time(0))
+            (trans,rot) = self.listener.lookupTransform('/map', '/base_link', rospy.Time(0))
             dist = math.sqrt( (trans[0] - pose_msg.x) ** 2 + (trans[1] - pose_msg.y) ** 2)
-            orientation_q = rot
-            orientation_list = [orientation_q.x, orientation_q.y, orientation_q.z, orientation_q.w]
-            (roll, pitch, yaw) = euler_from_quaternion (orientation_list)
-            text_ = '{0}\t{1}\t{2}\t{3}\t\t{4}{5}'.format(id_msg.data, trans[0], trans[1], yaw, pose_msg.x, pose_msg.y)
+            (roll, pitch, yaw) = euler_from_quaternion(rot)
+            text_ = '{0}  \t \t  {1} {2} {3} \t \t {4} {5} \t \t {6}\n'.format(id_msg.data, trans[0], trans[1], yaw, pose_msg.x, pose_msg.y, dist)
             
-            stats_file.write(text_);
+            self.stats_file.write(text_)
+            print "Writed to file:{0}".format(text_)
           except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException):
             print "Exception catched while waiting for transform"
         break
@@ -69,7 +68,7 @@ class FakeDetector:
     self.id_pub.publish(id_msg)
     self.pose_pub.publish(pose_msg)
     
-  def __init__(self, camera, filenam, out_file):
+  def __init__(self, camera, filename, out_file):
     self.load_vector(filename)
     np.set_printoptions(precision=3, threshold=10000, linewidth=10000)
     rgb_image = camera + "/rgb/image_raw/compressed"
@@ -80,12 +79,15 @@ class FakeDetector:
     self.bool_pub = rospy.Publisher('manhole',Bool, queue_size=2)
     self.id_pub = rospy.Publisher('manhole_id', Int32, queue_size=2)
     self.pose_pub = rospy.Publisher('position', Pose2D, queue_size=2)
-    # Spin until ctrl + c
-    rospy.spin()
     
     # For statistics stuff
     self.listener = listener = tf.TransformListener()
-    self.stats_file = open(out_file, ”w”)
+    self.stats_file = open(out_file, "w")
+    
+    # Spin until ctrl + c
+    rospy.spin()
+    
+    
     
   def load_vector(self, filename):
     self.detected_vector = np.loadtxt(filename)
@@ -96,8 +98,11 @@ if __name__ == '__main__':
   if len(sys.argv) > 2:
     rospy.init_node(sys.argv)
     out_file = "stats_python.txt"
+    
     if len(sys.argv) > 3:
       out_file = sys.argv[3]
+      
+    print "Writing stats to: {0}".format(out_file)
     detector = FakeDetector(sys.argv[1], sys.argv[2], out_file)
   else:
     print "usage: %s <camera> <vector_file> [<stats file>]" % sys.argv[0]
