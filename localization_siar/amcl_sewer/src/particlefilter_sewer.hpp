@@ -62,6 +62,8 @@ public:
       m_odomFrameId = "odom";  
     if(!lnh.getParam("global_frame_id", m_globalFrameId))
       m_globalFrameId = "map";  
+    
+    m_lastPoseCov.header.frame_id = m_globalFrameId;
 
     // Read amcl parameters
     if(!lnh.getParam("update_rate", m_updateRate))
@@ -135,18 +137,6 @@ public:
     angleConst1 = 1./(m_angleDev*sqrt(2*M_PI)); 
     angleConst2 = 1./(2*m_angleDev*m_angleDev);
     
-    // Init the statistic stuff
-    stats_file_open = false;
-    if (!lnh.getParam("stats_file", stats_filename))
-      stats_filename = "~/manhole_stats.txt";
-    try {
-      stats_file.open(stats_filename.c_str());
-      stats_file_open = true;
-    }catch (std::exception &e) {
-      std::cerr << "Could not open the stats file: " << stats_filename << std::endl;
-    }
-    m_ground_truth_manhole_sub = m_nh.subscribe("ground_truth", 1, &ParticleFilter::manholeGroundTruthCallback, this);
-    
     // Save trajectory
     traj_file_open = false;
     if (!lnh.getParam("traj_file", traj_filename))
@@ -155,7 +145,7 @@ public:
       traj_file.open(traj_filename.c_str());
       traj_file_open = true;
     }catch (std::exception &e) {
-      std::cerr << "Could not open the stats file: " << traj_filename << std::endl;
+      std::cerr << "Could not open the traj file: " << traj_filename << std::endl;
     }
     
     // Init the particle filter internal stuff
@@ -171,6 +161,7 @@ public:
     
     // Launch publishers
     m_posesPub = m_nh.advertise<geometry_msgs::PoseArray>(node_name+"/particle_cloud", 1, true);
+    m_posecovPub = m_nh.advertise<geometry_msgs::PoseWithCovarianceStamped>(node_name+"/estimated_pose", 1, true);
     m_graphPub = m_nh.advertise<visualization_msgs::Marker>(node_name+"/sewer_graph", 0, true);
     m_gpsPub = m_nh.advertise<sensor_msgs::NavSatFix>("/gps/fix", 2, true);
 
@@ -380,24 +371,6 @@ private:
     }
   }
   
-  //! 3D point-cloud callback
-  void manholeGroundTruthCallback(const std_msgs::BoolConstPtr& msg)
-  {
-    if (!msg->data) {
-      return;
-    }
-    float x, y, z, xDev, yDev, aDev;
-    
-    computeDev(x, y, z, xDev, yDev, aDev);
-    int manhole_id = s_g -> getClosestVertex(x, y, sewer_graph::MANHOLE);
-    
-    if (stats_file_open) {
-      stats_file << x << " " << y << " " << z <<"\t ";
-      stats_file << xDev << " " << yDev << " " << aDev <<"\t ";
-      stats_file << s_g -> getVertexContent(manhole_id).e.toString(' ') << std::endl;
-    }
-  }
-  
   void update(bool detected_manhole) {
     // Compute odometric trasnlation and rotation since last update 
     tf::StampedTransform odomTf;
@@ -442,6 +415,7 @@ private:
             
     // Publish particles
     publishParticles();
+    m_posecovPub.publish(m_lastPoseCov);
   }
 
   //!This function implements the PF prediction stage. Translation in X, Y and Z 
@@ -478,8 +452,8 @@ private:
     double wt = 0.0;
     bool fork = false;
     
-    float x,y,a,xd,yd,ad;
-    computeDev(x,y,a,xd,yd,ad);
+    float x,y,a,xv,yv,av,xycov;
+    computeVar(x,y,a,xv,yv,av,xycov);
     
     if (traj_file_open) {
       traj_file << x << "\t" << y << std::endl;
@@ -520,7 +494,7 @@ private:
     }  
     
     // Re-compute global TF according to new weight of samples
-    computeGlobalTf();
+    computeGlobalTfAndPose();
 
     //Do the resampling if needed
     m_nUpdates++;
@@ -529,14 +503,14 @@ private:
       m_nUpdates = 0;
       resample();
     }
-    /*wt = 0;
+    /*wt = 0; NOTE: this was the implementation of importance resampling
     for(int i=0; i<(int)m_p.size(); i++)
       wt += m_p[i].w*m_p[i].w;
     float nEff = 1/wt;
     if(nEff < ((float)m_p.size())/10.0)
       resample();*/
     //resample();
-
+    
     return true;
   }
   
@@ -581,7 +555,7 @@ private:
     }  
     
     // Re-compute global TF according to new weight of samples
-    computeGlobalTf();
+    computeGlobalTfAndPose();
 
     resample();
     return ret_val;
@@ -651,7 +625,7 @@ private:
       }
       sleep(2);
     }
-    computeGlobalTf();
+    computeGlobalTfAndPose();
     m_doUpdate = false;
     m_init = true;
     
@@ -703,24 +677,54 @@ private:
   }
   
   // Computes TF from odom to global frames
-  void computeGlobalTf()
+  void computeGlobalTfAndPose()
   {        
     // Compute mean value from particles
+    float mx, my, ma, xv, yv, av, xycov;
+    computeVar(mx, my, ma, xv, yv, av, xycov);
     Particle p;
-    p.x = 0.0;
-    p.y = 0.0;
-    p.a = 0.0;
+    p.x = mx;
+    p.y = my;
+    p.a = ma;
     p.w = 0.0;
-    for(int i=0; i<m_p.size(); i++)
-    {
-      p.x += m_p[i].w * m_p[i].x;
-      p.y += m_p[i].w * m_p[i].y;
-      p.a += m_p[i].w * m_p[i].a;
-    }
     
     // Compute the TF from odom to global
     std::cout << "New TF:\n\t" << p.x << ", " << p.y << std::endl;
     m_lastGlobalTf = tf::Transform(tf::Quaternion(0.0, 0.0, sin(p.a*0.5), cos(p.a*0.5)), tf::Vector3(p.x, p.y, 0.0))*m_lastOdomTf.inverse();
+    m_lastPoseCov.header.stamp = ros::Time::now(); 
+    m_lastPoseCov.header.seq++;
+    geometry_msgs::Quaternion &orientation = m_lastPoseCov.pose.pose.orientation;
+    orientation.w = m_lastGlobalTf.getRotation().getW();
+    orientation.x = m_lastGlobalTf.getRotation().getX();
+    orientation.y = m_lastGlobalTf.getRotation().getY();
+    orientation.z = m_lastGlobalTf.getRotation().getZ();
+    geometry_msgs::Point &position = m_lastPoseCov.pose.pose.position;
+    position.x = mx; position.y = my; position.z = 0.0;
+    boost::array<double, 36> &Cov = m_lastPoseCov.pose.covariance;
+    Cov[0] = xv; Cov[7] = yv; Cov[35] = av;
+    Cov[1] = Cov[6] = xycov;
+  }
+  
+  void computeVar(float &mX, float &mY, float &mA, float &var_x, float &var_y, float &var_a, float &cov_x_y) {
+    // Compute mean value from particles
+    var_x = mX = 0.0;
+    var_y = mY = 0.0;
+    var_a = mA = 0.0;
+    cov_x_y = 0.0;
+    for(int i=0; i<m_p.size(); i++)
+    {
+      mX += m_p[i].w * m_p[i].x;
+      mY += m_p[i].w * m_p[i].y;
+      mA += m_p[i].w * m_p[i].a;
+    }
+    for(int i=0; i<m_p.size(); i++)
+    {
+      var_x += m_p[i].w * (m_p[i].x-mX) * (m_p[i].x-mX);
+      var_y += m_p[i].w * (m_p[i].y-mY) * (m_p[i].y-mY);
+      var_a += m_p[i].w * (m_p[i].a-mA) * (m_p[i].a-mA);
+      cov_x_y += m_p[i].w * (m_p[i].x-mX) * (m_p[i].y-mY);
+      
+    }
   }
   
   void computeDev(float &mX, float &mY, float &mA, float &devX, float &devY, float &devA)
@@ -789,6 +793,7 @@ private:
   double m_dTh, m_aTh, m_tTh;
   tf::StampedTransform m_lastOdomTf;
   tf::Transform m_lastGlobalTf;
+  geometry_msgs::PoseWithCovarianceStamped m_lastPoseCov;
   bool m_doUpdate;
   double m_updateRate;
 
@@ -804,7 +809,7 @@ private:
   tf::TransformBroadcaster m_tfBr;
   tf::TransformListener m_tfListener;
   ros::Subscriber m_detect_manhole_Sub, m_initialPoseSub, m_odomTfSub, wall_info_sub;
-  ros::Publisher m_posesPub, m_graphPub, m_gpsPub;
+  ros::Publisher m_posesPub, m_graphPub, m_gpsPub, m_posecovPub;
   ros::Timer updateTimer;
   
   // Sewer stuff
@@ -824,12 +829,6 @@ private:
   double manholeConst1, manholeConst2;
   double angleConst1, angleConst2;
   double m_forkDev, forkConst1, forkConst2, m_fork_dist;
-  
-  //For saving stats
-  ros::Subscriber m_ground_truth_manhole_sub;
-  std::ofstream stats_file;
-  std::string stats_filename;
-  bool stats_file_open;
   
   //For saving trajetory
   std::ofstream traj_file;

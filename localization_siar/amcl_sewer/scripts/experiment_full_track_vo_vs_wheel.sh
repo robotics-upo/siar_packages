@@ -22,7 +22,7 @@ start=560
 # Now with wheel odometry
 
 until [ $CONTADOR -gt $2 ]; do  
-  roslaunch amcl_sewer amcl_bag.launch play_bag:=false ground_truth:=$ground_file ground_truth_out:=/home/chur/stats/stats_detector_21_sept_wheel_2_default_$CONTADOR.txt stats_file:=/home/chur/stats/stats21_sept_wheel_2_default_$CONTADOR.txt start:=$start initial_x:=$initial_x initial_y:=$initial_y initial_a:=$initial_a rgbd_odom:=false &
+  roslaunch amcl_sewer amcl_bag.launch play_bag:=false ground_truth:=$ground_file ground_truth_out:=/home/chur/stats/stats_detector_21_sept_wheel_2_default_$CONTADOR.txt start:=$start initial_x:=$initial_x initial_y:=$initial_y initial_a:=$initial_a rgbd_odom:=false &
   let pid1=$!
   rosbag play $bag_file -s $start --clock -r 2.2
   rosnode kill -a
@@ -31,22 +31,24 @@ until [ $CONTADOR -gt $2 ]; do
 done
 
 # Visual Odometry
-CONTADOR=$1
-until [ $CONTADOR -gt $2 ]; do
-  # Roslaunch with multiple parameters
-  roslaunch amcl_sewer amcl_bag.launch play_bag:=false ground_truth:=$ground_file \
-  ground_truth_out:=/home/chur/stats/stats_detector_21_sept_vo_2_mod_0.7_a_mod_0.3_n_0$CONTADOR.txt stats_file:=/home/chur/stats/stats21_sept_vo_2_mod_0.7_mod_a_0.3_n_0_$CONTADOR.txt \
-  odom_a_mod:=0.3 odom_a_noise:=0 odom_x_mod:=0.7 odom_y_mod:=0.7 \
-  camera:=/back initial_x:=$initial_x initial_y:=$initial_y initial_a:=$initial_a rgbd_odom:=true &
-  
-  #end of roslaunch
-  
-  let pid1=$!
-  rosbag play $bag_file -s $start --clock -r 1.1
-  rosnode kill -a
-  wait ${pid1}
-  let CONTADOR+=1
-done
+# CONTADOR=$1
+# until [ $CONTADOR -gt $2 ]; do
+#   # Roslaunch with multiple parameters
+#   params=mod_0.5_a_mod_0.25_n_0.075
+#   
+#   roslaunch amcl_sewer amcl_bag.launch play_bag:=false ground_truth:=$ground_file \
+#   ground_truth_out:=/home/chur/stats/stats_detector_21_sept_vo_2_${params}_$CONTADOR.txt stats_file:=/home/chur/stats/stats21_sept_vo_2_${params}_$CONTADOR.txt \
+#   odom_a_mod:=0.25 odom_a_noise:=0.075 odom_x_mod:=0.5 odom_y_mod:=0.5 \
+#   camera:=/back initial_x:=$initial_x initial_y:=$initial_y initial_a:=$initial_a rgbd_odom:=true &
+#   
+#   #end of roslaunch
+#   
+#   let pid1=$!
+#   rosbag play $bag_file -s $start --clock -r 0.9
+#   rosnode kill -a
+#   wait ${pid1}
+#   let CONTADOR+=1
+# done
 
 # With yaw estimation
 CONTADOR=$1
@@ -54,7 +56,6 @@ until [ $CONTADOR -gt $2 ]; do
   # Roslaunch with multiple parameters
   roslaunch amcl_sewer amcl_bag.launch play_bag:=false ground_truth:=$ground_file \
   ground_truth_out:=/home/chur/stats/detector_21_sept_wheel_estimate_yaw_mod_0.4_mod_a_0.2_n_0.075_$CONTADOR.txt  \
-  stats_file:=/home/chur/stats/stats21_sept_wheel_estimate_yaw_mod_0.4_mod_a_0.2_n_0.075_$CONTADOR.txt \
   odom_a_mod:=0.05 odom_a_noise:=0.05 odom_x_mod:=0.1 odom_y_mod:=0.1 \
   yaw_estimator:=true \
   camera:=/front initial_x:=$initial_x initial_y:=$initial_y initial_a:=$initial_a rgbd_odom:=false &
