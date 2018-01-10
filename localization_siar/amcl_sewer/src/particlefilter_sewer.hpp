@@ -399,6 +399,31 @@ private:
   }
   
   void update(bool detected_manhole) {
+    
+    if(!predictParticles())
+    {
+      ROS_ERROR("ParticleFilterSewer::manholeDetectedCallback --> Prediction error!");
+      return;
+    }
+      
+    // Perform particle update based on current point-cloud
+    if(!updateParticles(detected_manhole))
+    {
+      ROS_ERROR("ParticleFilterSewer::manholeDetectedCallback --> Update error!");
+      return;
+    }
+      
+    m_doUpdate = false;
+            
+    // Publish particles
+    publishParticles();
+  }
+
+  //!This function implements the PF prediction stage. Translation in X, Y and Z 
+  //!in meters and yaw angle incremenet in rad
+  //! TODO: In a first stage the predict stage will remain equal to the amcl_3d but without the z
+  bool predictParticles()
+  {
     // Compute odometric trasnlation and rotation since last update 
     tf::StampedTransform odomTf;
     try
@@ -409,7 +434,7 @@ private:
     catch (tf::TransformException ex)
     {
       ROS_ERROR("%s",ex.what());
-      return;
+      return false;
     }
     
     // Extract current robot roll and pitch
@@ -423,32 +448,7 @@ private:
     delta_x = T.getOrigin().getX();
     delta_y = T.getOrigin().getY();
     T.getBasis().getRPY(delta_r, delta_p, delta_a);
-    if(!predictParticles(delta_x, delta_y, (float)delta_a))
-    {
-      ROS_ERROR("ParticleFilterSewer::manholeDetectedCallback --> Prediction error!");
-      return;
-    }
-      
-    // Perform particle update based on current point-cloud
-    if(!updateParticles(detected_manhole))
-    {
-      ROS_ERROR("ParticleFilterSewer::manholeDetectedCallback --> Update error!");
-      return;
-    }
-      
-    // Update time and transform information
-    m_lastOdomTf = odomTf;
-    m_doUpdate = false;
-            
-    // Publish particles
-    publishParticles();
-  }
-
-  //!This function implements the PF prediction stage. Translation in X, Y and Z 
-  //!in meters and yaw angle incremenet in rad
-  //! TODO: In a first stage the predict stage will remain equal to the amcl_3d but without the z
-  bool predictParticles(float delta_x, float delta_y, float delta_a)
-  {
+    
     float xDev, yDev, aDev;
     xDev = fabs(delta_x*m_odomXMod);
     yDev = fabs(delta_y*m_odomYMod);
@@ -465,6 +465,8 @@ private:
       m_p[i].y += sa*randX + ca*randY;
       m_p[i].a += delta_a + gsl_ran_gaussian(m_randomValue, aDev);
     }
+    
+    m_lastOdomTf = odomTf;
     
     return true;
   }
@@ -505,10 +507,6 @@ private:
 	m_p[i].w = computeEdgeWeight(tx, ty); // Compute weight as a function of the distance to the closest edge
       }
         
-    //Update the particle weight
-    //m_p[i].w = (1.0-alpha)*m_p[i].w + alpha*wi;
-    //m_p[i].w = wi;
-      
       //Increase the summatory of weights
       wt += m_p[i].w;
     }
@@ -550,7 +548,14 @@ private:
       return false;
     }
     
-    // First relate each particle with its closest vertex and infere the angle
+    
+    if(!predictParticles())
+    {
+      ROS_ERROR("ParticleFilterSewer::manholeDetectedCallback --> Prediction error!");
+      return false;
+    }
+    
+    // Then relate each particle with its closest vertex and infere the angle
     double wt = 0.0;
     for(int i=0; i<(int)m_p.size(); i++)
     {
@@ -577,8 +582,8 @@ private:
     //Normalize all weights
     for(int i=0; i<(int)m_p.size(); i++)
     {
-      m_p[i].w /= wt;  
-    }  
+      m_p[i].w /= wt;
+    }
     
     // Re-compute global TF according to new weight of samples
     computeGlobalTf();
