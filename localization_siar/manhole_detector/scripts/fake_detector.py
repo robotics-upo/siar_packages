@@ -8,6 +8,7 @@ from sensor_msgs.msg import CompressedImage
 from std_msgs.msg import Bool
 from std_msgs.msg import Int32
 from geometry_msgs.msg import Pose2D
+from geometry_msgs.msg import PoseWithCovarianceStamped
 from tf.transformations import euler_from_quaternion, quaternion_from_euler
 import numpy as np
 import sys
@@ -34,6 +35,13 @@ class FakeDetector:
     #print gray_image
     downsampled = cv2.resize(gray_image, None, fx=0.25, fy=0.25)
     file_.write(np.array2string( downsampled).replace('[','').replace(']',''))
+    
+    
+  def pose_callback(self, pose):
+    self.varx = pose.pose.covariance[0]
+    self.vary = pose.pose.covariance[7]
+    self.vara = pose.pose.covariance[35]
+    self.covarxy = pose.pose.covariance[1]
 
   def rgb_callback(self, img):
     seq = img.header.seq
@@ -57,7 +65,7 @@ class FakeDetector:
             (trans,rot) = self.listener.lookupTransform('/map', '/base_link', rospy.Time(0))
             dist = math.sqrt( (trans[0] - pose_msg.x) ** 2 + (trans[1] - pose_msg.y) ** 2)
             (roll, pitch, yaw) = euler_from_quaternion(rot)
-            text_ = '{0}  \t \t  {1} {2} {3} \t \t {4} {5} \t \t {6}\n'.format(id_msg.data, trans[0], trans[1], yaw, pose_msg.x, pose_msg.y, dist)
+            text_ = '{0}  \t \t  {1} {2} {3} \t \t {4} {5} \t \t {6}\t{7} {8} {9} {10}\n'.format(id_msg.data, trans[0], trans[1], yaw, pose_msg.x, pose_msg.y, dist, self.varx, self.vary, self.vara, self.covarxy)
             
             self.stats_file.write(text_)
             print "Writed to file:{0}".format(text_)
@@ -74,6 +82,7 @@ class FakeDetector:
     rgb_image = camera + "/rgb/image_raw/compressed"
     rgb_info = camera + "/rgb/camera_info"
     rospy.Subscriber(rgb_image, CompressedImage, self.rgb_callback)
+    rospy.Subscriber("/amcl_sewer_node/estimated_pose", PoseWithCovarianceStamped, self.pose_callback)
     
     # Setup publisher
     self.bool_pub = rospy.Publisher('manhole',Bool, queue_size=2)
@@ -83,6 +92,12 @@ class FakeDetector:
     # For statistics stuff
     self.listener = listener = tf.TransformListener()
     self.stats_file = open(out_file, "w")
+    
+    # Initialice covariances
+    self.varx = 0
+    self.vary = 0
+    self.vara = 0
+    self.covarxy = 0
     
     # Spin until ctrl + c
     rospy.spin()

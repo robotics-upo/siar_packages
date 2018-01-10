@@ -26,7 +26,6 @@
   <arg name="camera" default="/front"/>
   <arg name="start" default="0"/>
   
-  <arg name="stats_file" default="$(find amcl_sewer)/stats.txt"/>
   <arg name="trajectory_file" default="$(find amcl_sewer)/traj.txt"/>
 
   # Bag file
@@ -106,7 +105,6 @@
     
     <remap from="/amcl_sewer_node/initial_pose" to="/initialpose"/>
     
-    <param name="stats_file" value="$(arg stats_file)"/>
     <param name="initialize" value="true"/>
     
     <param name="traj_file" value="$(arg trajectory_file)"/>
