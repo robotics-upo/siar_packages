@@ -20,15 +20,18 @@ ground_file=/home/chur/Dataset/2017-09-21_full_track_surface/input_vector_2017-0
 start=560
 
 # Now with wheel odometry
-
-until [ $CONTADOR -gt $2 ]; do  
-  roslaunch amcl_sewer amcl_bag.launch play_bag:=false ground_truth:=$ground_file ground_truth_out:=/home/chur/stats/stats_detector_21_sept_wheel_2_default_$CONTADOR.txt start:=$start initial_x:=$initial_x initial_y:=$initial_y initial_a:=$initial_a rgbd_odom:=false &
-  let pid1=$!
-  rosbag play $bag_file -s $start --clock -r 2.2
-  rosnode kill -a
-  wait ${pid1}
-  let CONTADOR+=1
-done
+# 
+#  until [ $CONTADOR -gt $2 ]; do  
+#    roslaunch amcl_sewer amcl_bag.launch play_bag:=false ground_truth:=$ground_file \
+#    ground_truth_out:=/home/chur/stats/stats21_sept_wheel_mod_0.1_mod_a_0.05_noise_0.05/stats_$CONTADOR.txt \
+#   odom_a_mod:=0.05 odom_a_noise:=0.05 odom_x_mod:=0.1 odom_y_mod:=0.1 \
+#   initial_x:=$initial_x initial_y:=$initial_y initial_a:=$initial_a rgbd_odom:=false &
+#   let pid1=$!
+#   rosbag play $bag_file -s $start --clock -r 2.2 -u 3260
+#   rosnode kill -a
+#   wait ${pid1}
+#   let CONTADOR+=1
+# done
 
 # Visual Odometry
 # CONTADOR=$1
@@ -50,20 +53,23 @@ done
 #   let CONTADOR+=1
 # done
 
+# NOTE: For adjusting noise settings
+#   odom_a_mod:=0.25 odom_a_noise:=0.075 odom_x_mod:=0.5 odom_y_mod:=0.5 \
+
 # With yaw estimation
 CONTADOR=$1
 until [ $CONTADOR -gt $2 ]; do
   # Roslaunch with multiple parameters
   roslaunch amcl_sewer amcl_bag.launch play_bag:=false ground_truth:=$ground_file \
-  ground_truth_out:=/home/chur/stats/detector_21_sept_wheel_estimate_yaw_mod_0.4_mod_a_0.2_n_0.075_$CONTADOR.txt  \
-  odom_a_mod:=0.05 odom_a_noise:=0.05 odom_x_mod:=0.1 odom_y_mod:=0.1 \
+  ground_truth_out:=/home/chur/stats/detector_21_sept_wheel_estimate_yaw_debugged_mod_0.1_mod_a_0.05_noise_0.05/stats_$CONTADOR.txt  \
   yaw_estimator:=true \
+  odom_a_mod:=0.05 odom_a_noise:=0.05 odom_x_mod:=0.1 odom_y_mod:=0.1 \
   camera:=/front initial_x:=$initial_x initial_y:=$initial_y initial_a:=$initial_a rgbd_odom:=false &
   
   #end of roslaunch
   
   let pid1=$!
-  rosbag play $bag_file -s $start --clock -r 2.2
+  rosbag play $bag_file -s $start --clock -r 2.2 -u 3260
   rosnode kill -a
   wait ${pid1}
   let CONTADOR+=1

@@ -103,6 +103,9 @@ public:
     // Get the parameters related with the sewer
     if (!lnh.getParam("detect_manhole_topic", m_detectManholeTopic))
       m_detectManholeTopic = "/manhole";
+    
+    if (!lnh.getParam("angular_weight", angular_weight))
+      angular_weight = 5.0;
       
     
     if (!lnh.getParam("sewer_graph_file", m_sewer_graph_file))
@@ -192,6 +195,7 @@ public:
       ROS_INFO("Setting pose: %.3f %.3f %.3f", pose.getOrigin().x(), pose.getOrigin().y(), getYawFromTf(pose));
       setInitialPose(pose, m_initXDev, m_initYDev, m_initADev);
     }
+    last_relative_angle = 1e100;
   }
 
   //!Default destructor
@@ -348,9 +352,8 @@ private:
     double y = pose.getOrigin().y();
     int i,j;
     
+    // Logging the pose change
     ROS_INFO("Setting pose: %.3f %.3f %.3f", pose.getOrigin().x(), pose.getOrigin().y(), getYawFromTf(pose));
-    
-    
     ROS_INFO("Distance to closest Edge = %f", s_g->getDistanceToClosestEdge(x , y, i, j));
     ROS_INFO("Distance to closest Manhole = %f", s_g->getDistanceToClosestManhole(x, y));
     
@@ -366,8 +369,9 @@ private:
   
   void wallInfoCallback(const plane_detector::WallInfoConstPtr &msg) {
     if (msg->d_left > 0.0 && !isFork()) {
-      ROS_INFO("Updating angle measurement. Angle = %f", msg->angle);
-      updateParticlesAngle(msg->angle);
+      last_relative_angle = msg->angle;
+      last_relative_time = ros::Time::now();
+      ROS_INFO("Catched angle measurement. Angle = %f", msg->angle);
     }
   }
   
@@ -465,11 +469,24 @@ private:
       ROS_INFO("Performing Update with Manhole");
     else 
       fork = isFork(x, y);
+      
+    if (fork) 
+      ROS_INFO("Performing update with fork");
+      
+    bool perform_angular = last_relative_time - ros::Time::now() < ros::Duration(0,200000000L) && fabs(last_relative_angle) < 5 && !fork && !detected_manhole;
+    if (perform_angular) {
+      ROS_INFO("Performing Update with angular data");
+    }
+    
+    if (!fork && !perform_angular && !detected_manhole) {
+      ROS_INFO("Performing regular update (no fork, no manhole, no angular data");
+    }
     
     for(int i=0; i<(int)m_p.size(); i++)
     {
       double tx = m_p[i].x;
       double ty = m_p[i].y;
+      double ta = m_p[i].a;
       // Evaluate the weight of the range sensors
       
       if (detected_manhole) {
@@ -480,15 +497,21 @@ private:
       } else {
 	m_p[i].w = computeEdgeWeight(tx, ty); // Compute weight as a function of the distance to the closest edge
       }
+      
+      if (perform_angular) {
+	// We need a fairly updated estimation
+	m_p[i].w += angular_weight * computeAngularWeight(tx, ty, ta);
+      }
         
       //Increase the summatory of weights
       wt += m_p[i].w;
     }
     
     //Normalize all weights
+    wt = 1.0 / wt;
     for(int i=0; i<(int)m_p.size(); i++)
     {
-      m_p[i].w /= wt;  
+      m_p[i].w *= wt;  
     }  
     
     // Re-compute global TF according to new weight of samples
@@ -512,60 +535,6 @@ private:
     return true;
   }
   
-  bool updateParticlesAngle(double angle) {
-    float x,y,a,xd,yd,ad;
-    computeDev(x,y,a,xd,yd,ad);
-    bool ret_val = true;
-    
-    if (s_g->getDistanceToClosestVertex(x, y, sewer_graph::FORK) < m_fork_dist) {
-      ROS_INFO("In a fork");
-      return false;
-    }
-    
-    
-    if(!predictParticles())
-    {
-      ROS_ERROR("ParticleFilterSewer::manholeDetectedCallback --> Prediction error!");
-      return false;
-    }
-    
-    // Then relate each particle with its closest vertex and infere the angle
-    double wt = 0.0;
-    for(int i=0; i<(int)m_p.size(); i++)
-    {
-      double tx = m_p[i].x;
-      double ty = m_p[i].y;
-      double ta = m_p[i].a;
-      
-      double man_angle_1 = s_g->getClosestEdgeAngle(tx, ty);
-      double man_angle_2 = man_angle_1 + M_PI;
-      double rel_angle_1 = man_angle_1 - ta;
-      double rel_angle_2 = man_angle_2 - ta;
-      if (fabs(rel_angle_1) > M_PI) 
-	rel_angle_1 -= 2.0 * M_PI * ((std::signbit(rel_angle_1))? -1.0:1.0);
-      if (fabs(rel_angle_2) > M_PI) 
-	rel_angle_2 -= 2.0 * M_PI * ((std::signbit(rel_angle_1))? -1.0:1.0);
-      
-      if (fabs (rel_angle_1) < fabs(rel_angle_2))
-	m_p[i].w = angleConst1*exp(-rel_angle_1*rel_angle_1*angleConst2);
-      else 
-	m_p[i].w = angleConst1*exp(-rel_angle_2*rel_angle_2*angleConst2);
-      
-      wt += m_p[i].w;
-    }
-    //Normalize all weights
-    for(int i=0; i<(int)m_p.size(); i++)
-    {
-      m_p[i].w /= wt;
-    }
-    
-    // Re-compute global TF according to new weight of samples
-    computeGlobalTfAndPose();
-
-    resample();
-    return ret_val;
-  }
-  
   double computeEdgeWeight(double x, double y) {
     int i,j;
     double dist = s_g->getDistanceToClosestEdge(x,y,i, j);
@@ -583,6 +552,28 @@ private:
   double computeManholeWeight(double x, double y) {
     double dist = s_g->getDistanceToClosestManhole(x, y);
     return manholeConst1*exp(-dist*dist*manholeConst2) + m_manholeThres;
+  }
+  
+  double computeAngularWeight(double tx, double ty, double ta) {
+    double ret = 0.0;
+    double man_angle_1 = s_g->getClosestEdgeAngle(tx, ty);
+    double man_angle_2 = man_angle_1 + M_PI;
+    double rel_angle_1 = man_angle_1 - ta;
+    double rel_angle_2 = man_angle_2 - ta;
+    
+    while (fabs(rel_angle_1) > M_PI) 
+      rel_angle_1 += 2.0 * M_PI * ((std::signbit(rel_angle_1))? -1.0:1.0);
+    while (fabs(rel_angle_2) > M_PI) 
+      rel_angle_2 += 2.0 * M_PI * ((std::signbit(rel_angle_1))? -1.0:1.0);
+    
+    ROS_INFO("ComputeAngularWeight: Rel Angle 1 = %f\tRel angle 2 = %f", rel_angle_1, rel_angle_2);
+      
+    if (fabs (rel_angle_1) < fabs(rel_angle_2))
+      ret = angleConst1*exp(-rel_angle_1*rel_angle_1*angleConst2);
+    else 
+      ret = angleConst1*exp(-rel_angle_2*rel_angle_2*angleConst2);
+      
+    return ret;
   }
 
   //! Set the initial pose of the particle filter
@@ -793,6 +784,11 @@ private:
   //! Resampling control
   int m_nUpdates;
   int m_resampleInterval;
+  
+  //! Yaw estimation
+  float last_relative_angle;
+  ros::Time last_relative_time;
+  double angular_weight;
   
   //! Thresholds for filter updating
   double m_dTh, m_aTh, m_tTh;

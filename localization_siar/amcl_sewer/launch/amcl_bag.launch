@@ -66,7 +66,7 @@
   <node pkg="odom_to_tf" type="odom_to_tf.py" name="odom_to_tf" unless="$(arg rgbd_odom)"/>
 
   
-  <node name="amcl_node" type="amcl_node" pkg="amcl_sewer">
+  <node name="amcl_node" type="amcl_node" pkg="amcl_sewer" output="screen">
     <param name="rate" value="10.0" />
     <param name="base_frame_id" value="base_link" />
     <param name="odom_frame_id" value="odom" />
@@ -82,8 +82,8 @@
     
     <param name="resample_interval" value="0" />
     
-    <param name="update_min_d" value="0.5" />
-    <param name="update_min_a" value="0.2" />
+    <param name="update_min_d" value="0.2" />
+    <param name="update_min_a" value="0.1" />
     
     <param name="initial_x" value="$(arg initial_x)" />
     <param name="initial_y" value="$(arg initial_y)" />
@@ -98,8 +98,8 @@
     <param name="manholeDev" value="0.7" />
     <param name="min_manhole_detected" value="2"/>
     <param name="forkDev" value="0.7"/>
-    <param name="fork_dist" value="8.0"/>
-    <param name="angleDev" value="0.08"/>
+    <param name="fork_dist" value="10.0"/>
+    <param name="angleDev" value="0.04"/>
     
     <param name="sewer_graph_file" value="$(find sewer_graph)/test/gis_graph_reduced"/>
     
