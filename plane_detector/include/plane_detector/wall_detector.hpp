@@ -153,6 +153,12 @@ void WallDetector::detectWalls(const sensor_msgs::Image &img)
     w_info.d_right = -1.0;
     w_info.angle = -1.0;
     wall_info_pub.publish(w_info);
+    
+    if (wall_planes.size()  > 2) {
+      _theta += 10; // Estimating theta in order to detect few planes
+      ROS_INFO("Detected more planes than expected --> New theta value = %d", _theta);
+    }
+    
     return;
   }
   

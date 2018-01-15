@@ -66,7 +66,7 @@
   <node pkg="odom_to_tf" type="odom_to_tf.py" name="odom_to_tf" unless="$(arg rgbd_odom)"/>
 
   
-  <node name="amcl_node" type="amcl_node" pkg="amcl_sewer" output="screen">
+  <node name="amcl_node" type="amcl_node" pkg="amcl_sewer" >
     <param name="rate" value="10.0" />
     <param name="base_frame_id" value="base_link" />
     <param name="odom_frame_id" value="odom" />
@@ -123,7 +123,7 @@
     <remap from="manhole" to="ground_truth"/>
   </node>
   
-  <node name="yaw_estimator" type="test_wall_detector" pkg="plane_calibrator" if="$(arg yaw_estimator)">
+  <node name="yaw_estimator" type="test_wall_detector" pkg="plane_calibrator" if="$(arg yaw_estimator)" output="screen">
    <param name="camera" value="$(arg camera)/depth_registered"/>
    <param name="link_1" value="/base_link"/>
    <param name="link_2" value="$(arg camera)_depth_optical_frame"/>
