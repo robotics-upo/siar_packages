@@ -102,9 +102,9 @@ WallDetector::WallDetector(double delta, double epsilon, double gamma, int theta
 
 void WallDetector::detectWalls(const sensor_msgs::Image &img)
 {
-  if (detectPlanes(img) == 0) {
+  if (detectPlanes(img) < 2) {
     // Could not detect a wall plane --> exit
-    ROS_INFO("Wall detector --> No planes" );
+    ROS_INFO("Wall detector --> Not enough planes" );
     return;
   }
   // Check which of the planes is vertical --> it will give us the position of the walls nearby
@@ -130,12 +130,12 @@ void WallDetector::detectWalls(const sensor_msgs::Image &img)
 //     ROS_INFO("Transformed plane: %s", p.toString().c_str());
     if (fabs(p.v(1)) > 0.9 ) {
       // New wall plane detected
-      ROS_INFO("Wall detector: New wall detected: %s", p.toString().c_str() );
+//       ROS_INFO("Wall detector: New wall detected: %s", p.toString().c_str() );
       wall_planes.push_back(p);
       Eigen::Vector3d cross = p.v.cross(v_z);
-      cross *= (cross(0)<0.0) ? -1.0:1.0;
-      double angle = asin(cross(1));
-      ROS_INFO("New angle: %f", angle);
+      
+      double angle = -atan(cross(1)/cross(0));
+//       ROS_INFO("New angle: %f", angle);
       
       if (wall_planes. size() == 1) 
 	angle_1 = angle;
@@ -143,7 +143,7 @@ void WallDetector::detectWalls(const sensor_msgs::Image &img)
 	angle_2 = angle;
     }
     
-  }
+  } 
   
   if (wall_planes.size() != 2) {
     ROS_INFO("Detected %lu wall planes --> not taking decisions", wall_planes.size());
@@ -153,12 +153,6 @@ void WallDetector::detectWalls(const sensor_msgs::Image &img)
     w_info.d_right = -1.0;
     w_info.angle = -1.0;
     wall_info_pub.publish(w_info);
-    
-    if (wall_planes.size()  > 2) {
-      _theta += 10; // Estimating theta in order to detect few planes
-      ROS_INFO("Detected more planes than expected --> New theta value = %d", _theta);
-    }
-    
     return;
   }
   
@@ -171,9 +165,7 @@ void WallDetector::detectWalls(const sensor_msgs::Image &img)
     p_left = p_right;
     p_right = aux;
   }
-  ROS_INFO("P_left = %s   \t P_right = %s", p_left.toString().c_str(), 
-           p_right.toString().c_str());
-  ROS_INFO("Angle: %f", (angle_1 + angle_2) * 0.5);
+//   ROS_INFO("Angle_left = %f \t Angle_right = %f \t Angle = %f", angle_1, angle_2, (angle_1 + angle_2) * 0.5);
   
   // Publish markers
   marker_pub.publish(p_left.getMarker(link_1, 0, color.at(0)));

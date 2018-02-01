@@ -195,7 +195,7 @@ public:
       ROS_INFO("Setting pose: %.3f %.3f %.3f", pose.getOrigin().x(), pose.getOrigin().y(), getYawFromTf(pose));
       setInitialPose(pose, m_initXDev, m_initYDev, m_initADev);
     }
-    last_relative_angle = 1e100;
+    last_info.angle = 1e100;
   }
 
   //!Default destructor
@@ -368,11 +368,9 @@ private:
   }
   
   void wallInfoCallback(const plane_detector::WallInfoConstPtr &msg) {
-    if (msg->d_left > 0.0 && !isFork()) {
-      last_relative_angle = msg->angle;
-      last_relative_time = ros::Time::now();
-      ROS_INFO("Catched angle measurement. Angle = %f", msg->angle);
-    }
+    last_info = *msg;
+    last_relative_time = ros::Time::now();
+    ROS_INFO("Catched angle measurement. Angle = %f", msg->angle);
   }
   
   void update(bool detected_manhole) {
@@ -382,13 +380,54 @@ private:
       ROS_ERROR("ParticleFilterSewer::manholeDetectedCallback --> Prediction error!");
       return;
     }
+    
+    int mode = 0;
+    
       
-    // Perform particle update based on current point-cloud
-    if(!updateParticles(detected_manhole))
-    {
-      ROS_ERROR("ParticleFilterSewer::manholeDetectedCallback --> Update error!");
-      return;
+    float x,y,a,xv,yv,av,xycov;
+    computeVar(x,y,a,xv,yv,av,xycov);
+    
+    if (traj_file_open) {
+      traj_file << x << "\t" << y << std::endl;
     }
+    
+    // Perform different particle update based on current point-cloud and available measurements
+    if (detected_manhole) {
+      ROS_INFO("Performing Update with Manhole");
+      updateParticles(1);
+    }
+    else if (isFork(x,y)) {
+      ROS_INFO("Performing update with fork");
+      updateParticles(2);
+    }
+    else {
+      if (last_relative_time - ros::Time::now() < ros::Duration(0,200000000L) && fabs(last_info.angle) < 5 && last_info.d_left > 0.0) {
+	ROS_INFO("Performing angular update");
+	updateParticles(4); // 3 is for regular angular
+      } else {
+	ROS_INFO("Performing regular update");
+	updateParticles(0);
+      }
+    }
+    
+    // Re-compute global TF according to new weight of samples
+    computeGlobalTfAndPose();
+
+    //Do the resampling if needed
+    m_nUpdates++;
+    if(m_nUpdates > m_resampleInterval)
+    {
+      m_nUpdates = 0;
+      resample();
+    }
+    
+    /*wt = 0; NOTE: this was the implementation of importance resampling
+    for(int i=0; i<(int)m_p.size(); i++)
+      wt += m_p[i].w*m_p[i].w;
+    float nEff = 1/wt;
+    if(nEff < ((float)m_p.size())/10.0)
+      resample();*/
+    //resample();
       
     m_doUpdate = false;
             
@@ -453,7 +492,7 @@ private:
   
   // Update Particles taking into account
   // No input is necessary --> we will get the closest Manhole, which will be used for weighting purposes(with some dispersion)
-  bool updateParticles(bool detected_manhole)
+  void updateParticles(int mode)
   {  
     double wt = 0.0;
     bool fork = false;
@@ -461,26 +500,7 @@ private:
     float x,y,a,xv,yv,av,xycov;
     computeVar(x,y,a,xv,yv,av,xycov);
     
-    if (traj_file_open) {
-      traj_file << x << "\t" << y << std::endl;
-    }
     
-    if (detected_manhole) 
-      ROS_INFO("Performing Update with Manhole");
-    else 
-      fork = isFork(x, y);
-      
-    if (fork) 
-      ROS_INFO("Performing update with fork");
-      
-    bool perform_angular = last_relative_time - ros::Time::now() < ros::Duration(0,200000000L) && fabs(last_relative_angle) < 5 && !fork && !detected_manhole;
-    if (perform_angular) {
-      ROS_INFO("Performing Update with angular data");
-    }
-    
-    if (!fork && !perform_angular && !detected_manhole) {
-      ROS_INFO("Performing regular update (no fork, no manhole, no angular data");
-    }
     
     for(int i=0; i<(int)m_p.size(); i++)
     {
@@ -489,18 +509,22 @@ private:
       double ta = m_p[i].a;
       // Evaluate the weight of the range sensors
       
-      if (detected_manhole) {
-        
-        m_p[i].w = computeManholeWeight(tx, ty);
-      } else if (fork) {
-        m_p[i].w = computeForkWeight(tx, ty);
-      } else {
-	m_p[i].w = computeEdgeWeight(tx, ty); // Compute weight as a function of the distance to the closest edge
-      }
-      
-      if (perform_angular) {
-	// We need a fairly updated estimation
-	m_p[i].w += angular_weight * computeAngularWeight(tx, ty, ta);
+      switch (mode) {
+	case 1:
+	  m_p[i].w = computeManholeWeight(tx, ty);
+	  break;
+	case 2:
+	  m_p[i].w = computeForkWeight(tx, ty);
+	  break;
+	case 3:
+	  m_p[i].w = computeAngularWeight(tx, ty, ta);
+	  break;
+	case 4:
+	  m_p[i].w = computeEdgeWeight(tx, ty);
+	  m_p[i].w += angular_weight * computeAngularWeight(tx, ty, ta);
+	  break;
+	default:
+	  m_p[i].w = computeEdgeWeight(tx, ty); // Compute weight as a function of the distance to the closest edge
       }
         
       //Increase the summatory of weights
@@ -513,26 +537,6 @@ private:
     {
       m_p[i].w *= wt;  
     }  
-    
-    // Re-compute global TF according to new weight of samples
-    computeGlobalTfAndPose();
-
-    //Do the resampling if needed
-    m_nUpdates++;
-    if(m_nUpdates > m_resampleInterval || detected_manhole)
-    {
-      m_nUpdates = 0;
-      resample();
-    }
-    /*wt = 0; NOTE: this was the implementation of importance resampling
-    for(int i=0; i<(int)m_p.size(); i++)
-      wt += m_p[i].w*m_p[i].w;
-    float nEff = 1/wt;
-    if(nEff < ((float)m_p.size())/10.0)
-      resample();*/
-    //resample();
-    
-    return true;
   }
   
   double computeEdgeWeight(double x, double y) {
@@ -557,21 +561,17 @@ private:
   double computeAngularWeight(double tx, double ty, double ta) {
     double ret = 0.0;
     double man_angle_1 = s_g->getClosestEdgeAngle(tx, ty);
-    double man_angle_2 = man_angle_1 + M_PI;
-    double rel_angle_1 = man_angle_1 - ta;
-    double rel_angle_2 = man_angle_2 - ta;
+    double rel_angle = ta - man_angle_1;
     
-    while (fabs(rel_angle_1) > M_PI) 
-      rel_angle_1 += 2.0 * M_PI * ((std::signbit(rel_angle_1))? -1.0:1.0);
-    while (fabs(rel_angle_2) > M_PI) 
-      rel_angle_2 += 2.0 * M_PI * ((std::signbit(rel_angle_1))? -1.0:1.0);
+    while (fabs(rel_angle) > M_PI / 2) {
+      rel_angle -= M_PI * ((std::signbit(rel_angle))? -1.0:1.0);
+    }
     
-    ROS_INFO("ComputeAngularWeight: Rel Angle 1 = %f\tRel angle 2 = %f", rel_angle_1, rel_angle_2);
-      
-    if (fabs (rel_angle_1) < fabs(rel_angle_2))
-      ret = angleConst1*exp(-rel_angle_1*rel_angle_1*angleConst2);
-    else 
-      ret = angleConst1*exp(-rel_angle_2*rel_angle_2*angleConst2);
+    ROS_INFO("ComputeAngularWeight: Estimated rel angle = %f\t Rel angle from particle = %f", last_info.angle, rel_angle);
+    
+    double angular_error = rel_angle + last_info.angle;
+    
+    ret = angleConst1*exp(-angular_error*angular_error*angleConst2);
       
     return ret;
   }
@@ -786,7 +786,7 @@ private:
   int m_resampleInterval;
   
   //! Yaw estimation
-  float last_relative_angle;
+  plane_detector::WallInfo last_info;
   ros::Time last_relative_time;
   double angular_weight;
   

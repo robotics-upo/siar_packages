@@ -215,15 +215,15 @@ double SewerGraph::getClosestEdgeAngle(double x, double y) const {
 double SewerGraph::getDistanceToClosestEdge(double x, double y, int &id1, int &id2) const {
   double ret_val = -1.0;
   
-  RealVector pos;
-  pos.push_back(x);
-  pos.push_back(y);
+  static RealVector pos(2);
+  pos[0] = x;
+  pos[1] = y;
   id1 = -1;
   id2 = -1;
   
-  RealVector v1(2),v2(2);
+  static RealVector v1(2),v2(2);
   for (int i = 0; i < nVertices(); i++) {
-    SewerVertex v = getVertexContent(i);
+    static SewerVertex v = getVertexContent(i);
     v1[0] = v.x;v1[1] = v.y;
     
     // iterate the edges
