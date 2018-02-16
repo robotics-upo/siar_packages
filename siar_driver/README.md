@@ -3,7 +3,7 @@ This module acts as an interface between the SIAR control board and other ROS mo
 
 The package is composed by three nodes:
 
-* *siar_driver* is a driver for controlling the robot by using ROS.
+* *siar_node* is a driver for controlling the robot by using ROS.
 * *siar_teleop_joy* is a program for teleoperating the robot with a joystick by using ROS (*optional feature*).
 * *siar_calibration_node* a simple node for calibrating the odometry estimation and commands of SIAR. Use: rosrun siar_driver siar_calibration_node \<type of test\> \<total time\> \<raw velocity command\> The program accepts joystick commands before starting the test (a joy node should be running).
 
@@ -66,7 +66,7 @@ The next topics are published by the *siar_teleop_joy*:
 
 ## ROS parameters
 
-Parameters of the *teresa_driver* program:
+Parameters of the *siar_driver* program:
 
 * **siar_device_1**: device of the control board (i.e. /dev/ttyUSB0). It is advised to use the id of the device: /dev/serial/by-id/usb-FTDI_MM232R_USB_MODULE_FTB3LEN7-if00-port0
 
