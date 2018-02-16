@@ -7,7 +7,7 @@ The package is composed by three nodes:
 * *siar_teleop_joy* is a program for teleoperating the robot with a joystick by using ROS (*optional feature*).
 * *siar_calibration_node* a simple node for calibrating the odometry estimation and commands of SIAR. Use: rosrun siar_driver siar_calibration_node \<type of test\> \<total time\> \<raw velocity command\> The program accepts joystick commands before starting the test (a joy node should be running).
 
-The raposa_teleop_joy program is based on the following tutorial: 
+The siar_teleop_joy program is based on the following tutorial: 
 *Writing a Teleoperation Node for a Linux-Supported Joystick* 
 http://wiki.ros.org/joy/Tutorials/WritingTeleopNode 
 under license http://creativecommons.org/licenses/by/3.0/
