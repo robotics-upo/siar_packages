@@ -49,6 +49,7 @@ int main(int argc, char **argv)
   }
   
   ROS_INFO("Parameters: %f, %f, %f, %d", delta, epsilon, gamma, theta);
+//   ROS_INFO("Std dev of the sensor: %d", std_dev);
   
   pn.getParam("camera", camera);
   pn.getParam("link_name", link_name);

@@ -205,7 +205,7 @@ void WallDetector::getTransformFromTF()
   T.matrix()(2,3) = trans_tf.getZ();
   
   T_inv = T.inverse();
-  ROS_INFO("Transform OK");
+//   ROS_INFO("Transform OK");
   
   
   std::cout << T.matrix() << std::endl;

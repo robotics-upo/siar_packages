@@ -68,6 +68,7 @@ std::string DetectedPlane::toString(bool verbose) const
   os << Plane::toString() << "\t";
   if (verbose) {
     os << "MSE = " << mse << "\t r_g = " << r_g.transpose();
+    os << "\nCov = \n" << cov << "\n";
   }
   
   return os.str();
@@ -127,7 +128,7 @@ visualization_msgs::Marker DetectedPlane::getMarker(const std::string &frame_id,
 void printPlanes(const std::vector<DetectedPlane> &p) {
   std::cout << "Detected planes: " << p.size() << std::endl;
   for (unsigned int i = 0; i < p.size(); i++) {
-    std::cout << "Plane " << i << ": " << p[i].toString() << std::endl;
+    std::cout << "Plane " << i << ": " << p[i].toString(true) << std::endl;
   }
 }
 

@@ -403,7 +403,7 @@ private:
     else {
       if (last_relative_time - ros::Time::now() < ros::Duration(0,200000000L) && fabs(last_info.angle) < 5 && last_info.d_left > 0.0) {
 	ROS_INFO("Performing angular update");
-	updateParticles(4); // 3 is for regular angular
+	updateParticles(4); // 4 is for  angular + edge
       } else {
 	ROS_INFO("Performing regular update");
 	updateParticles(0);

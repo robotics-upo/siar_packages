@@ -29,7 +29,7 @@ enum PixelStatus {
 class PlaneDetector {
 public:
   //! Recommended constructor
-  PlaneDetector(double delta = 1.0, double epsilon = 1.0, double gamma = 10.0, int theta = 1000);
+  PlaneDetector(double delta = 1.0, double epsilon = 1.0, double gamma = 10.0, int theta = 1000, double std_dev = 0.03);
   
   //! ROS constructor
   PlaneDetector(ros::NodeHandle &nh, ros::NodeHandle &pnh);
@@ -68,6 +68,7 @@ protected:
   int _available_pixels;
   bool _initialized;
   bool _downsample;
+  double std_dev;
 
   std::vector<int> curr_region; // Saves the region in coordinates --> i + j * height
   DetectedPlane curr_plane;
@@ -124,8 +125,8 @@ protected:
 
 std::default_random_engine PlaneDetector::generator;
 
-PlaneDetector::PlaneDetector(double delta, double epsilon, double gamma, int theta):
-_delta(delta), _epsilon(epsilon), _gamma(gamma), _theta(theta),_initialized(false), _downsample(true)
+PlaneDetector::PlaneDetector(double delta, double epsilon, double gamma, int theta, double std_dev):
+_delta(delta), _epsilon(epsilon), _gamma(gamma), _theta(theta),_initialized(false), _downsample(true),std_dev(std_dev)
 {
   initializeColors();
 }
@@ -148,8 +149,10 @@ void PlaneDetector::initializeColors() {
   
 }
   
-PlaneDetector::PlaneDetector(ros::NodeHandle& nh, ros::NodeHandle& pnh):_initialized(false), reconfigure_server_(),config_init_(false)
+PlaneDetector::PlaneDetector(ros::NodeHandle& nh, ros::NodeHandle& pnh):_initialized(false), std_dev(0.03), reconfigure_server_(),config_init_(false)
 {
+  
+  pnh.getParam("std_dev", std_dev);
   
   reconfigure_server_.reset(new ReconfigureServer(pnh));
   call_type = boost::bind(&PlaneDetector::parametersCallback, this, _1, _2);
@@ -245,7 +248,7 @@ int PlaneDetector::detectPlanes(const sensor_msgs::Image &depth)
       // The queue has been emptied --> clear possible QUEUE status and add the region to the detected planes if condition of step 12 (Algorithm 1)
       if (curr_region.size() > _theta) {
         curr_plane.makeDPositive();
-        curr_plane.calculateCovariance();
+        curr_plane.calculateCovariance(std_dev);
 //         std::cout << "Detected plane: " << curr_plane.toString() << std::endl;
         _detected_planes.push_back(curr_plane);
         _detected_ids.push_back(curr_region_id);

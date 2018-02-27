@@ -93,14 +93,14 @@
     <param name="initial_y_dev" value="0.5" />
     <param name="initial_a_dev" value="0.1" />
     
-    <param name="edgeDev" value="0.15"/>
+    <param name="edgeDev" value="0.3"/>
     <param name="manholeThres" value="0.00075"/>
     <param name="manholeDev" value="0.7" />
     <param name="min_manhole_detected" value="2"/>
-    <param name="forkDev" value="0.35"/>
+    <param name="forkDev" value="0.5"/>
     <param name="fork_dist" value="6.0"/>
     <param name="angleDev" value="0.02"/>
-    <param name="angular_weight" value="0.5"/>
+    <param name="angular_weight" value="0.05"/>
     
     <param name="sewer_graph_file" value="$(find sewer_graph)/test/gis_graph_reduced"/>
     
