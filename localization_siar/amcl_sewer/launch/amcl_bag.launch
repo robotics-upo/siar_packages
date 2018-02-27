@@ -66,14 +66,14 @@
   <node pkg="odom_to_tf" type="odom_to_tf.py" name="odom_to_tf" unless="$(arg rgbd_odom)"/>
 
   
-  <node name="amcl_node" type="amcl_node" pkg="amcl_sewer">
+  <node name="amcl_node" type="amcl_node" pkg="amcl_sewer"  >
     <param name="rate" value="10.0" />
     <param name="base_frame_id" value="base_link" />
     <param name="odom_frame_id" value="odom" />
     <param name="global_frame_id" value="map" />
 
-    <param name="min_particles" value="400" />
-    <param name="max_particles" value="600" />
+    <param name="min_particles" value="200" />
+    <param name="max_particles" value="300" />
     
     <param name="odom_x_mod" value="$(arg odom_x_mod)" />
     <param name="odom_y_mod" value="$(arg odom_y_mod)" />
@@ -82,7 +82,7 @@
     
     <param name="resample_interval" value="0" />
     
-    <param name="update_min_d" value="0.5" />
+    <param name="update_min_d" value="0.4" />
     <param name="update_min_a" value="0.2" />
     
     <param name="initial_x" value="$(arg initial_x)" />
@@ -93,13 +93,14 @@
     <param name="initial_y_dev" value="0.5" />
     <param name="initial_a_dev" value="0.1" />
     
-    <param name="edgeDev" value="0.4"/>
+    <param name="edgeDev" value="0.3"/>
     <param name="manholeThres" value="0.00075"/>
     <param name="manholeDev" value="0.7" />
     <param name="min_manhole_detected" value="2"/>
-    <param name="forkDev" value="0.7"/>
-    <param name="fork_dist" value="8.0"/>
-    <param name="angleDev" value="0.08"/>
+    <param name="forkDev" value="0.5"/>
+    <param name="fork_dist" value="6.0"/>
+    <param name="angleDev" value="0.02"/>
+    <param name="angular_weight" value="0.05"/>
     
     <param name="sewer_graph_file" value="$(find sewer_graph)/test/gis_graph_reduced"/>
     
@@ -115,7 +116,6 @@
   
   <node name="cnn_laber" type="cnn_detector.py" pkg="manhole_detector" args="/up $(find manhole_detector)/test/model.10-0.9861-0.9578.hdf5" if="$(arg detector)">
     <param name="thres" value="0.55"/>
-  
   </node>
 
   
@@ -123,8 +123,8 @@
     <remap from="manhole" to="ground_truth"/>
   </node>
   
-  <node name="yaw_estimator" type="test_wall_detector" pkg="plane_calibrator" if="$(arg yaw_estimator)">
-   <param name="camera" value="$(arg camera)/depth_registered"/>
+  <node name="yaw_estimator" type="test_wall_detector" pkg="plane_detector" if="$(arg yaw_estimator)" >
+   <param name="camera" value="$(arg camera)"/>
    <param name="link_1" value="/base_link"/>
    <param name="link_2" value="$(arg camera)_depth_optical_frame"/>
   </node>

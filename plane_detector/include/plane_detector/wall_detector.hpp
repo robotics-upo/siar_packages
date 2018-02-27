@@ -26,7 +26,7 @@ public:
   void detectWalls(const sensor_msgs::Image &img);
   
 protected:
-  
+  int _skip, _skip_cont;
   
   void getTransformFromTF();
   
@@ -60,14 +60,20 @@ WallDetector::WallDetector(ros::NodeHandle &nh, ros::NodeHandle &pnh): PlaneDete
   // Set defaults
   link_1 = "/base_link";
   cam_1 = "/camera";
+  pnh.getParam("camera", cam_1);
   link_2 = cam_1 + "_depth_optical_frame";
   
   pnh.getParam("link_1", link_1);
   pnh.getParam("link_2", link_2);
-  pnh.getParam("camera", cam_1);
   
-  img_topic_1 = cam_1 + "/image_raw";
-  info_topic_1 = cam_1 + "/camera_info";
+  
+  if (!pnh.getParam("skip", _skip))
+    _skip = 2;
+  _skip_cont = 0;
+  
+  
+  img_topic_1 = cam_1 + "/depth_registered/image_raw";
+  info_topic_1 = cam_1 + "/depth_registered/camera_info";
   marker_topic = nh.resolveName("/wall_marker");
   wall_info_topic = nh.resolveName("/wall_info");
   
@@ -96,30 +102,48 @@ WallDetector::WallDetector(double delta, double epsilon, double gamma, int theta
 
 void WallDetector::detectWalls(const sensor_msgs::Image &img)
 {
-  if (detectPlanes(img) == 0) {
+  if (detectPlanes(img) < 2) {
     // Could not detect a wall plane --> exit
-    ROS_INFO("Wall detector --> No planes" );
+    ROS_INFO("Wall detector --> Not enough planes" );
     return;
   }
   // Check which of the planes is vertical --> it will give us the position of the walls nearby
-  Eigen::Vector3d v_y;
+  Eigen::Vector3d v_z, v_y;
+  v_z(0) = 0.0;
+  v_z(1) = 0.0;
+  v_z(2) = 1.0;
+  
   v_y(0) = 0.0;
   v_y(1) = 1.0;
   v_y(2) = 0.0;
+  Plane floor_plane ;
+  floor_plane.v = v_z;
+  floor_plane.d = 0.0;
   std::vector<DetectedPlane> wall_planes;
+  
+  double angle_1, angle_2;
   for (unsigned int i = 0; i < _detected_planes.size() ; i++) {
     DetectedPlane p = _detected_planes.at(i);
 //     ROS_INFO("Detected plane: %s", p.toString().c_str());
     
     p = p.affine(T_inv);
 //     ROS_INFO("Transformed plane: %s", p.toString().c_str());
-    if (fabs(p.v.dot(v_y)) > 0.9 ) {
+    if (fabs(p.v(1)) > 0.9 ) {
       // New wall plane detected
 //       ROS_INFO("Wall detector: New wall detected: %s", p.toString().c_str() );
       wall_planes.push_back(p);
+      Eigen::Vector3d cross = p.v.cross(v_z);
+      
+      double angle = -atan(cross(1)/cross(0));
+//       ROS_INFO("New angle: %f", angle);
+      
+      if (wall_planes. size() == 1) 
+	angle_1 = angle;
+      else
+	angle_2 = angle;
     }
     
-  }
+  } 
   
   if (wall_planes.size() != 2) {
     ROS_INFO("Detected %lu wall planes --> not taking decisions", wall_planes.size());
@@ -141,9 +165,7 @@ void WallDetector::detectWalls(const sensor_msgs::Image &img)
     p_left = p_right;
     p_right = aux;
   }
-  ROS_INFO("P_left = %s   \t P_right = %s", p_left.toString().c_str(), 
-           p_right.toString().c_str());
-  ROS_INFO("Angle: %f", p_left.v.dot(v_y));
+//   ROS_INFO("Angle_left = %f \t Angle_right = %f \t Angle = %f", angle_1, angle_2, (angle_1 + angle_2) * 0.5);
   
   // Publish markers
   marker_pub.publish(p_left.getMarker(link_1, 0, color.at(0)));
@@ -152,7 +174,7 @@ void WallDetector::detectWalls(const sensor_msgs::Image &img)
   plane_detector::WallInfo w_info;
   w_info.d_left = p_left.d;
   w_info.d_right = p_right.d;
-  w_info.angle = p_left.v.dot(v_y);
+  w_info.angle = (angle_1 + angle_2) * 0.5;
   wall_info_pub.publish(w_info);
 }
 
@@ -164,7 +186,7 @@ void WallDetector::getTransformFromTF()
   }
   
   tf::StampedTransform tf_;
-  tfListener.lookupTransform(link_1, link_2, ros::Time::now(), tf_);
+  tfListener.lookupTransform(link_1, link_2, ros::Time::now() - ros::Duration(0.1), tf_);
   
   // Get rotation
   tf::Quaternion q = tf_.getRotation();
@@ -183,7 +205,7 @@ void WallDetector::getTransformFromTF()
   T.matrix()(2,3) = trans_tf.getZ();
   
   T_inv = T.inverse();
-  ROS_INFO("Transform OK");
+//   ROS_INFO("Transform OK");
   
   
   std::cout << T.matrix() << std::endl;

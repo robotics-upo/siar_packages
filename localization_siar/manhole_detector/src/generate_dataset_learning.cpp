@@ -27,7 +27,9 @@ using namespace std;
 namespace enc = sensor_msgs::image_encodings;
 using namespace cv;
 
-void decodeAndWriteCompressed(const sensor_msgs::CompressedImage& message, ofstream &file, bool rotate = false);
+void decodeAndWriteCompressed(const sensor_msgs::CompressedImage& message, ofstream &file, float rotate, float delta_rot, bool positive = false);
+
+void writeImage(const cv::Mat &image, ofstream &file);
 
 int main(int argc, char **argv) 
 {
@@ -55,14 +57,9 @@ int main(int argc, char **argv)
   
   std::string compressed_topic = camera + "/depth_registered/image_raw/compressedDepth";
   std::string rgb_topic = camera + "/rgb/image_raw/compressed";
-  
-  
-                                                   
   try {
     ofstream pos_depth_file("positive_depth");
-    ofstream pos_rgb_file("positive_rgb");
     ofstream neg_depth_file("negative_depth");
-    ofstream neg_rgb_file("negative_rgb");
     bag.open(string(argv[1]), rosbag::bagmode::Read);
 
     std::vector<std::string> topics;
@@ -72,102 +69,43 @@ int main(int argc, char **argv)
 
     rosbag::View view(bag, rosbag::TopicQuery(topics));
     bool initialized = false;
-    
     bool _positive = false;
-    
     bool ignoring = true;
-    
     foreach(rosbag::MessageInstance const m, view)
     {
-       
-        sensor_msgs::CompressedImage::Ptr im = m.instantiate<sensor_msgs::CompressedImage>();
-        if (im != NULL) {
-          if (m.getTopic() == rgb_topic) {
-            int seq = im->header.seq;
-            
-            if (seq > ignore) {
-              ignoring = false;
-              
-            } else
-              continue;
-            
-            cout << "ID = " << seq << "\n";
-            
-            Mat decompressed;
-            try
-            {
-              // Decode image data
-              decompressed = cv::imdecode(im->data, CV_LOAD_IMAGE_GRAYSCALE);
-            } catch (exception &e) {
-              
-            }
-            
-            size_t rows = decompressed.rows;
-            size_t cols = decompressed.cols;
-            
-            Mat downsample(rows/4, cols/4, CV_8UC1);
-            cv::resize(decompressed, downsample, Size(), 0.25, 0.25);
-            
-            
-            
-            _positive = false;
-            for (unsigned int i=0; i < M.size(); i++) {
-              if (M[i][0] <= seq and M[i][1] >= seq) {
-                _positive = true;
-              }
-            }
-            
-           
-            if (_positive) {
-            
-              for (int r = 0; r < downsample.rows; r++)
-              {
-                for (int c = 0; c < downsample.cols; c++)
-                {
-                  int pixel = downsample.at<uchar>(r,c);
-
-                  pos_rgb_file << pixel << '\t';
-                }
-                pos_rgb_file << endl;
-                
-                
-              }
-              flip(downsample, downsample, -1);
-              for (int r = 0; r < downsample.rows; r++)
-              {
-                for (int c = 0; c < downsample.cols; c++)
-                {
-                  int pixel = downsample.at<uchar>(r,c);
-
-                  pos_rgb_file<< pixel << '\t';
-                }
-                pos_rgb_file << endl;
-              }
-            } else {
-              for (int r = 0; r < downsample.rows; r++)
-              {
-                for (int c = 0; c < downsample.cols; c++)
-                {
-                  int pixel = downsample.at<uchar>(r,c);
-
-                  neg_rgb_file<< pixel << '\t';
-                }
-                neg_rgb_file << endl;
-              }
-              
-            }
-          } else {
-//             std::cout << "Depth Image.\n";
-            if (ignoring)
-              continue;
-            
-            if (_positive) {
-              decodeAndWriteCompressed(*im, pos_depth_file, true); 
-            } else {
-              decodeAndWriteCompressed(*im, neg_depth_file);
-            }
-          } 
-        }
+      sensor_msgs::CompressedImage::Ptr im = m.instantiate<sensor_msgs::CompressedImage>();
+      if (im != NULL) {
+	if (m.getTopic() == rgb_topic) {
+	  int seq = im->header.seq;
+	  
+	  if (seq > ignore) {
+	    ignoring = false;
+	    
+	  } else
+	    continue;
+	  
+	  cout << "ID = " << seq << "\n";
+	  
+	  _positive = false;
+	  for (unsigned int i=0; i < M.size(); i++) {
+	    
+	    if (M[i][0] <= seq and M[i][1] >= seq) {
+	      _positive = true;
+	    }
+	  }
+	} 
+	else 
+	{
+	  if (ignoring)
+	    continue;
+	  
+	  if (_positive) {
+	    decodeAndWriteCompressed(*im, pos_depth_file, 20, 10, true); 
+	  } else {
+	    decodeAndWriteCompressed(*im, neg_depth_file, 20, 10, false);
+	  }
+	} 
+      }
     }
 
     bag.close();
@@ -181,7 +119,7 @@ int main(int argc, char **argv)
   return 0;
 }
 
-void decodeAndWriteCompressed(const sensor_msgs::CompressedImage& message, ofstream &file, bool rotate)
+void decodeAndWriteCompressed(const sensor_msgs::CompressedImage& message, ofstream &file, float rotate, float delta_rot, bool positive)
 {
 
   cv_bridge::CvImagePtr cv_ptr(new cv_bridge::CvImage);
@@ -251,63 +189,60 @@ void decodeAndWriteCompressed(const sensor_msgs::CompressedImage& message, ofstr
           }
         }
         
-        Mat downsample(rows/4, cols/4, CV_32FC1);
-        cv::resize(cv_ptr->image, downsample, Size(), 0.25, 0.25);
-        
-        for (int r = 0; r < downsample.rows; r++)
-        {
-          for (int c = 0; c < downsample.cols; c++)
-          {
-            float pixel = downsample.at<float>(r,c);
-
-            file << pixel << '\t';
-          }
-          file << endl;
-        }
-        
-        if (rotate) {
-          flip(downsample, downsample, -1);
-          
-          for (int r = 0; r < downsample.rows; r++)
-          {
-            for (int c = 0; c < downsample.cols; c++)
-            {
-              float pixel = downsample.at<float>(r,c);
-
-              file << pixel << '\t';
-            }
-            file << endl;
-          }
-          
-        }
-
-        
-        
-//         return cv_ptr->toImageMsg();
-      }
-    }
-    else
-    {
-      // Decode raw image
-      try
-      {
-        cv_ptr->image = cv::imdecode(imageData, CV_LOAD_IMAGE_UNCHANGED);
-      }
-      catch (cv::Exception& e)
-      {
-        ROS_ERROR("%s", e.what());
-//         return sensor_msgs::Image::Ptr();
-      }
-
-      size_t rows = cv_ptr->image.rows;
-      size_t cols = cv_ptr->image.cols;
-
-      if ((rows > 0) && (cols > 0))
-      {
-        // Publish message to user callback
-//         return cv_ptr->toImageMsg();
+        if(positive) {
+	  Mat rotated(rows, cols, CV_32FC1);
+	  for (float rot =-rotate;rot < rotate + 1.0; rot += delta_rot) {
+	    
+	    //get the affine transformation matrix
+	    Mat matRotation = getRotationMatrix2D( Point(decompressed.cols / 2, decompressed.rows / 2), rot, 1 );
+	    warpAffine( decompressed, rotated, matRotation, decompressed.size() );
+	    
+	    Mat downsample(rows/4, cols/4, CV_32FC1);
+	    cv::resize(rotated, downsample, Size(), 0.25, 0.25);
+	    
+	    writeImage(downsample, file);
+	    flip(downsample, downsample, 0);
+	    writeImage(downsample, file);
+	    flip(downsample, downsample, -1);
+	    writeImage(downsample, file);
+	    
+	    float delta = rows*0.25*0.15;
+	    for (float offset = -delta; offset < delta + 0.01;offset += delta) {
+	      if (fabs(offset) < 1e-2) 
+		continue; // Ignore the case with no translation
+	      Mat downsample(rows/4, cols/4, CV_32FC1);
+	      cv::resize(cv_ptr->image, downsample, Size(), 0.25, 0.25);
+	      Mat matT(2,3, CV_32FC1);
+	      matT.at<float>(0, 0) = matT.at<float>(1, 1) = 1.0;
+	      matT.at<float>(0,1) = matT.at<float>(1,0) = 0.0;
+	      matT.at<float>(0,2) = 0.0;
+	      matT.at<float>(1,2) = offset;
+	      
+	      
+	      warpAffine(downsample,downsample,matT,downsample.size());
+	    }
+	  }
+	}
+	else
+	{
+	  Mat downsample(rows/4, cols/4, CV_32FC1);
+	  cv::resize(cv_ptr->image, downsample, Size(), 0.25, 0.25);
+	  writeImage(downsample, file);
+	}
       }
     }
   }
 }
 
+void writeImage(const cv::Mat &image, ofstream &file) {
+  for (int r = 0; r < image.rows; r++)
+  {
+    for (int c = 0; c < image.cols; c++)
+    {
+      float pixel = image.at<float>(r,c);
+
+      file << pixel << '\t';
+    }
+    file << endl;
+  }
+}
