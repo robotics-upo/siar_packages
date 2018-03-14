@@ -66,7 +66,7 @@
   <node pkg="odom_to_tf" type="odom_to_tf.py" name="odom_to_tf" unless="$(arg rgbd_odom)"/>
 
   
-  <node name="amcl_node" type="amcl_node" pkg="amcl_sewer"  >
+  <node name="amcl_node" type="amcl_node" pkg="amcl_sewer" launch-prefix="xterm -e gdb --args" >
     <param name="rate" value="10.0" />
     <param name="base_frame_id" value="base_link" />
     <param name="odom_frame_id" value="odom" />
