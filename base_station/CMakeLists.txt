@@ -4,11 +4,20 @@ project(base_station)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
-find_package(catkin REQUIRED)
+find_package(catkin REQUIRED COMPONENTS 
+  roscpp
+  rosbag
+  sensor_msgs
+  std_msgs
+  compressed_depth_image_transport
+  cv_bridge
+  image_transport
+  functions
+)
 
 ## System dependencies are found with CMake's conventions
-# find_package(Boost REQUIRED COMPONENTS system)
-
+find_package(Boost REQUIRED)
+find_package(OpenCV REQUIRED)
 
 ## Uncomment this if the package has a setup.py. This macro ensures
 ## modules and global scripts declared therein get installed
@@ -98,8 +107,8 @@ find_package(catkin REQUIRED)
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES base_station
-#  CATKIN_DEPENDS other_catkin_pkg
-#  DEPENDS system_lib
+ CATKIN_DEPENDS rosbag roscpp sensor_msgs std_msgs compressed_depth_image_transport cv_bridge functions
+ DEPENDS boost opencv
 )
 
 ###########
@@ -121,16 +130,16 @@ catkin_package(
 # add_dependencies(base_station ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-# add_executable(base_station_node src/base_station_node.cpp)
+add_executable(get_images_labeling src/get_images_labeling.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 # add_dependencies(base_station_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(base_station_node
-#   ${catkin_LIBRARIES}
-# )
+target_link_libraries(get_images_labeling
+  ${catkin_LIBRARIES} ${Boost_LIBRARIES}  ${OpenCV_LIBRARIES}
+)
 
 #############
 ## Install ##
