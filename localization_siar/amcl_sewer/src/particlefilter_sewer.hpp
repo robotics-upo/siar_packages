@@ -388,7 +388,7 @@ private:
     computeVar(x,y,a,xv,yv,av,xycov);
     
     if (traj_file_open) {
-      traj_file << x << "\t" << y << std::endl;
+      traj_file << x << "\t" << y << "\t" << ros::Time::now().toSec() <<  std::endl;
     }
     
     // Perform different particle update based on current point-cloud and available measurements
@@ -495,12 +495,6 @@ private:
   void updateParticles(int mode)
   {  
     double wt = 0.0;
-    bool fork = false;
-    
-    float x,y,a,xv,yv,av,xycov;
-    computeVar(x,y,a,xv,yv,av,xycov);
-    
-    
     
     for(int i=0; i<(int)m_p.size(); i++)
     {
@@ -509,23 +503,23 @@ private:
       double ta = m_p[i].a;
       // Evaluate the weight of the range sensors
       
-      switch (mode) {
-	case 1:
-	  m_p[i].w = computeManholeWeight(tx, ty);
-	  break;
-	case 2:
-	  m_p[i].w = computeForkWeight(tx, ty);
-	  break;
-	case 3:
-	  m_p[i].w = computeAngularWeight(tx, ty, ta);
-	  break;
-	case 4:
-	  m_p[i].w = computeEdgeWeight(tx, ty);
-	  m_p[i].w += angular_weight * computeAngularWeight(tx, ty, ta);
-	  break;
-	default:
+//       switch (mode) {
+// 	case 1:
+// 	  m_p[i].w = computeManholeWeight(tx, ty);
+// 	  break;
+// 	case 2:
+// 	  m_p[i].w = computeForkWeight(tx, ty);
+// 	  break;
+// 	case 3:
+// 	  m_p[i].w = computeAngularWeight(tx, ty, ta);
+// 	  break;
+// 	case 4:
+// 	  m_p[i].w = computeEdgeWeight(tx, ty);
+// 	  m_p[i].w += angular_weight * computeAngularWeight(tx, ty, ta);
+// 	  break;
+// 	default:
 	  m_p[i].w = computeEdgeWeight(tx, ty); // Compute weight as a function of the distance to the closest edge
-      }
+//       }
         
       //Increase the summatory of weights
       wt += m_p[i].w;
