@@ -8,6 +8,7 @@ cmake_minimum_required(VERSION 2.6)
 find_package(catkin REQUIRED COMPONENTS roscpp functions visualization_msgs roscpp geometry_msgs simple_graph)
 # find_package(Boost REQUIRED)
 # find_package(kml REQUIRED)
+# find_package(geotranz REQUIRED)
 
 catkin_package(
  INCLUDE_DIRS include
@@ -16,10 +17,14 @@ catkin_package(
  DEPENDS Boost kml
 )
 
-include_directories(include ${catkin_INCLUDE_DIRS})
+set(geotranz include /usr/include/CoordinateSystems/ /usr/include/CoordinateSystemParameters/ 
+/usr/include/CoordinateTuples/ /usr/include/geotranz/dtcc/CoordinateSystems/misc/ /usr/include/geotranz/dtcc
+/usr/include/geotranz/dtcc/Enumerations)
+
+include_directories(include ${catkin_INCLUDE_DIRS} )
 
 SET(FP_SOURCE src/earthlocation.cpp src/general.cpp src/sewer_graph.cpp) 
-SET(LIBS ${catkin_LIBRARIES} kmlbase kmldom kmlengine kmlconvenience dxflib)
+SET(LIBS ${catkin_LIBRARIES} kmlbase kmldom kmlengine kmlconvenience dxflib geotranz)
 
 add_library(sewer_graph ${FP_SOURCE}
 )

@@ -1,3 +1,4 @@
+#include <sensor_msgs/NavSatFix.h>
 #include "sewer_graph/sewer_graph.h"
 #include <iostream>
 #include <ros/ros.h>
@@ -32,6 +33,8 @@ int main(int argc, char ** argv) {
   ros::NodeHandle nh;
   
   ros::Publisher marker_pub = nh.advertise<visualization_msgs::Marker>("visualization_marker", 10);
+  ros::Publisher gps_pub = nh.advertise<sensor_msgs::NavSatFix>("/gps/fix", 2, true);
+  gps_pub.publish(g.getReferencePosition());
   
   ROS_INFO("Publishing markers");
   while (ros::ok()) {

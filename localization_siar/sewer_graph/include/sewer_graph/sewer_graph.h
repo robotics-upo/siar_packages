@@ -42,7 +42,10 @@ struct SewerEdge {
   double distance;
   double route; // Angle relative to N (in the sense of waterflow)
   
-  std::string section; // Can be T181, D1400, T168, T133, NT120A, T164...
+  long id;
+  
+  
+  std::string section; // Can be T181, D1400, T168, T133, NT120A, T164, T130...
   
   std::string toString() const;
 };
