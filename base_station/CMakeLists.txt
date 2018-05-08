@@ -13,22 +13,31 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   image_transport
   functions
+  rviz
+  rqt_image_view
 )
 
 ## System dependencies are found with CMake's conventions
 find_package(Boost REQUIRED)
 find_package(OpenCV REQUIRED)
+# find_package(Ogre REQUIRED)
 
 ## System dependencies are found with CMake's conventions
-find_package(Qt4 REQUIRED QtCore QtGui)
-include(${QT_USE_FILE})
+if("${qt_gui_cpp_USE_QT_MAJOR_VERSION} " STREQUAL "5 ")
+  find_package(Qt5Widgets REQUIRED)
+else()
+  find_package(Qt4 COMPONENTS QtCore QtGui QtWebKit REQUIRED)
+  include(${QT_USE_FILE})
+endif()
+
 SET ( QWT_INCLUDE /usr/include/qwt/)
 
+# roslint_cpp()
 
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES base_station
- CATKIN_DEPENDS rosbag roscpp sensor_msgs std_msgs compressed_depth_image_transport cv_bridge functions
+ CATKIN_DEPENDS rosbag roscpp sensor_msgs std_msgs compressed_depth_image_transport cv_bridge functions rviz
  DEPENDS boost opencv Qt 
 )
 
@@ -36,20 +45,60 @@ catkin_package(
 ## Build ##
 ###########
 
-# include_directories(${catkin_INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR} ${QWT_INCLUDE})
+include_directories(${catkin_INCLUDE_DIRS} ${CMAKE_CURRENT_BINARY_DIR} ${QWT_INCLUDE})
+#
+SET( siar_gui_UIS
+       ./ui/siar_gui.ui
+  )
+  
+  set (siar_gui_SRCS
+  src/BaseStation.cpp
+  src/Comms.cpp
+)
+
+set(siar_gui_HDRS
+  src/BaseStation.h
+  src/Comms.h
+)
+
+
+if("${qt_gui_cpp_USE_QT_MAJOR_VERSION} " STREQUAL "5 ")
+  qt5_wrap_cpp(siar_gui_MOCS ${siar_gui_HDRS})
+  qt5_wrap_ui(siar_gui_UIS_H ${siar_gui_UIS})
+else()
+  qt4_wrap_cpp(siar_gui_MOCS ${siar_gui_HDRS})
+  qt4_wrap_ui(siar_gui_UIS_H ${siar_gui_UIS})
+endif()
+
+ 
 # 
-#  SET( BASE_STATION_UIS
-#        ./ui/base_station.ui
-#   )
-# 
-# ## QT stuff
-# QT4_WRAP_UI( GUI_HDRS ${ARCAS_UIS} )
-# QT4_WRAP_CPP( BASE_STATION_MOC_SRCS src/ArcasVisualizer.h src/Comms.h) # NOTE: Beware on including the files here into the add executable. If not: vtable errors
-# SET (BASE_SRCS src/ArcasVisualizer.cpp src/Comms.cpp)
+SET (BASE_SRCS src/Comms.cpp)
+
+## Specify additional locations of header files
+## Your package locations should be listed before other locations
+include_directories(
+  include
+  ${CMAKE_CURRENT_BINARY_DIR}/..
+  ${catkin_INCLUDE_DIRS}
+  ${QWT_INCLUDE}
+  ${OGRE_INCLUDE_DIRS}
+)
+
+
+message(${catkin_LIBRARIES})
+
 # 
 # ## Base station exec
-# add_executable(base_station src/base_station.cpp ${GUI_HDRS} ${ARCAS_SRCS} ${ARCAS_MOC_SRCS})
-# target_link_libraries(arcas_visualizer ${QT_QTCORE_LIBRARY} ${QT_QTGUI_LIBRARY} ${QT_QTTEST_LIBRARY} ${catkin_LIBRARIES})
+add_executable(${PROJECT_NAME} src/base_station.cpp ${BASE_SRCS} ${siar_gui_HDRS} ${siar_gui_SRCS} ${siar_gui_MOCS} ${siar_gui_UIS_H})
+target_link_libraries(${PROJECT_NAME}
+  ${catkin_LIBRARIES} /opt/ros/indigo/lib/libdefault_plugin.so
+)
+
+if("${qt_gui_cpp_USE_QT_MAJOR_VERSION} " STREQUAL "5 ")
+  target_link_libraries(${PROJECT_NAME} Qt5::Widgets)
+else()
+  target_link_libraries(${PROJECT_NAME} ${QT_QTCORE_LIBRARY} ${QT_QTGUI_LIBRARY} ${QT_QTWEBKIT_LIBRARY} qwt)
+endif()
 # 
 # 
 # ## Additional software

@@ -17,11 +17,11 @@ catkin_package(
  DEPENDS Boost kml
 )
 
-set(geotranz include /usr/include/CoordinateSystems/ /usr/include/CoordinateSystemParameters/ 
+set(geotranz_include /usr/include/geotranz/dtcc/CoordinateSystems/ /usr/include/CoordinateSystemParameters/ 
 /usr/include/CoordinateTuples/ /usr/include/geotranz/dtcc/CoordinateSystems/misc/ /usr/include/geotranz/dtcc
 /usr/include/geotranz/dtcc/Enumerations)
 
-include_directories(include ${catkin_INCLUDE_DIRS} )
+include_directories(include ${catkin_INCLUDE_DIRS} ${geotranz_include} )
 
 SET(FP_SOURCE src/earthlocation.cpp src/general.cpp src/sewer_graph.cpp) 
 SET(LIBS ${catkin_LIBRARIES} kmlbase kmldom kmlengine kmlconvenience dxflib geotranz)

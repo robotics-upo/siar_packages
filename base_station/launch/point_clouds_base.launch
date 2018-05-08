@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<launch>
+
+  <node name="uncompresser_left" pkg="image_transport" type="republish"
+        args="compressedDepth in:=/front_left_web/depth_registered/image_raw raw out:=/front_left/depth_registered/image_raw"/>
+
+ <node pkg="depth2cloud" type="depth2cloud_node" name="front_left_depth2cloud_node" output="screen" >
+    <remap from="depth" to="/front_left/depth_registered/image_raw"/>              # Topic for the camera depth
+    <remap from="info" to="/front_left_web/depth_registered/camera_info"/>   # Topic for the camera info
+    <remap from="cloud" to="/front_left/points"/>                # Topic name for output point cloud
+    <param name="range_min" value = "0.5"/>                             # Min range in meters for point cloud generation
+    <param name="range_max" value = "6.0"/>                             # Max range in meters for point cloud generation
+    <param name="down_sampling" value = "1"/>                   # Camera down sampling factor. Values: 1, 2 or 4. The bigger the faster.
+  </node>
+  
+  <node name="uncompresserright" pkg="image_transport" type="republish"
+        args="compressedDepth in:=/front_right_web/depth_registered/image_raw raw out:=/front_right/depth_registered/image_raw"/>
+
+ <node pkg="depth2cloud" type="depth2cloud_node" name="front_right_depth2cloud_node" output="screen" >
+    <remap from="depth" to="/front_right/depth_registered/image_raw"/>              # Topic for the camera depth
+    <remap from="info" to="/front_right_web/depth_registered/camera_info"/>   # Topic for the camera info
+    <remap from="cloud" to="/front_right/points"/>                # Topic name for output point cloud
+    <param name="range_min" value = "0.5"/>                             # Min range in meters for point cloud generation
+    <param name="range_max" value = "6.0"/>                             # Max range in meters for point cloud generation
+    <param name="down_sampling" value = "1"/>                   # Camera down sampling factor. Values: 1, 2 or 4. The bigger the faster.
+  </node>
+  
+</launch>
