@@ -355,6 +355,7 @@ private:
     // Logging the pose change
     ROS_INFO("Setting pose: %.3f %.3f %.3f", pose.getOrigin().x(), pose.getOrigin().y(), getYawFromTf(pose));
     ROS_INFO("Distance to closest Edge = %f", s_g->getDistanceToClosestEdge(x , y, i, j));
+    ROS_INFO("Vertices of the closest Edge = %d, %d", i,j);
     ROS_INFO("Distance to closest Manhole = %f", s_g->getDistanceToClosestManhole(x, y));
     
     // Initialize the filter
@@ -388,7 +389,7 @@ private:
     computeVar(x,y,a,xv,yv,av,xycov);
     
     if (traj_file_open) {
-      traj_file << x << "\t" << y << "\t" << ros::Time::now().toSec() <<  std::endl;
+      traj_file << x << "\t" << y << "\t" << ros::Time::now().sec << "." << ros::Time::now().nsec<<  std::endl;
     }
     
     // Perform different particle update based on current point-cloud and available measurements
@@ -503,23 +504,23 @@ private:
       double ta = m_p[i].a;
       // Evaluate the weight of the range sensors
       
-//       switch (mode) {
-// 	case 1:
-// 	  m_p[i].w = computeManholeWeight(tx, ty);
-// 	  break;
-// 	case 2:
-// 	  m_p[i].w = computeForkWeight(tx, ty);
-// 	  break;
-// 	case 3:
-// 	  m_p[i].w = computeAngularWeight(tx, ty, ta);
-// 	  break;
-// 	case 4:
-// 	  m_p[i].w = computeEdgeWeight(tx, ty);
-// 	  m_p[i].w += angular_weight * computeAngularWeight(tx, ty, ta);
-// 	  break;
-// 	default:
+      switch (mode) {
+	case 1:
+	  m_p[i].w = computeManholeWeight(tx, ty);
+	  break;
+	case 2:
+	  m_p[i].w = computeForkWeight(tx, ty);
+	  break;
+	case 3:
+	  m_p[i].w = computeAngularWeight(tx, ty, ta);
+	  break;
+	case 4:
+	  m_p[i].w = computeEdgeWeight(tx, ty);
+	  m_p[i].w += angular_weight * computeAngularWeight(tx, ty, ta);
+	  break;
+	default:
 	  m_p[i].w = computeEdgeWeight(tx, ty); // Compute weight as a function of the distance to the closest edge
-//       }
+      }
         
       //Increase the summatory of weights
       wt += m_p[i].w;

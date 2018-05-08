@@ -90,7 +90,7 @@ int main(int argc, char **argv)
           } else
             continue;
           
-          cout << "ID = " << seq << "\n";
+          cout << "ID = " << seq << "\t Stamp = " << im->header.stamp.sec << "." << im->header.stamp.nsec << "\n";
           
           _positive = false;
           
@@ -99,15 +99,39 @@ int main(int argc, char **argv)
             
             if (M[i][0] <= sec and M[i][1] >= sec) {
               _positive = true;
+	      
+	      Mat decompressed;
+	      try
+	      {
+		// Decode image data
+		decompressed = cv::imdecode(im->data, CV_LOAD_IMAGE_UNCHANGED);
+	      } catch (exception &e) {
+		
+	      }
+            
+	      ostringstream name;
+	      name << "image1_" <<im->header.stamp.sec<<"_"<<im->header.stamp.nsec<<".jpeg";
+	      imwrite(name.str(), decompressed);
             }
           }
         } 
         if (ignoring)
           continue;
           
-        if (_positive) {
-          decodeAndWriteCompressed(*im, pos_depth_file, 20, 10, true); 
-        } 
+        if (_positive && m.getTopic() == rgb_topic2) {
+	  Mat decompressed;
+	  try
+	  {
+	    // Decode image data
+	    decompressed = cv::imdecode(im->data, CV_LOAD_IMAGE_UNCHANGED);
+	  } catch (exception &e) {
+	    
+	  }
+	  
+	  ostringstream name;
+	  name << "image2_" <<im->header.stamp.sec<<"_"<<im->header.stamp.nsec<<".jpeg";
+	  imwrite(name.str(), decompressed);	  
+        }
       }
     }
 
@@ -121,131 +145,4 @@ int main(int argc, char **argv)
   
   return 0;
 }
-
-void decodeAndWriteCompressed(const sensor_msgs::CompressedImage& message, ofstream &file, float rotate, float delta_rot, bool positive)
-{
-
-  cv_bridge::CvImagePtr cv_ptr(new cv_bridge::CvImage);
-
-  // Copy message header
-  cv_ptr->header = message.header;
-
-  // Assign image encoding
-  std::string image_encoding = message.format.substr(0, message.format.find(';'));
-  cv_ptr->encoding = image_encoding;
-
-  // Decode message data
-  if (message.data.size() > sizeof(compressed_depth_image_transport::ConfigHeader))
-  {
-
-    // Read compression type from stream
-    compressed_depth_image_transport::ConfigHeader compressionConfig;
-    memcpy(&compressionConfig, &message.data[0], sizeof(compressionConfig));
-
-    // Get compressed image data
-    const std::vector<uint8_t> imageData(message.data.begin() + sizeof(compressionConfig), message.data.end());
-
-    // Depth map decoding
-    float depthQuantA, depthQuantB;
-
-    // Read quantization parameters
-    depthQuantA = compressionConfig.depthParam[0];
-    depthQuantB = compressionConfig.depthParam[1];
-
-    if (enc::bitDepth(image_encoding) == 32)
-    {
-      cv::Mat decompressed;
-      try
-      {
-        // Decode image data
-        decompressed = cv::imdecode(imageData, cv::IMREAD_UNCHANGED);
-      }
-      catch (cv::Exception& e)
-      {
-        ROS_ERROR("%s", e.what());
-//         return sensor_msgs::Image::Ptr();
-      }
-
-      size_t rows = decompressed.rows;
-      size_t cols = decompressed.cols;
-
-      if ((rows > 0) && (cols > 0))
-      {
-        cv_ptr->image = Mat(rows, cols, CV_32FC1);
-
-        // Depth conversion
-        MatIterator_<float> itDepthImg = cv_ptr->image.begin<float>(),
-                            itDepthImg_end = cv_ptr->image.end<float>();
-        MatConstIterator_<unsigned short> itInvDepthImg = decompressed.begin<unsigned short>(),
-                                          itInvDepthImg_end = decompressed.end<unsigned short>();
-
-        for (; (itDepthImg != itDepthImg_end) && (itInvDepthImg != itInvDepthImg_end); ++itDepthImg, ++itInvDepthImg)
-        {
-          // check for NaN & max depth
-          if (*itInvDepthImg)
-          {
-            *itDepthImg = depthQuantA / ((float)*itInvDepthImg - depthQuantB);
-          }
-          else
-          {
-            *itDepthImg = std::numeric_limits<float>::quiet_NaN();
-          }
-        }
-        
-        if(positive) {
-          Mat rotated(rows, cols, CV_32FC1);
-          for (float rot =-rotate;rot < rotate + 1.0; rot += delta_rot) {
-            
-            //get the affine transformation matrix
-            Mat matRotation = getRotationMatrix2D( Point(decompressed.cols / 2, decompressed.rows / 2), rot, 1 );
-            warpAffine( decompressed, rotated, matRotation, decompressed.size() );
-            
-            Mat downsample(rows/4, cols/4, CV_32FC1);
-            cv::resize(rotated, downsample, Size(), 0.25, 0.25);
-            
-            writeImage(downsample, file);
-            flip(downsample, downsample, 0);
-            writeImage(downsample, file);
-            flip(downsample, downsample, -1);
-            writeImage(downsample, file);
-            
-            float delta = rows*0.25*0.15;
-            for (float offset = -delta; offset < delta + 0.01;offset += delta) {
-              if (fabs(offset) < 1e-2) 
-                continue; // Ignore the case with no translation
-              Mat downsample(rows/4, cols/4, CV_32FC1);
-              cv::resize(cv_ptr->image, downsample, Size(), 0.25, 0.25);
-              Mat matT(2,3, CV_32FC1);
-              matT.at<float>(0, 0) = matT.at<float>(1, 1) = 1.0;
-              matT.at<float>(0,1) = matT.at<float>(1,0) = 0.0;
-              matT.at<float>(0,2) = 0.0;
-              matT.at<float>(1,2) = offset;
               
-              
-              warpAffine(downsample,downsample,matT,downsample.size());
-            }
-          }
-        }
-        else
-        {
-          Mat downsample(rows/4, cols/4, CV_32FC1);
-          cv::resize(cv_ptr->image, downsample, Size(), 0.25, 0.25);
-          writeImage(downsample, file);
-        }
-      }
-    }
-  }
-}
-
-void writeImage(const cv::Mat &image, ofstream &file) {
-  for (int r = 0; r < image.rows; r++)
-  {
-    for (int c = 0; c < image.cols; c++)
-    {
-      float pixel = image.at<float>(r,c);
-
-      file << pixel << '\t';
-    }
-    file << endl;
-  }
-}

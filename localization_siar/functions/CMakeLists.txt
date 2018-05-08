@@ -22,7 +22,8 @@ add_library(functions
 add_executable(test_interpolator src/test/test_interpolator.cpp)
 target_link_libraries(test_interpolator functions)
 
-
+add_executable(test_distance_segment src/test/test_distance_segment.cpp)
+target_link_libraries(test_distance_segment functions)
 
 ## Mark executables and/or libraries for installation
 install(TARGETS functions
