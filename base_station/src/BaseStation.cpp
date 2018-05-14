@@ -31,7 +31,6 @@
 #define BUFFER_LENGTH 100000
 #include <QUrl>
 
-
 using namespace std;
 using namespace functions;
 using boost::lexical_cast;
@@ -47,15 +46,17 @@ t_log(), xy_dist(1.2), z_dist(0.3), node(NULL), uavs(), pos_log(), time_step(0.1
   QwtDial &d = *Dial_speed; 
   
   d.setNeedle(nd);
+  d.setMode(QwtDial::RotateNeedle);
   d.setRange( 0.0, 1.0,  0.2);
   d.setScale(135,45, 0.2);
   d.setScaleArc(135,-135);
+  
   
   // Start ROS comms
   startComms();
   
   // RViz stuff
-  configureRVizDisplay(manager_, render_panel_, "base_link", horizontalLayout_2);
+  configureRVizDisplay(manager_, render_panel_, "base_link", mdiArea);
   configurePointCloud(point_cloud_1,"/front/points");
   configurePointCloud(point_cloud_2,"/front_left/points");
   configurePointCloud(point_cloud_3,"/front_right/points");
@@ -64,10 +65,15 @@ t_log(), xy_dist(1.2), z_dist(0.3), node(NULL), uavs(), pos_log(), time_step(0.1
   configureMap();
   // End of RVIZ stuff
   
-  web_view = new QWebView(this);
-  horizontalLayout_2->addWidget(web_view);
-  QUrl u("http://192.168.168.11:8080/stream_viewer?topic=/front_web/rgb/image_raw");
-  web_view->setUrl(u);
+//   web_view = new QWebView(this);
+//   horizontalLayout_2->addWidget(web_view);
+//   mdiArea->;
+//   QMdiArea &a = *mdiArea;
+//   a.addSubWindow(web_view);
+//   a.
+  
+//   QUrl u("http://192.168.168.11:8080/stream_viewer?topic=/front_web/rgb/image_raw");
+//   web_view->setUrl(u);
   
   // Make Qt connections
   connect(emergencyButton, SIGNAL(released()), node, SLOT(setEmergencyStop())); 
@@ -99,6 +105,24 @@ void BaseStation::configureRVizDisplay(rviz::VisualizationManager*& manager, rvi
   manager->setFixedFrame(QString::fromStdString(frame));
 }
 
+void BaseStation::configureRVizDisplay(rviz::VisualizationManager*& manager, rviz::RenderPanel*& panel, 
+                                       const string &frame, QMdiArea *parent)
+{
+  // Configure RVIZ
+  // From RVIZ tutorial (http://docs.ros.org/lunar/api/librviz_tutorial/html/index.html) (thanks)
+  // First add render panel
+  panel = new rviz::RenderPanel();
+  if (parent != NULL) {
+    parent->addSubWindow(panel);
+  }
+  
+  // Then the manager
+  manager = new rviz::VisualizationManager( panel );
+  panel->initialize( manager->getSceneManager(), manager );
+  manager->initialize();
+  manager->startUpdate();
+  manager->setFixedFrame(QString::fromStdString(frame));
+}
 
 void BaseStation::configurePointCloud(rviz::Display *&pc_display, const std::string &topic)
 {
@@ -111,8 +135,9 @@ void BaseStation::configurePointCloud(rviz::Display *&pc_display, const std::str
 void BaseStation::configureCameraDisplay() {
   camera_display = manager_->createDisplay("rviz/Camera", "Front camera",true);
   camera_display->setTopic("/front_web/rgb/image_raw", "sensor_msgs/Image");
-  image_display = manager_->createDisplay("rviz/Image", "Front image", true);
-  image_display->setTopic("/front_web/rgb/image_raw", "sensor_msgs/Image");
+//   mdiArea->addSubWindow(camera_display);
+//   image_display = manager_->createDisplay("rviz/Image", "Front image", true);
+//   image_display->setTopic("/front_web/rgb/image_raw", "sensor_msgs/Image");
 }
 
 void BaseStation::configureMap() {
@@ -185,6 +210,9 @@ void BaseStation::updateSiarStatus(const siar_driver::SiarStatus& state)
   } else {
     radioButton_normal->setChecked(true);
   }
+  
+  QwtDial &d = *Dial_speed;
+  d.setValue(fabs(state.speed));
 }
 
 void BaseStation::updateRSSIStatus(const rssi_get::Nvip_status& status)

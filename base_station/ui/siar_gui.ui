@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1031</width>
+    <width>979</width>
     <height>819</height>
    </rect>
   </property>
@@ -498,7 +498,7 @@
        </attribute>
        <layout class="QVBoxLayout" name="verticalLayout">
         <item>
-         <layout class="QHBoxLayout" name="horizontalLayout_2"/>
+         <widget class="QMdiArea" name="mdiArea"/>
         </item>
        </layout>
       </widget>
@@ -516,7 +516,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1031</width>
+     <width>979</width>
      <height>25</height>
     </rect>
    </property>

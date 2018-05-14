@@ -41,6 +41,7 @@
 #include "rviz/yaml_config_reader.h"
 
 #include <QWebView>
+#include <QMdiArea>
 
 
 class BaseStation:public QMainWindow, Ui::MainWindow
@@ -108,6 +109,8 @@ private:
 //   rviz::RenderPanel* 
   void configureRVizDisplay(rviz::VisualizationManager *&manager, rviz::RenderPanel *&panel, 
                             const std::string &frame="/base_link", QLayout *parent = NULL);
+  void configureRVizDisplay(rviz::VisualizationManager*& manager, rviz::RenderPanel*& panel, 
+                                       const std::string &frame, QMdiArea *parent);
   void configurePointCloud(rviz::Display *&pc_display, const std::string &topic);
   void configureCameraDisplay();
   void configureMap();
