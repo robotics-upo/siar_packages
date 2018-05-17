@@ -23,6 +23,7 @@
 #include <fstream>
 #include "functions/functions.h"
 #include <std_msgs/Bool.h>
+#include <std_msgs/Float32.h>
 #include <siar_driver/SiarLightCommand.h>
 #include <rssi_get/Nvip_status.h>
 
@@ -39,6 +40,7 @@ Comms::Comms(int argc, char** argv):spinner(NULL),emergency(false),slow(false),a
   status_sub = nh.subscribe<const siar_driver::SiarStatus::ConstPtr&>("siar_status", 2, &Comms::siarStatusCallback, this);
   rssi_sub = nh.subscribe<const rssi_get::Nvip_status::ConstPtr&>("/rssi_nvip_2400", 2, &Comms::nvipCallback, this);
   emergency_pub = nh.advertise<std_msgs::Bool>("/emergency_stop",2);
+  elec_x_pub = nh.advertise<std_msgs::Float32>("/set_x_pos",2);
 }
  
 
@@ -49,6 +51,14 @@ void Comms::setEmergencyStop()
   msg.data = emergency;
   
   emergency_pub.publish(msg);
+}
+
+void Comms::setElecX(int new_x)
+{
+  std_msgs::Float32 msg;
+  msg.data = new_x;
+  
+  elec_x_pub.publish(msg);
 }
 
 

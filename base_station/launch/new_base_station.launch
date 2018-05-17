@@ -1,0 +1,104 @@
+<?xml version="1.0"?>
+<launch>
+  
+  <arg name="joystick" default="true"/>
+  <arg name="mode_360" default="true"/>
+  <arg name="ip_address" default="192.168.168.11"/>
+  
+  <!-- TF stuff (only odom is going through the wifi) -->
+  <include file="$(find siar_driver)/launch/frames_7_cam_new_platform.launch"/>
+  <include file="$(find siar_driver)/launch/electronics_transform_static.launch"/>
+
+
+  <include file="$(find openni2_launch)/launch/openni2.launch">
+    <arg name="camera" value="front"/>
+    <arg name="load_driver" value="false"/>
+  </include>
+  <include file="$(find openni2_launch)/launch/openni2.launch">
+    <arg name="camera" value="front_left"/>
+    <arg name="load_driver" value="false"/>
+  </include>
+  <include file="$(find openni2_launch)/launch/openni2.launch">
+    <arg name="camera" value="front_right"/>
+    <arg name="load_driver" value="false"/>
+  </include>
+  <node pkg="odom_to_tf" type="odom_to_tf.py" name="odom_to_tf"/>
+  
+  <!-- Communication stuff -->
+  <include file="$(find udp_bridge)/launch/udp_client360.launch" if="$(arg mode_360)">
+    <arg name="ip_address" value="$(arg ip_address)"/>
+    
+  </include>
+  
+  <include file="$(find udp_bridge)/launch/udp_client.launch" unless="$(arg mode_360)">
+    <arg name="ip_address" value="$(arg ip_address)"/>
+    
+  </include>  
+  
+  <!-- Joystick node that will be sent over the UDP link-->
+  <node pkg="joy" type="joy_node" name="joy_node" if="$(arg joystick)"/>
+  
+  <!-- Representation stuff-->
+  <node pkg="base_station" type="base_station" name="bs" >
+    
+  </node>
+  
+  <include file="$(find siar_stl_model)/launch/siar.launch"/>
+  
+  <!-- Uncompressers and PCs-->
+  
+  <node name="uncompresser_front_rgb" pkg="image_transport" type="republish"
+        args="compressed in:=/front_web/rgb/image_raw raw out:=/front/rgb/image_raw"/>
+   <node name="uncompresser_front" pkg="image_transport" type="republish"
+        args="compressedDepth in:=/front_web/depth_registered/image_raw raw out:=/front/depth_registered/image_raw"/>
+   
+   
+  <node pkg="depth2cloud" type="depth2cloud_node" name="front_depth2cloud_node" output="screen" >
+    <remap from="depth" to="/front_web/depth_registered/image_raw"/>              # Topic for the camera depth
+    <remap from="info" to="/front_web/depth_registered/camera_info"/>   # Topic for the camera info
+    <remap from="cloud" to="/front/points"/>                # Topic name for output point cloud
+    <param name="range_min" value = "0.5"/>                             # Min range in meters for point cloud generation
+    <param name="range_max" value = "6.0"/>                             # Max range in meters for point cloud generation
+    <param name="down_sampling" value = "1"/>                   # Camera down sampling factor. Values: 1, 2 or 4. The bigger the faster.
+  </node>
+  
+  <node name="uncompresser_front_left" pkg="image_transport" type="republish"
+        args="compressedDepth in:=/front_left_web/depth_registered/image_raw raw out:=/front_left/depth_registered/image_raw"/>
+   <node name="uncompresser_front_left_rgb" pkg="image_transport" type="republish"
+        args="compressed in:=/front_left/rgb/image_raw raw out:=/front_left/rgb/image_raw"/>
+   
+  <node pkg="depth2cloud" type="depth2cloud_node" name="front_left_depth2cloud_node" output="screen" >
+    <remap from="depth" to="/front_left_web/depth_registered/image_raw"/>              # Topic for the camera depth
+    <remap from="info" to="/front_left_web/depth_registered/camera_info"/>   # Topic for the camera info
+    <remap from="cloud" to="/front_left/points"/>                # Topic name for output point cloud
+    <param name="range_min" value = "0.5"/>                             # Min range in meters for point cloud generation
+    <param name="range_max" value = "6.0"/>                             # Max range in meters for point cloud generation
+    <param name="down_sampling" value = "1"/>                   # Camera down sampling factor. Values: 1, 2 or 4. The bigger the faster.
+  </node>
+  
+  <node name="uncompresser_front_right" pkg="image_transport" type="republish"
+        args="compressedDepth in:=/front_right_web/depth_registered/image_raw raw out:=/front_right/depth_registered/image_raw"/>
+   <node name="uncompresser_front_right_rgb" pkg="image_transport" type="republish"
+        args="compressed in:=/front_right/rgb/image_raw raw out:=/front_right/rgb/image_raw"/>
+   
+  <node pkg="depth2cloud" type="depth2cloud_node" name="front_right_depth2cloud_node" output="screen" >
+    <remap from="depth" to="/front_right_web/depth_registered/image_raw"/>              # Topic for the camera depth
+    <remap from="info" to="/front_right_web/depth_registered/camera_info"/>   # Topic for the camera info
+    <remap from="cloud" to="/front_right/points"/>                # Topic name for output point cloud
+    <param name="range_min" value = "0.5"/>                             # Min range in meters for point cloud generation
+    <param name="range_max" value = "6.0"/>                             # Max range in meters for point cloud generation
+    <param name="down_sampling" value = "1"/>                   # Camera down sampling factor. Values: 1, 2 or 4. The bigger the faster.
+  </node>
+  
+  <!-- Run localization on the laptop also -->
+  <include file="$(find amcl_sewer)/launch/amcl_pedralbes.launch">
+    <arg name="visualization" value="true"/>
+  </include>
+  
+  <node pkg="alert_db" type="alert_db_node" name="alert_db" output="screen"/>
+  
+  <include file="$(find pcl_processing)/launch/map_analysis.launch">
+    <arg name="generate_cloud" value="false"/>
+  </include>
+  
+</launch>

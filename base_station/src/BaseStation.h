@@ -104,16 +104,18 @@ private:
   rviz::Display* sat_view;
   rviz::Display* point_cloud_1, *point_cloud_2, *point_cloud_3;
   rviz::Display* robot_model_display;
-  rviz::Display* axes_display;
+  rviz::Display* axes_display, *grid_display;
   rviz::Display* camera_display, *image_display;
+  QMdiSubWindow *window_1, *window_2, *window_3;
 //   rviz::RenderPanel* 
   void configureRVizDisplay(rviz::VisualizationManager *&manager, rviz::RenderPanel *&panel, 
                             const std::string &frame="/base_link", QLayout *parent = NULL);
-  void configureRVizDisplay(rviz::VisualizationManager*& manager, rviz::RenderPanel*& panel, 
+  QMdiSubWindow * configureRVizDisplay(rviz::VisualizationManager*& manager, rviz::RenderPanel*& panel, 
                                        const std::string &frame, QMdiArea *parent);
   void configurePointCloud(rviz::Display *&pc_display, const std::string &topic);
-  void configureCameraDisplay();
+  QMdiSubWindow * configureCameraDisplay();
   void configureMap();
+  void resizeWindows();
   
   // Web kit
   QWebView *web_view;

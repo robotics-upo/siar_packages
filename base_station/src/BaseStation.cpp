@@ -29,7 +29,10 @@
 #include <qwt/qwt_dial.h>
 #include <QVBoxLayout>
 #define BUFFER_LENGTH 100000
-#include <QUrl>
+// #include <QUrl>
+#include <QMdiArea>
+#include <QMdiSubWindow>
+#include "rviz/default_plugin/camera_display.h"
 
 using namespace std;
 using namespace functions;
@@ -56,30 +59,60 @@ t_log(), xy_dist(1.2), z_dist(0.3), node(NULL), uavs(), pos_log(), time_step(0.1
   startComms();
   
   // RViz stuff
-  configureRVizDisplay(manager_, render_panel_, "base_link", mdiArea);
+  
+  window_1 = configureRVizDisplay(manager_, render_panel_, "base_link", mdiArea);
   configurePointCloud(point_cloud_1,"/front/points");
   configurePointCloud(point_cloud_2,"/front_left/points");
   configurePointCloud(point_cloud_3,"/front_right/points");
+//   window_1->resize(640, 480);
+  window_1->setWindowTitle("PointClouds");
   
-  configureRVizDisplay(manager_2, render_panel_2, "/map", tab->layout());
-  configureMap();
+  
+  
+  window_2 = configureCameraDisplay();
+  
+  
+  window_3 = configureRVizDisplay(manager_2, render_panel_2, "/map", mdiArea);
+  
+  window_3->setWindowTitle("Map");
+  
+  
+  
+  
   // End of RVIZ stuff
+  resizeWindows();
+ 
+  QMdiArea &q = *mdiArea;
+//   q.tileSubWindows();
+//   q.cascadeSubWindows();
+ 
   
-//   web_view = new QWebView(this);
-//   horizontalLayout_2->addWidget(web_view);
-//   mdiArea->;
-//   QMdiArea &a = *mdiArea;
-//   a.addSubWindow(web_view);
-//   a.
-  
-//   QUrl u("http://192.168.168.11:8080/stream_viewer?topic=/front_web/rgb/image_raw");
-//   web_view->setUrl(u);
   
   // Make Qt connections
   connect(emergencyButton, SIGNAL(released()), node, SLOT(setEmergencyStop())); 
   connect(node, SIGNAL(siarStatusChanged(const siar_driver::SiarStatus &)), this, SLOT(updateSiarStatus(const siar_driver::SiarStatus &)));
   connect(node, SIGNAL(newRSSI(const rssi_get::Nvip_status&)), this, SLOT(updateRSSIStatus(const rssi_get::Nvip_status &)));
+  connect(horizontalSlider_width_indicator_2, SIGNAL(valueChanged(int)), node, SLOT(setElecX(int)));
 }
+
+void BaseStation::resizeWindows()
+{
+  QSize size_ = tab_2->size();
+  
+  window_1->setMinimumWidth(size_.width()*0.66);
+  window_1->setMaximumWidth(size_.width()*1.1);
+  window_1->setMaximumHeight(size_.height()*1.2);
+  window_1->setMinimumHeight(size_.height()*0.75);
+  window_2->setMinimumWidth(size_.width()*0.62);
+  window_2->setMaximumWidth(size_.width()*1.0);
+  window_2->setMaximumHeight(size_.height()*1.2);
+  window_2->setMinimumHeight(size_.height()*0.75);
+  window_3->setMinimumWidth(size_.width());
+  window_3->setMaximumWidth(size_.width()*2);
+  window_3->setMaximumHeight(size_.height()*0.4);
+  window_3->setMinimumHeight(size_.height()*0.8);
+}
+
 
 BaseStation::BaseStation(const QMainWindow& ): QMainWindow()
 {
@@ -105,37 +138,70 @@ void BaseStation::configureRVizDisplay(rviz::VisualizationManager*& manager, rvi
   manager->setFixedFrame(QString::fromStdString(frame));
 }
 
-void BaseStation::configureRVizDisplay(rviz::VisualizationManager*& manager, rviz::RenderPanel*& panel, 
+QMdiSubWindow *BaseStation::configureRVizDisplay(rviz::VisualizationManager*& manager, rviz::RenderPanel*& panel, 
                                        const string &frame, QMdiArea *parent)
 {
   // Configure RVIZ
   // From RVIZ tutorial (http://docs.ros.org/lunar/api/librviz_tutorial/html/index.html) (thanks)
   // First add render panel
-  panel = new rviz::RenderPanel();
+  QMdiSubWindow *ret_val = NULL;
+  
   if (parent != NULL) {
-    parent->addSubWindow(panel);
+    panel = new rviz::RenderPanel();
+    ret_val = parent->addSubWindow(panel);
+    
+    // Then the manager
+    manager = new rviz::VisualizationManager( panel );
+    panel->initialize( manager->getSceneManager(), manager );
+    manager->initialize();
+    manager->startUpdate();
+    manager->setFixedFrame(QString::fromStdString(frame));
+    
+    
   }
   
-  // Then the manager
-  manager = new rviz::VisualizationManager( panel );
-  panel->initialize( manager->getSceneManager(), manager );
-  manager->initialize();
-  manager->startUpdate();
-  manager->setFixedFrame(QString::fromStdString(frame));
+  return ret_val;
 }
 
 void BaseStation::configurePointCloud(rviz::Display *&pc_display, const std::string &topic)
 {
-  pc_display = manager_->createDisplay("rviz/PointCloud", "sensors_msgs::PointCloud",true);
-  pc_display->setTopic(QString::fromStdString("topic"), "sensor_msgs/PointCloud");
-  pc_display->setProperty("Color Transformer", "Axis");
+  pc_display = manager_->createDisplay("rviz/PointCloud2", "sensors_msgs::PointCloud2",true);
+  pc_display->setTopic(QString::fromStdString(topic), "sensor_msgs/PointCloud2");
+  pc_display->subProp("Color Transformer")->setValue("AxisColor");
 //   pc_display->initialize(manager_);
 }
 
-void BaseStation::configureCameraDisplay() {
+QMdiSubWindow *BaseStation::configureCameraDisplay() {
+  QMdiSubWindow *ret_val = NULL;
   camera_display = manager_->createDisplay("rviz/Camera", "Front camera",true);
   camera_display->setTopic("/front_web/rgb/image_raw", "sensor_msgs/Image");
-//   mdiArea->addSubWindow(camera_display);
+//   camera_display->subProp("Transport Hint")->setValue("compressed");
+  camera_display->subProp("Overlay Alpha")->setValue(0.9);
+//   camera_display->subProp("Image Rendering")->setValue("background");
+  
+  rviz::CameraDisplay *a = dynamic_cast<rviz::CameraDisplay*>(camera_display);
+  if (a!=NULL) {
+//     std::cout << "Here Camera\n";
+    
+    ret_val = mdiArea->addSubWindow(a->getAssociatedWidget());
+//     a->set
+  }
+  
+  
+  // Create a Grid display.
+  grid_display = manager_->createDisplay( "rviz/Grid", "grid", true );
+//   ROS_ASSERT( grid_ != NULL );
+
+  // Configure the GridDisplay the way we like it.
+  grid_display->subProp( "Line Style" )->setValue( "Billboards" );
+//   grid_display->subProp( "Color" )->setValue( Qt::yellow );
+  
+  // Create a robot model display
+  robot_model_display = manager_->createDisplay("rviz/RobotModel", "robot model", true);
+  
+  
+  
+  return ret_val;
 //   image_display = manager_->createDisplay("rviz/Image", "Front image", true);
 //   image_display->setTopic("/front_web/rgb/image_raw", "sensor_msgs/Image");
 }
@@ -147,7 +213,7 @@ void BaseStation::configureMap() {
     sat_view->setProperty("Object URI", "http://a.tiles.mapbox.com/v4/mapbox.streets/{z}/{x}/{y}.jpg?access_token=pk.eyJ1IjoiY2h1cnIiLCJhIjoiY2l6dHQzZWJyMDFnZjMzbnA1cDR4MWV3cCJ9.r-YuBsl8JXSBQ_UXTOeSYA");
     sat_view->setProperty("Topic", "/gps/fix");
   }
-  render_panel_2->setMaximumHeight(200);
+  render_panel_2->setMaximumHeight(300);
 }
 
 
@@ -210,6 +276,14 @@ void BaseStation::updateSiarStatus(const siar_driver::SiarStatus& state)
   } else {
     radioButton_normal->setChecked(true);
   }
+  if (state.operation_mode == 0) {
+    radioButton_manual->setChecked(true);
+  } else {
+    radioButton_automatic->setChecked(false);
+  }
+    
+  
+  label_width->setText(QString::number(state.width));
   
   QwtDial &d = *Dial_speed;
   d.setValue(fabs(state.speed));

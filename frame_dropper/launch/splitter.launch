@@ -5,7 +5,7 @@
   <arg name="scale_serial" default="0.25"/>
   <arg name="scale_web" default="1.0"/>
   <arg name="frame_skip_web" default="0"/>
-  <arg name="publish_depth" default="false"/>
+  <arg name="publish_depth" default="true"/>
   <arg name="publish_all" default="false"/>
   <arg name="camera_1" default="/front"/>
   <arg name="camera_2" default="/back"/>

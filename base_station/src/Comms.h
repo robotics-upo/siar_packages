@@ -53,6 +53,7 @@ signals:
   
 public slots:
   void setEmergencyStop();
+  void setElecX(int new_x);
   
 private:
   double time_step;
@@ -60,7 +61,7 @@ private:
   int automatic; // Are we in automatic mode?
   
   ros::Subscriber status_sub, rssi_sub;
-  ros::Publisher emergency_pub  ;
+  ros::Publisher emergency_pub, elec_x_pub;
   functions::FormattedTime init_log_time;
   
   //! @brief Gets the state data of an UAV
