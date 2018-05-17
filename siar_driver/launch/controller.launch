@@ -7,7 +7,7 @@
       <remap from="/cmd_vel_out" to="/cmd_vel"/>
       <remap from="/altitude_map" to="/costmap_node/costmap"/>
       
-      <rosparam file="$(find siar_controller)/cfg/siar_controller_fast.yaml" command="load"  />  
+      <rosparam file="$(find siar_controller)/cfg/siar_controller_fast_more_T.yaml" command="load"  />  
       <param name="velocityset_filename" value="$(find siar_controller)/cfg/velocity_set_fast_smooth"/>
     </node>
   

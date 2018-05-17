@@ -256,6 +256,7 @@ class SiarManagerWidthAdjustment:public SiarManager
   ros::Publisher state_pub;
   ros::Subscriber slow_motion_sub, reverse_sub, op_sub;
   int bat_cont, bat_skip;
+  int arm_cont, arm_skip;
   
   // Linear interpolators data
   std::string lin_mot_vec_file, width_file, elec_x_file;
@@ -303,7 +304,7 @@ inline SiarManagerWidthAdjustment::SiarManagerWidthAdjustment(const std::string&
                                                             const std::string& device_battery,
 							    const SiarConfig &config) :
 siar_serial_1(device_1), joy_serial(device_2, false), battery_serial(device_battery), 
-first_odometry(true), controlled(false), has_joystick(true), bat_cont(0), bat_skip(10), width_inter(NULL), x_inter(NULL),
+first_odometry(true), controlled(false), has_joystick(true), bat_cont(0), bat_skip(10), arm_cont(0), arm_skip(23), width_inter(NULL), x_inter(NULL),
 width_to_lin_pos(NULL), x_elec_to_lin_pos(NULL)
 {
   state.is_stopped = true;
@@ -485,6 +486,8 @@ inline bool SiarManagerWidthAdjustment::update()
   bat_cont++;
   if (bat_cont >= bat_skip)
   {
+    ROS_INFO("Actualizing battery and arm");
+    arm_cont++;
     // Actualize battery and power supply data
     if (!actualizeBatteryStatus()) {
 //       ROS_ERROR("Could not retrieve the battery status");
@@ -493,25 +496,31 @@ inline bool SiarManagerWidthAdjustment::update()
 //       ROS_ERROR("Could not retrieve the power supply status");
     }
     bat_cont = 0;
+  }
     
-    // Update arm status
+  // Update arm status
+  arm_cont++;
+  if (arm_cont >=arm_skip) {
+    ROS_INFO("Actualizing arm");
     if (!getHerculexPosition()) {
 //       ROS_ERROR("Could not retrieve the herculex position");
     }
-    if (!getHerculexStatus()) {
+  
+//     if (!getHerculexStatus()) {
 //       ROS_ERROR("Could not retrieve the herculex status");
-    }
+//     }
     if (!getHerculexTemperature()) {
 //       ROS_ERROR("Could not retrieve the herculex temperature");
     }
     if (!getHerculexTorque()) {
 //       ROS_ERROR("Could not retrieve the herculex torque");
     }
+    arm_cont = 0;
     
     // Update aux pins
-    if (!getAuxPinValues()) {
+//     if (!getAuxPinValues()) {
 //       ROS_ERROR("Could not retrieve the aux pins values");
-    }
+//     }
     
     // Linear motors
     if (getLinearMotorPosition(state.lin_motor_pos)) {
@@ -1253,7 +1262,7 @@ bool SiarManagerWidthAdjustment::getHerculexTorque()
       state.herculex_torque[i] = buffer[i + 1];
     }
   }
-  
+ 
   return ret_val;
 }
 
@@ -1264,7 +1273,9 @@ bool SiarManagerWidthAdjustment::getHerculexPosition()
   command[0] = _config.get_herculex_position;
   
   ret_val = battery_serial.write(command, 1);
+  usleep(10000);
   battery_serial.flush();
+  usleep(50000);
   ret_val = battery_serial.getResponse(buffer, tam);
   
   if (ret_val) {
