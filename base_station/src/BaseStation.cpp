@@ -72,10 +72,9 @@ t_log(), xy_dist(1.2), z_dist(0.3), node(NULL), uavs(), pos_log(), time_step(0.1
   window_2 = configureCameraDisplay();
   
   
-  window_3 = configureRVizDisplay(manager_2, render_panel_2, "/map", mdiArea);
-  
+  window_3 = configureRVizDisplay(manager_2, render_panel_2, "map", mdiArea);
   window_3->setWindowTitle("Map");
-  
+  configureMap();
   
   
   
@@ -109,8 +108,8 @@ void BaseStation::resizeWindows()
   window_2->setMinimumHeight(size_.height()*0.75);
   window_3->setMinimumWidth(size_.width());
   window_3->setMaximumWidth(size_.width()*2);
-  window_3->setMaximumHeight(size_.height()*0.4);
-  window_3->setMinimumHeight(size_.height()*0.8);
+  window_3->setMaximumHeight(size_.height()*0.8);
+  window_3->setMinimumHeight(size_.height()*0.2);
 }
 
 
@@ -193,7 +192,9 @@ QMdiSubWindow *BaseStation::configureCameraDisplay() {
 //   ROS_ASSERT( grid_ != NULL );
 
   // Configure the GridDisplay the way we like it.
-  grid_display->subProp( "Line Style" )->setValue( "Billboards" );
+  grid_display->subProp( "Line Style" )->setValue( "Lines" );
+  grid_display->subProp( "Cell Size" )->setValue(0.2);
+  grid_display->subProp( "Plane Cell Count" )->setValue(50);
 //   grid_display->subProp( "Color" )->setValue( Qt::yellow );
   
   // Create a robot model display
@@ -209,11 +210,29 @@ QMdiSubWindow *BaseStation::configureCameraDisplay() {
 void BaseStation::configureMap() {
   sat_view = manager_2->createDisplay("rviz_plugins/AerialMapDisplay","Localization display",true);
   if (sat_view != NULL) {
-    sat_view->setProperty("Zoom",18);
-    sat_view->setProperty("Object URI", "http://a.tiles.mapbox.com/v4/mapbox.streets/{z}/{x}/{y}.jpg?access_token=pk.eyJ1IjoiY2h1cnIiLCJhIjoiY2l6dHQzZWJyMDFnZjMzbnA1cDR4MWV3cCJ9.r-YuBsl8JXSBQ_UXTOeSYA");
-    sat_view->setProperty("Topic", "/gps/fix");
+    std::cout << "Here\nHere\nhere\n";
+    sat_view->subProp("Zoom")->setValue(18);
+    sat_view->subProp("Object URI")->setValue("http://a.tiles.mapbox.com/v4/mapbox.streets/{z}/{x}/{y}.jpg?access_token=pk.eyJ1IjoiY2h1cnIiLCJhIjoiY2l6dHQzZWJyMDFnZjMzbnA1cDR4MWV3cCJ9.r-YuBsl8JXSBQ_UXTOeSYA");
+    sat_view->setTopic("/gps/fix","sensor_msgs/NavSatFix");
+    sat_view->subProp("Robot Frame")->setValue("map");
+  } else {
+    
+    std::cerr << "COuld not create satellite view\n";
   }
   render_panel_2->setMaximumHeight(300);
+  
+  // Create a Grid display.
+  grid_display2 = manager_2->createDisplay( "rviz/Grid", "grid", true );
+//   ROS_ASSERT( grid_ != NULL );
+
+  // Configure the GridDisplay the way we like it.
+  grid_display2->subProp( "Line Style" )->setValue( "Lines" );
+  grid_display2->subProp( "Cell Size" )->setValue(5.0);
+  
+  // Sewer graph marker
+  marker_1 = manager_2->createDisplay("rviz/Marker", "marker_1", true);
+  marker_1->setTopic("/amcl_sewer_node/sewer_graph","visualization_msgs/Marker");
+//   marker_1->
 }
 
 

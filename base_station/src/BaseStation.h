@@ -104,8 +104,9 @@ private:
   rviz::Display* sat_view;
   rviz::Display* point_cloud_1, *point_cloud_2, *point_cloud_3;
   rviz::Display* robot_model_display;
-  rviz::Display* axes_display, *grid_display;
+  rviz::Display* axes_display, *grid_display, *grid_display2;
   rviz::Display* camera_display, *image_display;
+  rviz::Display* marker_1, *marker_2;
   QMdiSubWindow *window_1, *window_2, *window_3;
 //   rviz::RenderPanel* 
   void configureRVizDisplay(rviz::VisualizationManager *&manager, rviz::RenderPanel *&panel, 
