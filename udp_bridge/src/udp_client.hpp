@@ -13,6 +13,7 @@
 #include <siar_driver/SiarStatus.h>
 #include <std_msgs/UInt32.h>
 #include <std_msgs/Bool.h>
+#include <std_msgs/Float32.h>
 
 #include <tf/transform_broadcaster.h>
 #include "cycle.hpp"
@@ -27,18 +28,20 @@ private:
 
   // ROS params
   double joyRate, joyMinRate;
-  std::string odomTopic, odomTopic_2, imageTopic, imageTopic_2, depthTopic, depthTopic_2, depthTopic_up;
-  std::string camera_1, camera_2, camera_up;
-  std::string camTopic, camTopic_2, depthCamTopic, depthCamTopic_2, depthCamTopic_up;
+  std::string odomTopic, odomTopic_2, imageTopic, imageTopic_2, depthTopic, depthTopic_2, depthTopic_3, depthTopic_4;
+  std::string camera_1, camera_2, camera_3, camera_4;
+  std::string camTopic, camTopic_2, depthCamTopic, depthCamTopic_2, depthCamTopic_3, depthCamTopic_4;
   std::string allCamerasTopic, publishDepthTopic, joyTopic, rssi_topic, slowTopic;
   std::string point_topic, siar_status_topic, geo_tf_topic;
+  std::string posTopic;
   
   // ROS stuff
-  ros::Publisher image_pub, odom_pub, odom_pub_2, image_pub_2, depth_pub, depth_pub_2, depth_pub_up;
-  ros::Publisher cam_pub, cam_pub_2, depth_cam_pub, depth_cam_pub_2, depth_cam_pub_up;
+  ros::Publisher image_pub, odom_pub, odom_pub_2, image_pub_2, depth_pub, depth_pub_2, depth_pub_3, depth_pub_4;
+  ros::Publisher cam_pub, cam_pub_2, depth_cam_pub, depth_cam_pub_2, depth_cam_pub_3, depth_cam_pub_4;
   ros::Publisher rssi_pub, siar_status_pub, point_pub;
   
   ros::Subscriber publish_depth_sub, all_cameras_sub, joy_sub, slow_sub;
+  ros::Subscriber set_x_pos_sub;
   ros::NodeHandle nh;
   tf::TransformBroadcaster tf_broadcaster;
   std::string base_frame_id, odom_frame_id;
@@ -72,8 +75,10 @@ public:
       camera_1 = "/front";
     if(!lnh.getParam("camera_2", camera_2))
       camera_2 = "/back";
-    if(!lnh.getParam("camera_up", camera_up))
-      camera_up = "/up";
+    if(!lnh.getParam("camera_3", camera_3))
+      camera_3 = "/front_left";
+    if(!lnh.getParam("camera_4", camera_4))
+      camera_4 = "/front_right";
     if (!lnh.getParam("base_frame_id", base_frame_id))
       base_frame_id = "/base_link";
     if (!lnh.getParam("odom_frame_id", odom_frame_id))  
@@ -86,12 +91,16 @@ public:
       joyTopic = "/joy";
     if (!lnh.getParam("point_cloud_topic", point_topic))
       point_topic = "/rgbd_odom_node/point_cloud";
+    
+    if(!lnh.getParam("pos_topic", posTopic))
+      posTopic = "/set_x_pos";
     // Set the image topics 
     imageTopic = camera_1 + "/rgb/image_raw/compressed";
     imageTopic_2 = camera_2 + "/rgb/image_raw/compressed";
     depthTopic = camera_1 + "/depth_registered/image_raw/compressedDepth";
     depthTopic_2 = camera_2 + "/depth_registered/image_raw/compressedDepth";
-    depthTopic_up = camera_up + "/depth_registered/image_raw/compressedDepth";
+    depthTopic_3 = camera_3 + "/depth_registered/image_raw/compressedDepth";
+    depthTopic_4 = camera_4 + "/depth_registered/image_raw/compressedDepth";
     geo_tf_topic = "/rgbd_odom/transform";
           
     // Create publishers
@@ -99,6 +108,8 @@ public:
     image_pub_2 = nh.advertise<sensor_msgs::CompressedImage>(imageTopic_2, 1);
     depth_pub = nh.advertise<sensor_msgs::CompressedImage>(depthTopic, 1);
     depth_pub_2 = nh.advertise<sensor_msgs::CompressedImage>(depthTopic_2, 1);
+    depth_pub_3 = nh.advertise<sensor_msgs::CompressedImage>(depthTopic_3, 1);
+    depth_pub_4 = nh.advertise<sensor_msgs::CompressedImage>(depthTopic_4, 1);
     rssi_pub = nh.advertise<rssi_get::Nvip_status>(rssi_topic, 1);
     siar_status_pub = nh.advertise<siar_driver::SiarStatus>(siar_status_topic, 1);
     point_pub = nh.advertise<sensor_msgs::PointCloud2>(point_topic, 1);
@@ -107,11 +118,14 @@ public:
     camTopic_2 = camera_2 + "/rgb/camera_info";
     depthCamTopic = camera_1 + "/depth_registered/camera_info";
     depthCamTopic_2 = camera_2 + "/depth_registered/camera_info";
-    depthCamTopic_up = camera_up + "/depth_registered/camera_info";
+    depthCamTopic_3 = camera_3 + "/depth_registered/camera_info";
+    depthCamTopic_4= camera_4 + "/depth_registered/camera_info";
     cam_pub = nh.advertise<sensor_msgs::CameraInfo>(camTopic, 1);
     cam_pub_2 = nh.advertise<sensor_msgs::CameraInfo>(camTopic_2, 1);
     depth_cam_pub = nh.advertise<sensor_msgs::CameraInfo>(depthCamTopic, 1);
     depth_cam_pub_2 = nh.advertise<sensor_msgs::CameraInfo>(depthCamTopic_2, 1);
+    depth_cam_pub_3 = nh.advertise<sensor_msgs::CameraInfo>(depthCamTopic_3, 1);
+    depth_cam_pub_4 = nh.advertise<sensor_msgs::CameraInfo>(depthCamTopic_4, 1);
     
     odom_pub = nh.advertise<nav_msgs::Odometry>(odomTopic, 1);
     odom_pub_2 = nh.advertise<nav_msgs::Odometry>(odomTopic_2, 1);
@@ -131,7 +145,7 @@ public:
     all_cameras_sub = nh.subscribe(allCamerasTopic, 1, &UDPClient::allCamerasCallback, this);
     slow_sub = nh.subscribe(slowTopic, 1, &UDPClient::slowCallback, this);
     joy_sub = nh.subscribe(joyTopic, 1, &UDPClient::joyCallback, this);
-    
+    set_x_pos_sub = nh.subscribe(posTopic, 1, &UDPClient::posReceived, this); 
     
     // Set the general camera info
     general_info.D.resize(5);
@@ -219,55 +233,71 @@ public:
     
     // Set the downsampled camera info
     downsampled_info.D.resize(5);
-    downsampled_info.height = 240;
-    downsampled_info.width = 320;
+    if (!lnh.getParam("height2", aux)) 
+      downsampled_info.height = 120;
+    else
+      downsampled_info.height = aux;
+    if (!lnh.getParam("width2", aux))
+      downsampled_info.width = 160;
+    else 
+      downsampled_info.width = aux;
     for (int i = 0; i < 5; i++) {
       downsampled_info.D[i] = 0.0;
     }
     
-    // K = [285.1711120605469, 0.0, 157.0, 0.0, 285.1711120605469, 117.5, 0.0, 0.0, 1.0]
-    downsampled_info.K[0] = 285.1711120605469;
-    downsampled_info.K[1] = 0.0;
-    downsampled_info.K[2] = 157.0;
-    downsampled_info.K[3] = 0.0;
-    downsampled_info.K[4] = 285.1711120605469;
-    downsampled_info.K[5] = 117.5;
-    downsampled_info.K[6] = 0.0;
-    downsampled_info.K[7] = 0.0;
-    downsampled_info.K[8] = 1.0;
+    if (!lnh.getParam("K2", vec)) {
+      downsampled_info.K[0] = 570.3422241210938;
+      downsampled_info.K[1] = 0.0;
+      downsampled_info.K[2] = 319.5;
+      downsampled_info.K[3] = 0.0;
+      downsampled_info.K[4] = 570.3422241210938;
+      downsampled_info.K[5] = 239.5;
+      downsampled_info.K[6] = 0.0;
+      downsampled_info.K[7] = 0.0;
+      downsampled_info.K[8] = 1.0;
+    } else {
+      for (size_t i = 0;i < vec.size() && i < 9; i++) {
+        downsampled_info.K[i] = vec[i];
+      }
+      
+    }
     
-    // P = [285.1711120605469, 0.0, 157.0, 0.0, 0.0, 285.1711120605469, 117.5, 0.0, 0.0, 0.0, 1.0, 0.0]
-    downsampled_info.P[0] = 285.1711120605469;
-    downsampled_info.P[1] = 0.0;
-    downsampled_info.P[2] = 157.0;
-    downsampled_info.P[3] = 0.0;
-    downsampled_info.P[4] = 0.0;
-    downsampled_info.P[5] = 285.1711120605469;
-    downsampled_info.P[6] = 117.5;
-    downsampled_info.P[7] = 0.0;
-    downsampled_info.P[8] = 0.0;
-    downsampled_info.P[9] = 0.0;
-    downsampled_info.P[10] = 1.0;
-    downsampled_info.P[11] = 0.0;
+    if (!lnh.getParam("P2", vec)) {
+      downsampled_info.P[0] = 570.3422241210938;
+      downsampled_info.P[1] = 0.0;
+      downsampled_info.P[2] = 319.5;
+      downsampled_info.P[3] = 0.0;
+      downsampled_info.P[4] = 0.0;
+      downsampled_info.P[5] = 570.3422241210938;
+      downsampled_info.P[6] = 239.5;
+      downsampled_info.P[7] = 0.0;
+      downsampled_info.P[8] = 0.0;
+      downsampled_info.P[9] = 0.0;
+      downsampled_info.P[10] = 1.0;
+      downsampled_info.P[11] = 0.0;
+    } else {
+      for (size_t i = 0;i < vec.size() && i < 12; i++) {
+        downsampled_info.P[i] = vec[i];
+      }
+      
+    }
     
-    // R = R: [1.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 1.0]
-    downsampled_info.R[0] = 1.0;
-    downsampled_info.R[1] = 0.0;
-    downsampled_info.R[2] = 0.0;
-    downsampled_info.R[3] = 0.0;
-    downsampled_info.R[4] = 1.0;
-    downsampled_info.R[5] = 0.0;
-    downsampled_info.R[6] = 0.0;
-    downsampled_info.R[7] = 0.0;
-    downsampled_info.R[8] = 1.0;
-    
-    downsampled_info.roi.do_rectify = false;
-    downsampled_info.roi.x_offset = 0;
-    downsampled_info.roi.y_offset = 0;
-    downsampled_info.roi.height = 0;
-    downsampled_info.roi.width = 0;
-    
-    downsampled_info.distortion_model = "plumb_bob";
+    if (!lnh.getParam("R2", vec)) {
+      downsampled_info.R[0] = 1.0;
+      downsampled_info.R[1] = 0.0;
+      downsampled_info.R[2] = 0.0;
+      downsampled_info.R[3] = 0.0;
+      downsampled_info.R[4] = 1.0;
+      downsampled_info.R[5] = 0.0;
+      downsampled_info.R[6] = 0.0;
+      downsampled_info.R[7] = 0.0;
+      downsampled_info.R[8] = 1.0;
+    } else {
+      for (size_t i = 0;i < vec.size() && i < 9; i++) {
+        downsampled_info.R[i] = vec[i];
+      }
+      
+    }
     
     init();
   }
@@ -377,17 +407,29 @@ protected:
         
         depth_cam_pub.publish(msg_info);
       }
-      if(topic == depthTopic_up) 
+      if(topic == depthTopic_3) 
       {
         ROS_INFO("Deserializing and publishing topic %s", topic.c_str());
         sensor_msgs::CompressedImage msg = deserialize<sensor_msgs::CompressedImage>(buffer.data(), buffer.size());
         msg.header.stamp = ros::Time::now();
-        depth_pub_2.publish(msg);
-        sensor_msgs::CameraInfo msg_info = general_info;
+        depth_pub_3.publish(msg);
+        sensor_msgs::CameraInfo msg_info = downsampled_info;
         msg_info.header = msg.header;
         msg_info.header.frame_id = msg.header.frame_id;
         
-        depth_cam_pub.publish(msg_info);
+        depth_cam_pub_3.publish(msg_info);
+      }
+      if(topic == depthTopic_4) 
+      {
+        ROS_INFO("Deserializing and publishing topic %s", topic.c_str());
+        sensor_msgs::CompressedImage msg = deserialize<sensor_msgs::CompressedImage>(buffer.data(), buffer.size());
+        msg.header.stamp = ros::Time::now();
+        depth_pub_4.publish(msg);
+        sensor_msgs::CameraInfo msg_info = downsampled_info;
+        msg_info.header = msg.header;
+        msg_info.header.frame_id = msg.header.frame_id;
+        
+        depth_cam_pub_4.publish(msg_info);
       }
       if(topic == odomTopic) 
       {
@@ -453,6 +495,11 @@ protected:
     } else {
       serializeWrite<sensor_msgs::Joy>(joyTopic, *msg);
     }
+  }
+  
+  void posReceived(const std_msgs::Float32ConstPtr &msg)
+  {
+    serializeWrite<std_msgs::Float32>(posTopic, *msg);
   }
 };
 

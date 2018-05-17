@@ -40,6 +40,32 @@
   <!-- Use test_depend for packages you need only for testing: -->
   <!--   <test_depend>gtest</test_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>rosbag</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>std_msgs</build_depend>
+  <build_depend>compressed_depth_image_transport</build_depend>
+  <build_depend>cv_bridge</build_depend>
+  <build_depend>image_transport</build_depend>
+  <build_depend>functions</build_depend>
+  <build_depend>rviz</build_depend>
+  <build_depend>rviz_satellite</build_depend>
+  <build_depend>rqt_image_view</build_depend>
+<!--   <build_depend>default_plugin</build_depend> TODO: Did not find the package for rviz default plugins -->
+  
+  <run_depend>functions</run_depend>
+   <run_depend>compressed_depth_image_transport</run_depend>
+  <run_depend>cv_bridge</run_depend>
+  <run_depend>image_transport</run_depend>
+  <run_depend>roscpp</run_depend>
+  <run_depend>rosbag</run_depend>
+  <run_depend>sensor_msgs</run_depend>
+  <run_depend>std_msgs</run_depend>
+  <run_depend>rviz</run_depend>
+  <run_depend>rviz_satellite</run_depend>
+  <run_depend>rqt_image_view</run_depend>
+<!--   <run_depend>default_plugin</run_depend> -->
+
 
 
   <!-- The export tag contains other, unspecified, tags -->

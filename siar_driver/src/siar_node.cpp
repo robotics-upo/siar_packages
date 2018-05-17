@@ -155,7 +155,7 @@ int main(int argc, char** argv)
     ros::Subscriber cmd_vel_sub = n.subscribe<geometry_msgs::Twist>("/cmd_vel",1,cmdVelReceived);
     ros::Subscriber cmd_arm_sub = n.subscribe<SiarArmCommand>("/arm_cmd",1,commandArmReceived);
     ros::Subscriber torque_arm_sub = n.subscribe<std_msgs::UInt8>("/arm_torque",1,armTorqueReceived);
-    ros::Subscriber width_vel_sub = n.subscribe<std_msgs::Float32>("/set_x_pos", 1, elec_x_received); 
+    ros::Subscriber elec_x_sub = n.subscribe<std_msgs::Float32>("/set_x_pos", 1, elec_x_received); 
     ros::Subscriber width_pos_sub = n.subscribe<std_msgs::Float32>("/width_pos", 1, widthNormReceived);
     ros::Subscriber cmd_light_sub = n.subscribe<SiarLightCommand>("/light_cmd", 1, commandLightReceived);
     

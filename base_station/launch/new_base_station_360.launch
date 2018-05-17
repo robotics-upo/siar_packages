@@ -1,0 +1,70 @@
+<?xml version="1.0"?>
+<launch>
+  
+  <arg name="joystick" default="true"/>
+  <arg name="ip_address" default="192.168.168.11"/>
+  <arg name="mode_360" default="true"/>
+  
+  <!-- TF stuff (only odom is going through the wifi) -->
+  <include file="$(find siar_driver)/launch/frames_7_cam_new_platform.launch"/>
+  <include file="$(find siar_driver)/launch/electronics_transform_static.launch"/>
+
+  <include file="$(find base_station)/launch/point_clouds_base.launch"/>
+
+  <include file="$(find openni2_launch)/launch/openni2.launch">
+    <arg name="camera" value="front"/>
+    <arg name="load_driver" value="false"/>
+  </include>
+  <include file="$(find openni2_launch)/launch/openni2.launch">
+    <arg name="camera" value="back"/>
+    <arg name="load_driver" value="false"/>
+  </include>
+  <include file="$(find openni2_launch)/launch/openni2.launch">
+    <arg name="camera" value="front_left"/>
+    <arg name="load_driver" value="false"/>
+  </include>
+  <include file="$(find openni2_launch)/launch/openni2.launch">
+    <arg name="camera" value="front_right"/>
+    <arg name="load_driver" value="false"/>
+  </include>
+  <include file="$(find openni2_launch)/launch/openni2.launch">
+    <arg name="camera" value="back_left"/>
+    <arg name="load_driver" value="false"/>
+  </include>
+  <include file="$(find openni2_launch)/launch/openni2.launch">
+    <arg name="camera" value="back_right"/>
+    <arg name="load_driver" value="false"/>
+  </include>
+  
+  <!-- Communication stuff -->
+  
+  <node pkg="odom_to_tf" type="odom_to_tf.py" name="odom_to_tf"/>
+  
+  <include file="$(find udp_bridge)/launch/udp_client360.launch" if="$(arg mode_360)">
+    <arg name="ip_address" value="$(arg ip_address)"/>
+    
+  </include>
+  
+  <include file="$(find udp_bridge)/launch/udp_client.launch" unless="$(arg mode_360)">
+    <arg name="ip_address" value="$(arg ip_address)"/>
+    
+  </include>
+  
+  <!-- Representation stuff-->
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find amcl_sewer)/launch/amcl_base_station.rviz"/>
+  <node pkg="rqt_gui" type="rqt_gui" name="rqt" />
+  <include file="$(find siar_stl_model)/launch/siar.launch"/>
+  
+  <!-- Joystick node that will be sent over the UDP link-->
+  <node pkg="joy" type="joy_node" name="joy_node"/>
+  
+  <!-- Run localization on the laptop also -->
+  <include file="$(find amcl_sewer)/launch/amcl_barcelona.launch">
+    <arg name="visualization" value="false"/>
+  </include>
+  
+  <node pkg="alert_db" type="alert_db_node" name="alert_db" output="screen"/>
+  
+  
+  <include file="$(find pcl_processing)/launch/map_analysis.launch"/>
+</launch>

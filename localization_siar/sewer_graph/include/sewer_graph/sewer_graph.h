@@ -42,7 +42,10 @@ struct SewerEdge {
   double distance;
   double route; // Angle relative to N (in the sense of waterflow)
   
-  std::string section; // Can be T181, D1400, T168, T133, NT120A, T164...
+  long id;
+  
+  
+  std::string section; // Can be T181, D1400, T168, T133, NT120A, T164, T130...
   
   std::string toString() const;
 };
@@ -79,7 +82,9 @@ public:
   
   int getClosestVertex(double x, double y, SewerVertexType type = ALL) const;
   
-  double getDistanceToClosestEdge(double x, double y) const;
+  double getDistanceToClosestEdge(double x, double y, int &id1, int &id2) const;
+  
+  double getClosestEdgeAngle(double x, double y) const;
   
   //! @brief Exports the trajectory information into KML format
   //! @param filename Output filename

@@ -23,6 +23,8 @@
 #include <math.h>
 #include <sewer_graph/sewer_graph.h>
 #include <fstream>
+#include <plane_detector/WallInfo.h>
+#include <cmath>
 
 //Struct that contains the data concerning one Particle
 struct Particle
@@ -31,7 +33,7 @@ struct Particle
   float x;
   float y;
   
-  // Yaw angle (from north or with respect to MAP?)
+  // Yaw angle (with respect to MAP frame)
   float a;
 
   // Weight (One weight)
@@ -60,6 +62,8 @@ public:
       m_odomFrameId = "odom";  
     if(!lnh.getParam("global_frame_id", m_globalFrameId))
       m_globalFrameId = "map";  
+    
+    m_lastPoseCov.header.frame_id = m_globalFrameId;
 
     // Read amcl parameters
     if(!lnh.getParam("update_rate", m_updateRate))
@@ -99,6 +103,9 @@ public:
     // Get the parameters related with the sewer
     if (!lnh.getParam("detect_manhole_topic", m_detectManholeTopic))
       m_detectManholeTopic = "/manhole";
+    
+    if (!lnh.getParam("angular_weight", angular_weight))
+      angular_weight = 5.0;
       
     
     if (!lnh.getParam("sewer_graph_file", m_sewer_graph_file))
@@ -128,17 +135,10 @@ public:
     manholeConst1 = 1./(m_manholeDev*sqrt(2*M_PI)); 
     manholeConst2 = 1./(2*m_manholeDev*m_manholeDev);
     
-    // Init the statistic stuff
-    stats_file_open = false;
-    if (!lnh.getParam("stats_file", stats_filename))
-      stats_filename = "~/manhole_stats.txt";
-    try {
-      stats_file.open(stats_filename.c_str());
-      stats_file_open = true;
-    }catch (std::exception &e) {
-      std::cerr << "Could not open the stats file: " << stats_filename << std::endl;
-    }
-    m_ground_truth_manhole_sub = m_nh.subscribe("ground_truth", 1, &ParticleFilter::manholeGroundTruthCallback, this);
+    if (!lnh.getParam("angleDev", m_angleDev))
+      m_angleDev = 0.03;
+    angleConst1 = 1./(m_angleDev*sqrt(2*M_PI)); 
+    angleConst2 = 1./(2*m_angleDev*m_angleDev);
     
     // Save trajectory
     traj_file_open = false;
@@ -148,7 +148,7 @@ public:
       traj_file.open(traj_filename.c_str());
       traj_file_open = true;
     }catch (std::exception &e) {
-      std::cerr << "Could not open the stats file: " << traj_filename << std::endl;
+      std::cerr << "Could not open the traj file: " << traj_filename << std::endl;
     }
     
     // Init the particle filter internal stuff
@@ -160,9 +160,11 @@ public:
     // Launch subscribers
     m_detect_manhole_Sub = m_nh.subscribe(m_detectManholeTopic, 1, &ParticleFilter::manholeDetectedCallback, this);
     m_initialPoseSub = m_nh.subscribe(node_name+"/initial_pose", 2, &ParticleFilter::initialPoseReceived, this);
+    wall_info_sub = m_nh.subscribe("/wall_info", 1, &ParticleFilter::wallInfoCallback, this);
     
     // Launch publishers
     m_posesPub = m_nh.advertise<geometry_msgs::PoseArray>(node_name+"/particle_cloud", 1, true);
+    m_posecovPub = m_nh.advertise<geometry_msgs::PoseWithCovarianceStamped>(node_name+"/estimated_pose", 1, true);
     m_graphPub = m_nh.advertise<visualization_msgs::Marker>(node_name+"/sewer_graph", 0, true);
     m_gpsPub = m_nh.advertise<sensor_msgs::NavSatFix>("/gps/fix", 2, true);
 
@@ -193,6 +195,7 @@ public:
       ROS_INFO("Setting pose: %.3f %.3f %.3f", pose.getOrigin().x(), pose.getOrigin().y(), getYawFromTf(pose));
       setInitialPose(pose, m_initXDev, m_initYDev, m_initADev);
     }
+    last_info.angle = 1e100;
   }
 
   //!Default destructor
@@ -307,6 +310,16 @@ public:
   }
                                        
 private:
+  
+  inline bool isFork() {
+    float x, y, z, xDev, yDev, aDev;
+    computeDev(x, y, z, xDev, yDev, aDev);
+    return isFork(x,y);
+  }
+  
+  inline bool isFork(double x, double y) {
+    return (s_g->getDistanceToClosestVertex(x, y, sewer_graph::FORK) < m_fork_dist);
+  }
 
   void checkUpdateThresholdsTimer(const ros::TimerEvent& event)
   {
@@ -337,11 +350,11 @@ private:
     tf::poseMsgToTF(msg->pose.pose, pose);
     double x = pose.getOrigin().x();
     double y = pose.getOrigin().y();
+    int i,j;
     
+    // Logging the pose change
     ROS_INFO("Setting pose: %.3f %.3f %.3f", pose.getOrigin().x(), pose.getOrigin().y(), getYawFromTf(pose));
-    
-    
-    ROS_INFO("Distance to closest Edge = %f", s_g->getDistanceToClosestEdge(x , y));
+    ROS_INFO("Distance to closest Edge = %f", s_g->getDistanceToClosestEdge(x , y, i, j));
     ROS_INFO("Distance to closest Manhole = %f", s_g->getDistanceToClosestManhole(x, y));
     
     // Initialize the filter
@@ -354,25 +367,80 @@ private:
     manhole_hist.push_back(msg->data);
   }
   
-  //! 3D point-cloud callback
-  void manholeGroundTruthCallback(const std_msgs::BoolConstPtr& msg)
-  {
-    if (!msg->data) {
-      return;
-    }
-    float x, y, z, xDev, yDev, aDev;
-    
-    computeDev(x, y, z, xDev, yDev, aDev);
-    int manhole_id = s_g -> getClosestVertex(x, y, sewer_graph::MANHOLE);
-    
-    if (stats_file_open) {
-      stats_file << x << " " << y << " " << z <<"\t ";
-      stats_file << xDev << " " << yDev << " " << aDev <<"\t ";
-      stats_file << s_g -> getVertexContent(manhole_id).e.toString(' ') << std::endl;
-    }
+  void wallInfoCallback(const plane_detector::WallInfoConstPtr &msg) {
+    last_info = *msg;
+    last_relative_time = ros::Time::now();
+    ROS_INFO("Catched angle measurement. Angle = %f", msg->angle);
   }
   
   void update(bool detected_manhole) {
+    
+    if(!predictParticles())
+    {
+      ROS_ERROR("ParticleFilterSewer::manholeDetectedCallback --> Prediction error!");
+      return;
+    }
+    
+    int mode = 0;
+    
+      
+    float x,y,a,xv,yv,av,xycov;
+    computeVar(x,y,a,xv,yv,av,xycov);
+    
+    if (traj_file_open) {
+      traj_file << x << "\t" << y << "\t" << ros::Time::now().toSec() <<  std::endl;
+    }
+    
+    // Perform different particle update based on current point-cloud and available measurements
+    if (detected_manhole) {
+      ROS_INFO("Performing Update with Manhole");
+      updateParticles(1);
+    }
+    else if (isFork(x,y)) {
+      ROS_INFO("Performing update with fork");
+      updateParticles(2);
+    }
+    else {
+      if (last_relative_time - ros::Time::now() < ros::Duration(0,200000000L) && fabs(last_info.angle) < 5 && last_info.d_left > 0.0) {
+	ROS_INFO("Performing angular update");
+	updateParticles(4); // 4 is for  angular + edge
+      } else {
+	ROS_INFO("Performing regular update");
+	updateParticles(0);
+      }
+    }
+    
+    // Re-compute global TF according to new weight of samples
+    computeGlobalTfAndPose();
+
+    //Do the resampling if needed
+    m_nUpdates++;
+    if(m_nUpdates > m_resampleInterval)
+    {
+      m_nUpdates = 0;
+      resample();
+    }
+    
+    /*wt = 0; NOTE: this was the implementation of importance resampling
+    for(int i=0; i<(int)m_p.size(); i++)
+      wt += m_p[i].w*m_p[i].w;
+    float nEff = 1/wt;
+    if(nEff < ((float)m_p.size())/10.0)
+      resample();*/
+    //resample();
+      
+    m_doUpdate = false;
+            
+    // Publish particles
+    publishParticles();
+    m_posecovPub.publish(m_lastPoseCov);
+  }
+
+  //!This function implements the PF prediction stage. Translation in X, Y and Z 
+  //!in meters and yaw angle incremenet in rad
+  //! TODO: In a first stage the predict stage will remain equal to the amcl_3d but without the z
+  bool predictParticles()
+  {
     // Compute odometric trasnlation and rotation since last update 
     tf::StampedTransform odomTf;
     try
@@ -383,7 +451,7 @@ private:
     catch (tf::TransformException ex)
     {
       ROS_ERROR("%s",ex.what());
-      return;
+      return false;
     }
     
     // Extract current robot roll and pitch
@@ -397,32 +465,7 @@ private:
     delta_x = T.getOrigin().getX();
     delta_y = T.getOrigin().getY();
     T.getBasis().getRPY(delta_r, delta_p, delta_a);
-    if(!predictParticles(delta_x, delta_y, (float)delta_a))
-    {
-      ROS_ERROR("ParticleFilterSewer::manholeDetectedCallback --> Prediction error!");
-      return;
-    }
-      
-    // Perform particle update based on current point-cloud
-    if(!updateParticles(detected_manhole))
-    {
-      ROS_ERROR("ParticleFilterSewer::manholeDetectedCallback --> Update error!");
-      return;
-    }
-      
-    // Update time and transform information
-    m_lastOdomTf = odomTf;
-    m_doUpdate = false;
-            
-    // Publish particles
-    publishParticles();
-  }
-
-  //!This function implements the PF prediction stage. Translation in X, Y and Z 
-  //!in meters and yaw angle incremenet in rad
-  //! TODO: In a first stage the predict stage will remain equal to the amcl_3d but without the z
-  bool predictParticles(float delta_x, float delta_y, float delta_a)
-  {
+    
     float xDev, yDev, aDev;
     xDev = fabs(delta_x*m_odomXMod);
     yDev = fabs(delta_y*m_odomYMod);
@@ -440,6 +483,8 @@ private:
       m_p[i].a += delta_a + gsl_ran_gaussian(m_randomValue, aDev);
     }
     
+    m_lastOdomTf = odomTf;
+    
     return true;
   }
   
@@ -447,81 +492,57 @@ private:
   
   // Update Particles taking into account
   // No input is necessary --> we will get the closest Manhole, which will be used for weighting purposes(with some dispersion)
-  bool updateParticles(bool detected_manhole)
+  void updateParticles(int mode)
   {  
     double wt = 0.0;
-    bool fork = false;
-    
-    float x,y,a,xd,yd,ad;
-    computeDev(x,y,a,xd,yd,ad);
-    
-    if (traj_file_open) {
-      traj_file << x << "\t" << y << std::endl;
-    }
-    
-    if (detected_manhole) 
-      ROS_INFO("Performing Update with Manhole");
-    else if (s_g->getDistanceToClosestVertex(x, y, sewer_graph::FORK) < m_fork_dist) {
-      fork = true;
-      ROS_INFO("In a fork");
-    }
     
     for(int i=0; i<(int)m_p.size(); i++)
     {
       double tx = m_p[i].x;
       double ty = m_p[i].y;
+      double ta = m_p[i].a;
       // Evaluate the weight of the range sensors
-      m_p[i].w = computeEdgeWeight(tx, ty); // Compute weight as a function of the distance to the closest edge
-      if (detected_manhole) {
-        
-        m_p[i].w = computeManholeWeight(tx, ty);
-      } else if (fork) {
-        m_p[i].w = computeForkWeight(tx, ty);
-      }
-        
-    //Update the particle weight
-    //m_p[i].w = (1.0-alpha)*m_p[i].w + alpha*wi;
-    //m_p[i].w = wi;
       
+//       switch (mode) {
+// 	case 1:
+// 	  m_p[i].w = computeManholeWeight(tx, ty);
+// 	  break;
+// 	case 2:
+// 	  m_p[i].w = computeForkWeight(tx, ty);
+// 	  break;
+// 	case 3:
+// 	  m_p[i].w = computeAngularWeight(tx, ty, ta);
+// 	  break;
+// 	case 4:
+// 	  m_p[i].w = computeEdgeWeight(tx, ty);
+// 	  m_p[i].w += angular_weight * computeAngularWeight(tx, ty, ta);
+// 	  break;
+// 	default:
+	  m_p[i].w = computeEdgeWeight(tx, ty); // Compute weight as a function of the distance to the closest edge
+//       }
+        
       //Increase the summatory of weights
       wt += m_p[i].w;
     }
     
     //Normalize all weights
+    wt = 1.0 / wt;
     for(int i=0; i<(int)m_p.size(); i++)
     {
-      m_p[i].w /= wt;  
+      m_p[i].w *= wt;  
     }  
-    
-    // Re-compute global TF according to new weight of samples
-    computeGlobalTf();
-
-    //Do the resampling if needed
-    m_nUpdates++;
-    if(m_nUpdates > m_resampleInterval || detected_manhole)
-    {
-      m_nUpdates = 0;
-      resample();
-    }
-    /*wt = 0;
-    for(int i=0; i<(int)m_p.size(); i++)
-      wt += m_p[i].w*m_p[i].w;
-    float nEff = 1/wt;
-    if(nEff < ((float)m_p.size())/10.0)
-      resample();*/
-    //resample();
-
-    return true;
   }
   
   double computeEdgeWeight(double x, double y) {
-    double dist = s_g->getDistanceToClosestEdge(x,y);
+    int i,j;
+    double dist = s_g->getDistanceToClosestEdge(x,y,i, j);
     
     return edgeConst1*exp(-dist*dist*edgeConst2);
   }
   
   double computeForkWeight(double x, double y) {
-    double dist = s_g->getDistanceToClosestEdge(x,y);
+    int i,j;
+    double dist = s_g->getDistanceToClosestEdge(x,y,i,j);
     return forkConst1*exp(-dist*dist*forkConst2);
     
   }
@@ -529,6 +550,24 @@ private:
   double computeManholeWeight(double x, double y) {
     double dist = s_g->getDistanceToClosestManhole(x, y);
     return manholeConst1*exp(-dist*dist*manholeConst2) + m_manholeThres;
+  }
+  
+  double computeAngularWeight(double tx, double ty, double ta) {
+    double ret = 0.0;
+    double man_angle_1 = s_g->getClosestEdgeAngle(tx, ty);
+    double rel_angle = ta - man_angle_1;
+    
+    while (fabs(rel_angle) > M_PI / 2) {
+      rel_angle -= M_PI * ((std::signbit(rel_angle))? -1.0:1.0);
+    }
+    
+    ROS_INFO("ComputeAngularWeight: Estimated rel angle = %f\t Rel angle from particle = %f", last_info.angle, rel_angle);
+    
+    double angular_error = rel_angle + last_info.angle;
+    
+    ret = angleConst1*exp(-angular_error*angular_error*angleConst2);
+      
+    return ret;
   }
 
   //! Set the initial pose of the particle filter
@@ -576,7 +615,7 @@ private:
       }
       sleep(2);
     }
-    computeGlobalTf();
+    computeGlobalTfAndPose();
     m_doUpdate = false;
     m_init = true;
     
@@ -628,24 +667,54 @@ private:
   }
   
   // Computes TF from odom to global frames
-  void computeGlobalTf()
+  void computeGlobalTfAndPose()
   {        
     // Compute mean value from particles
+    float mx, my, ma, xv, yv, av, xycov;
+    computeVar(mx, my, ma, xv, yv, av, xycov);
     Particle p;
-    p.x = 0.0;
-    p.y = 0.0;
-    p.a = 0.0;
+    p.x = mx;
+    p.y = my;
+    p.a = ma;
     p.w = 0.0;
-    for(int i=0; i<m_p.size(); i++)
-    {
-      p.x += m_p[i].w * m_p[i].x;
-      p.y += m_p[i].w * m_p[i].y;
-      p.a += m_p[i].w * m_p[i].a;
-    }
     
     // Compute the TF from odom to global
     std::cout << "New TF:\n\t" << p.x << ", " << p.y << std::endl;
     m_lastGlobalTf = tf::Transform(tf::Quaternion(0.0, 0.0, sin(p.a*0.5), cos(p.a*0.5)), tf::Vector3(p.x, p.y, 0.0))*m_lastOdomTf.inverse();
+    m_lastPoseCov.header.stamp = ros::Time::now(); 
+    m_lastPoseCov.header.seq++;
+    geometry_msgs::Quaternion &orientation = m_lastPoseCov.pose.pose.orientation;
+    orientation.w = m_lastGlobalTf.getRotation().getW();
+    orientation.x = m_lastGlobalTf.getRotation().getX();
+    orientation.y = m_lastGlobalTf.getRotation().getY();
+    orientation.z = m_lastGlobalTf.getRotation().getZ();
+    geometry_msgs::Point &position = m_lastPoseCov.pose.pose.position;
+    position.x = mx; position.y = my; position.z = 0.0;
+    boost::array<double, 36> &Cov = m_lastPoseCov.pose.covariance;
+    Cov[0] = xv; Cov[7] = yv; Cov[35] = av;
+    Cov[1] = Cov[6] = xycov;
+  }
+  
+  void computeVar(float &mX, float &mY, float &mA, float &var_x, float &var_y, float &var_a, float &cov_x_y) {
+    // Compute mean value from particles
+    var_x = mX = 0.0;
+    var_y = mY = 0.0;
+    var_a = mA = 0.0;
+    cov_x_y = 0.0;
+    for(int i=0; i<m_p.size(); i++)
+    {
+      mX += m_p[i].w * m_p[i].x;
+      mY += m_p[i].w * m_p[i].y;
+      mA += m_p[i].w * m_p[i].a;
+    }
+    for(int i=0; i<m_p.size(); i++)
+    {
+      var_x += m_p[i].w * (m_p[i].x-mX) * (m_p[i].x-mX);
+      var_y += m_p[i].w * (m_p[i].y-mY) * (m_p[i].y-mY);
+      var_a += m_p[i].w * (m_p[i].a-mA) * (m_p[i].a-mA);
+      cov_x_y += m_p[i].w * (m_p[i].x-mX) * (m_p[i].y-mY);
+      
+    }
   }
   
   void computeDev(float &mX, float &mY, float &mA, float &devX, float &devY, float &devA)
@@ -710,10 +779,16 @@ private:
   int m_nUpdates;
   int m_resampleInterval;
   
+  //! Yaw estimation
+  plane_detector::WallInfo last_info;
+  ros::Time last_relative_time;
+  double angular_weight;
+  
   //! Thresholds for filter updating
   double m_dTh, m_aTh, m_tTh;
   tf::StampedTransform m_lastOdomTf;
   tf::Transform m_lastGlobalTf;
+  geometry_msgs::PoseWithCovarianceStamped m_lastPoseCov;
   bool m_doUpdate;
   double m_updateRate;
 
@@ -728,8 +803,8 @@ private:
   ros::NodeHandle m_nh;
   tf::TransformBroadcaster m_tfBr;
   tf::TransformListener m_tfListener;
-  ros::Subscriber m_detect_manhole_Sub, m_initialPoseSub, m_odomTfSub;
-  ros::Publisher m_posesPub, m_graphPub, m_gpsPub;
+  ros::Subscriber m_detect_manhole_Sub, m_initialPoseSub, m_odomTfSub, wall_info_sub;
+  ros::Publisher m_posesPub, m_graphPub, m_gpsPub, m_posecovPub;
   ros::Timer updateTimer;
   
   // Sewer stuff
@@ -744,16 +819,11 @@ private:
 
   std::vector<bool> manhole_hist;
   int m_min_manhole_detected;
-  double m_edgeDev, m_manholeDev, m_manholeThres;
+  double m_edgeDev, m_manholeDev, m_manholeThres, m_angleDev;
   double edgeConst1, edgeConst2;
   double manholeConst1, manholeConst2;
+  double angleConst1, angleConst2;
   double m_forkDev, forkConst1, forkConst2, m_fork_dist;
-  
-  //For saving stats
-  ros::Subscriber m_ground_truth_manhole_sub;
-  std::ofstream stats_file;
-  std::string stats_filename;
-  bool stats_file_open;
   
   //For saving trajetory
   std::ofstream traj_file;
@@ -762,5 +832,3 @@ private:
 };
 
 #endif
-
-

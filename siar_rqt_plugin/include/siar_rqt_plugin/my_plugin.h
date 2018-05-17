@@ -30,10 +30,16 @@ public:
   // Comment in to signal that the plugin has a way to configure it
   // bool hasConfiguration() const;
   // void triggerConfiguration();
+  
+public slots:
+  void click();
+  void cleanAlert();
+  
 private:
   Ui::MyPluginWidget ui_;
   QWidget* widget_;
   ros::Subscriber my_subscriber;
+  ros::ServiceClient alert_service;
 };
 }  // namespace siar_rqt_plugin
 #endif  // SIAR_RQT_PLUGIN_MY_PLUGIN_H

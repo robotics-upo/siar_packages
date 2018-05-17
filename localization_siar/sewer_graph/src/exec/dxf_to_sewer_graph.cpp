@@ -4,9 +4,18 @@
 #include "dxflib/dl_dxf.h"
 #include "dxflib/dl_creationadapter.h"
 #include "sewer_graph/test_creationclass.h"
+#include <geotranz/dtcc/CoordinateSystems/utm/UTM.h>
+#include <geotranz/dtcc/CoordinateTuples/UTMCoordinates.h>
+#include <geotranz/dtcc/CoordinateTuples/GeodeticCoordinates.h>
+#include <geotranz/dtcc/Enumerations/CoordinateType.h>
+#include <geotranz/dtcc/Exception/CoordinateConversionException.h>
 
 using namespace std;
 using namespace sewer_graph;
+
+using MSP::CCS::UTM;
+using MSP::CCS::GeodeticCoordinates;
+using MSP::CCS::UTMCoordinates;
 
 DL_Dxf* loadData(const std::string &filename, Test_CreationClass *creation_class);
 void generateGraph(Test_CreationClass *creation_class, SewerGraph &g);
@@ -14,19 +23,40 @@ void newVertexFromGIS(double x, double y, SewerVertex &v);
 double getVertexIDFromGIS(double x_, double y_);
 double getVertexDistanceFromGIS(double x_, double y_);
 
-double x,y, radius;
+void getXYFromLatLon(double lat, double lon, double &x, double &y);
+
+double x =-1;
+double y = -1;
+double radius;
 SewerGraph g;
 
 int main(int argc, char ** argv) {
-  if (argc < 7) {
-    cerr << "Usage: " << argv[0] << " <dxf_filename> <out_file> <x> <y> <lat> <lon> <max_d>\n";
+  if (argc < 5) {
+    cerr << "Usage: " << argv[0] << " <dxf_filename> <x> <y> <out_file> <max_d>\n";
     return -1;
   }
   string out_file(argv[2]);
   x = atof(argv[3]);
   y = atof(argv[4]);
-  EarthLocation center(atof(argv[5]), atof(argv[6]));
-  radius = atof(argv[7]);
+  
+  radius = atof(argv[5]);
+  
+  
+  GeodeticCoordinates *geo = NULL;
+  sewer_graph::EarthLocation center;
+  try {
+    UTM utm;
+    UTMCoordinates coord(MSP::CCS::CoordinateType::universalTransverseMercator, 31, 'N', x, y);
+    geo = utm.convertToGeodetic(&coord);
+  
+    cout << "Lat = " << geo->latitude() << "\t Lon = " << geo->longitude() << endl;
+//   
+    center.setLatitude(geo->latitude()/M_PI*180.0);
+    center.setLongitude(geo-> longitude()/M_PI*180.0);
+    
+  } catch (MSP::CCS::CoordinateConversionException &e) {
+    cerr << "Unable to get the center coordinates. Content: " << e.getMessage() << endl;
+  }
   
   string s(argv[1]);
   
@@ -139,4 +169,13 @@ double getVertexDistanceFromGIS(double x_, double y_) {
 
 double getVertexIDFromGIS(double x_, double y_) {
   return g.getClosestVertex(y_ - y, x_ - x);
+}
+
+void getXYFromLatLon(double lat, double lon, double &x, double &y) {
+  double lat_rad = lat * M_PI/180.0;
+  
+  double dist_lon = cos(lat_rad)*110500.0;
+  
+  x = dist_lon * lon;
+  y = lat * 111325.0;
 }

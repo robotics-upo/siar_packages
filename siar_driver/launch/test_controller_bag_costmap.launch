@@ -10,6 +10,7 @@
   
   <node name="siar_joy" pkg="siar_driver" type="siar_teleop_joy" output="screen" if="$(arg joystick)">
     <remap from="/cmd_vel" to="/user_cmd_vel"/>
+    <remap from="/joy" to="/translated_joy"/>
     <param name="max_auto_mode" value="1"/>
     <param name="max_joy_time" value="100000000"/>
     <remap from="/operation_mode" to="/om"/>
