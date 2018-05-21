@@ -5,15 +5,16 @@
   <arg name="scale_serial" default="0.25"/>
   <arg name="scale_web" default="1.0"/>
   <arg name="frame_skip_web" default="0"/>
-  <arg name="publish_depth" default="false"/>
+  <arg name="publish_depth" default="true"/>
   <arg name="publish_all" default="false"/>
   <arg name="camera_1" default="/front"/>
   <arg name="camera_2" default="/back"/>
   <arg name="only_depth" default="false"/>
   <arg name="downsample_depth" default="true"/>
+  <arg name="node_name" default="image_splitter_web"/>
 
   <!-- a reproduction of the real images in nice quality is used, so its quality can be modified without disturbing the bag record -->
-  <node pkg="frame_dropper" type="image_splitter_node" name="image_splitter_web">
+  <node pkg="frame_dropper" type="image_splitter_node" name="$(arg node_name)">
     <remap from="in" to="$(arg camera_1)" />
     <remap from="out" to="$(arg camera_1)_web" />
     <remap from="in_2" to="$(arg camera_2)" />

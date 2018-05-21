@@ -1,0 +1,13 @@
+<!--
+-->
+<launch>
+ <arg name="bag" default="/home/chur/SIAR/2017-09-06_sewers/siar_2017-09-06-10-02-43_short.bag"/>
+ <arg name="camera" default="/front"/>
+ 
+ <node name="republish_img" type="republish" pkg="image_transport" args="compressed in:=/$(arg camera)/rgb/image_raw raw out:=/$(arg camera)/rgb/image_raw"/>
+ <node name="bag_player" type="play" pkg="rosbag" args="$(arg bag) --clock" output="screen"/>
+ 
+ <node name="flipper" type="flip_image_node" pkg="flip_image" output="screen" >
+  <remap from="/input_image" to="$(arg camera)/rgb/image_raw"/>
+ </node>
+</launch>

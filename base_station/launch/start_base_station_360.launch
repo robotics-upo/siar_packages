@@ -3,6 +3,7 @@
   
   <arg name="joystick" default="true"/>
   <arg name="ip_address" default="192.168.168.11"/>
+  <arg name="mode_360" default="true"/>
   
   <!-- TF stuff (only odom is going through the wifi) -->
   <include file="$(find siar_driver)/launch/frames_7_cam_new_platform.launch"/>
@@ -38,7 +39,12 @@
   
   <node pkg="odom_to_tf" type="odom_to_tf.py" name="odom_to_tf"/>
   
-  <include file="$(find udp_bridge)/launch/udp_client360.launch">
+  <include file="$(find udp_bridge)/launch/udp_client360.launch" if="$(arg mode_360)">
+    <arg name="ip_address" value="$(arg ip_address)"/>
+    
+  </include>
+  
+  <include file="$(find udp_bridge)/launch/udp_client.launch" unless="$(arg mode_360)">
     <arg name="ip_address" value="$(arg ip_address)"/>
     
   </include>

@@ -56,7 +56,13 @@
       
       /best_marker /trajectory_marker /costmap_node/costmap
       
+      /thermal_camera/camera_info
+      /thermal_camera/image_raw
+      /flip_image
+      
+      
         /rssi_nvip_2400
+        /gas_info
         /elec_battery_status
         /motor_battery_status
 	/siar_status

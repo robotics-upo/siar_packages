@@ -13,6 +13,7 @@
 #include <siar_driver/SiarStatus.h>
 #include <std_msgs/UInt32.h>
 #include <std_msgs/Bool.h>
+#include <std_msgs/Float32.h>
 #include "cycle.hpp"
 #include "udp_manager.hpp"
 
@@ -35,6 +36,7 @@ private:
   std::string allCamerasTopic, publishDepthTopic, joyTopic, rssi_topic, point_topic;
   std::string siar_status_topic, slowTopic, geo_tf_topic;
   std::string camera_1, camera_2, camera_3, camera_4;
+  std::string posTopic;
   int jpeg_quality, min_quality;
   bool quality_set, quality_set_2;
   
@@ -43,7 +45,7 @@ private:
   Cycle siarStatusCycle, pointCycle;
   
   // Publishers and subscribers
-  ros::Publisher publish_depth_pub, all_cameras_pub, joy_pub, slow_pub;
+  ros::Publisher publish_depth_pub, all_cameras_pub, joy_pub, slow_pub, elec_x_pos_pub;
   ros::Subscriber odom_sub, image_sub, image_sub_2, depth_sub, depth_sub_2, rssi_sub, depth_sub_3, depth_sub_4, geo_tf_sub;
   ros::Subscriber  siar_status_sub, point_sub;
   ros::NodeHandle nh;
@@ -62,6 +64,9 @@ public:
       odomRate = 5.0; // At first the odometry measures are discraded
     if(!lnh.getParam("joy_topic", joyTopic))
       joyTopic = "/joy";
+    
+    if(!lnh.getParam("pos_topic", posTopic))
+      posTopic = "/set_x_pos";
     if(!lnh.getParam("camera_1", camera_1))
       camera_1 = "/front";
     if(!lnh.getParam("camera_3", camera_3))
@@ -109,6 +114,7 @@ public:
     all_cameras_pub = nh.advertise<std_msgs::Bool>(allCamerasTopic, 1);
     slow_pub = nh.advertise<std_msgs::Bool>(slowTopic, 1);
     joy_pub = nh.advertise<sensor_msgs::Joy>(joyTopic, 1);
+    elec_x_pos_pub = nh.advertise<std_msgs::Float32>(posTopic, 1);
     
     // Create subscribers and setup rates
     odom_sub = nh.subscribe(odomTopic, 1, &UDPServer::odomCallback, this);
@@ -338,6 +344,9 @@ protected:
       }
       if (topic == slowTopic) {
         deserializePublish<std_msgs::Bool>(buffer.data(), buffer.size(), slow_pub);
+      }
+      if (topic == posTopic) {
+        deserializePublish<std_msgs::Float32>(buffer.data(), buffer.size(), elec_x_pos_pub);
       }
     }
   }
