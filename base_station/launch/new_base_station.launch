@@ -48,9 +48,9 @@
   <!-- Uncompressers and PCs-->
   
   <node name="uncompresser_front_rgb" pkg="image_transport" type="republish"
-        args="compressed in:=/front_web/rgb/image_raw raw out:=/front/rgb/image_raw"/>
+        args="compressed in:=/front_web/rgb/image_raw raw out:=/front_web/rgb/image_raw"/>
    <node name="uncompresser_front" pkg="image_transport" type="republish"
-        args="compressedDepth in:=/front_web/depth_registered/image_raw raw out:=/front/depth_registered/image_raw"/>
+        args="compressedDepth in:=/front_web/depth_registered/image_raw raw out:=/front_web/depth_registered/image_raw"/>
    
    
   <node pkg="depth2cloud" type="depth2cloud_node" name="front_depth2cloud_node" output="screen" >
@@ -63,9 +63,9 @@
   </node>
   
   <node name="uncompresser_front_left" pkg="image_transport" type="republish"
-        args="compressedDepth in:=/front_left_web/depth_registered/image_raw raw out:=/front_left/depth_registered/image_raw"/>
+        args="compressedDepth in:=/front_left_web/depth_registered/image_raw raw out:=/front_left_web/depth_registered/image_raw"/>
    <node name="uncompresser_front_left_rgb" pkg="image_transport" type="republish"
-        args="compressed in:=/front_left/rgb/image_raw raw out:=/front_left/rgb/image_raw"/>
+        args="compressed in:=/front_left_web/rgb/image_raw raw out:=/front_left_web/rgb/image_raw"/>
    
   <node pkg="depth2cloud" type="depth2cloud_node" name="front_left_depth2cloud_node" output="screen" >
     <remap from="depth" to="/front_left_web/depth_registered/image_raw"/>              # Topic for the camera depth
@@ -77,9 +77,9 @@
   </node>
   
   <node name="uncompresser_front_right" pkg="image_transport" type="republish"
-        args="compressedDepth in:=/front_right_web/depth_registered/image_raw raw out:=/front_right/depth_registered/image_raw"/>
+        args="compressedDepth in:=/front_right_web/depth_registered/image_raw raw out:=/front_right_web/depth_registered/image_raw"/>
    <node name="uncompresser_front_right_rgb" pkg="image_transport" type="republish"
-        args="compressed in:=/front_right/rgb/image_raw raw out:=/front_right/rgb/image_raw"/>
+        args="compressed in:=/front_right_web/rgb/image_raw raw out:=/front_right_web/rgb/image_raw"/>
    
   <node pkg="depth2cloud" type="depth2cloud_node" name="front_right_depth2cloud_node" output="screen" >
     <remap from="depth" to="/front_right_web/depth_registered/image_raw"/>              # Topic for the camera depth

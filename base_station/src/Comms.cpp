@@ -40,7 +40,7 @@ Comms::Comms(int argc, char** argv):spinner(NULL),emergency(false),slow(false),a
   status_sub = nh.subscribe<const siar_driver::SiarStatus::ConstPtr&>("siar_status", 2, &Comms::siarStatusCallback, this);
   rssi_sub = nh.subscribe<const rssi_get::Nvip_status::ConstPtr&>("/rssi_nvip_2400", 2, &Comms::nvipCallback, this);
   emergency_pub = nh.advertise<std_msgs::Bool>("/emergency_stop",2);
-  elec_x_pub = nh.advertise<std_msgs::Float32>("/set_x_pos",2);
+  elec_x_pub = nh.advertise<std_msgs::Float32>("/width_pos",2);
 }
  
 
@@ -56,7 +56,7 @@ void Comms::setEmergencyStop()
 void Comms::setElecX(int new_x)
 {
   std_msgs::Float32 msg;
-  msg.data = new_x;
+  msg.data = new_x/14.0;
   
   elec_x_pub.publish(msg);
 }

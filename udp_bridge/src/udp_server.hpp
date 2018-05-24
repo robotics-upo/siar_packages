@@ -36,7 +36,7 @@ private:
   std::string allCamerasTopic, publishDepthTopic, joyTopic, rssi_topic, point_topic;
   std::string siar_status_topic, slowTopic, geo_tf_topic;
   std::string camera_1, camera_2, camera_3, camera_4;
-  std::string posTopic;
+  std::string posTopic, widthTopic;
   int jpeg_quality, min_quality;
   bool quality_set, quality_set_2;
   
@@ -45,7 +45,7 @@ private:
   Cycle siarStatusCycle, pointCycle;
   
   // Publishers and subscribers
-  ros::Publisher publish_depth_pub, all_cameras_pub, joy_pub, slow_pub, elec_x_pos_pub;
+  ros::Publisher publish_depth_pub, all_cameras_pub, joy_pub, slow_pub, elec_x_pos_pub, width_pos_pub;
   ros::Subscriber odom_sub, image_sub, image_sub_2, depth_sub, depth_sub_2, rssi_sub, depth_sub_3, depth_sub_4, geo_tf_sub;
   ros::Subscriber  siar_status_sub, point_sub;
   ros::NodeHandle nh;
@@ -64,7 +64,8 @@ public:
       odomRate = 5.0; // At first the odometry measures are discraded
     if(!lnh.getParam("joy_topic", joyTopic))
       joyTopic = "/joy";
-    
+    if(!lnh.getParam("width_topic", widthTopic))
+      widthTopic = "/width_pos";
     if(!lnh.getParam("pos_topic", posTopic))
       posTopic = "/set_x_pos";
     if(!lnh.getParam("camera_1", camera_1))
@@ -115,6 +116,7 @@ public:
     slow_pub = nh.advertise<std_msgs::Bool>(slowTopic, 1);
     joy_pub = nh.advertise<sensor_msgs::Joy>(joyTopic, 1);
     elec_x_pos_pub = nh.advertise<std_msgs::Float32>(posTopic, 1);
+    width_pos_pub = nh.advertise<std_msgs::Float32>(widthTopic, 1);
     
     // Create subscribers and setup rates
     odom_sub = nh.subscribe(odomTopic, 1, &UDPServer::odomCallback, this);
@@ -347,6 +349,9 @@ protected:
       }
       if (topic == posTopic) {
         deserializePublish<std_msgs::Float32>(buffer.data(), buffer.size(), elec_x_pos_pub);
+      }
+      if (topic == widthTopic) {
+        deserializePublish<std_msgs::Float32>(buffer.data(), buffer.size(), width_pos_pub);
       }
     }
   }

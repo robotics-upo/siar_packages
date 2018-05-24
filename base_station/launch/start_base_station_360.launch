@@ -58,7 +58,7 @@
   <node pkg="joy" type="joy_node" name="joy_node"/>
   
   <!-- Run localization on the laptop also -->
-  <include file="$(find amcl_sewer)/launch/amcl_barcelona.launch">
+  <include file="$(find amcl_sewer)/launch/amcl_pedralbes.launch">
     <arg name="visualization" value="false"/>
   </include>
   

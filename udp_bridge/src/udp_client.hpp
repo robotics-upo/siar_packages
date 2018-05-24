@@ -33,7 +33,7 @@ private:
   std::string camTopic, camTopic_2, depthCamTopic, depthCamTopic_2, depthCamTopic_3, depthCamTopic_4;
   std::string allCamerasTopic, publishDepthTopic, joyTopic, rssi_topic, slowTopic;
   std::string point_topic, siar_status_topic, geo_tf_topic;
-  std::string posTopic;
+  std::string posTopic, widthTopic;
   
   // ROS stuff
   ros::Publisher image_pub, odom_pub, odom_pub_2, image_pub_2, depth_pub, depth_pub_2, depth_pub_3, depth_pub_4;
@@ -41,7 +41,7 @@ private:
   ros::Publisher rssi_pub, siar_status_pub, point_pub;
   
   ros::Subscriber publish_depth_sub, all_cameras_sub, joy_sub, slow_sub;
-  ros::Subscriber set_x_pos_sub;
+  ros::Subscriber set_x_pos_sub, width_pos_sub;
   ros::NodeHandle nh;
   tf::TransformBroadcaster tf_broadcaster;
   std::string base_frame_id, odom_frame_id;
@@ -91,9 +91,10 @@ public:
       joyTopic = "/joy";
     if (!lnh.getParam("point_cloud_topic", point_topic))
       point_topic = "/rgbd_odom_node/point_cloud";
-    
     if(!lnh.getParam("pos_topic", posTopic))
       posTopic = "/set_x_pos";
+    if(!lnh.getParam("width_topic", widthTopic))
+      widthTopic = "/width_pos";
     // Set the image topics 
     imageTopic = camera_1 + "/rgb/image_raw/compressed";
     imageTopic_2 = camera_2 + "/rgb/image_raw/compressed";
@@ -145,7 +146,8 @@ public:
     all_cameras_sub = nh.subscribe(allCamerasTopic, 1, &UDPClient::allCamerasCallback, this);
     slow_sub = nh.subscribe(slowTopic, 1, &UDPClient::slowCallback, this);
     joy_sub = nh.subscribe(joyTopic, 1, &UDPClient::joyCallback, this);
-    set_x_pos_sub = nh.subscribe(posTopic, 1, &UDPClient::posReceived, this); 
+    set_x_pos_sub = nh.subscribe(posTopic, 1, &UDPClient::posReceived, this);
+    width_pos_sub = nh.subscribe(widthTopic, 1, &UDPClient::widthReceived, this); 
     
     // Set the general camera info
     general_info.D.resize(5);
@@ -500,6 +502,11 @@ protected:
   void posReceived(const std_msgs::Float32ConstPtr &msg)
   {
     serializeWrite<std_msgs::Float32>(posTopic, *msg);
+  }
+  
+  void widthReceived(const std_msgs::Float32ConstPtr &msg)
+  {
+    serializeWrite<std_msgs::Float32>(widthTopic, *msg);
   }
 };
 
