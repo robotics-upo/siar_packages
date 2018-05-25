@@ -33,6 +33,7 @@
 #include <QMdiArea>
 #include <QMdiSubWindow>
 #include "rviz/default_plugin/camera_display.h"
+#include "rviz/default_plugin/image_display.h"
 
 using namespace std;
 using namespace functions;
@@ -172,13 +173,15 @@ void BaseStation::configurePointCloud(rviz::Display *&pc_display, const std::str
 
 QMdiSubWindow *BaseStation::configureCameraDisplay() {
   QMdiSubWindow *ret_val = NULL;
-  camera_display = manager_->createDisplay("rviz/Camera", "Front camera",true);
+//   camera_display = manager_->createDisplay("rviz/Camera", "Front camera",true);
+  camera_display = manager_->createDisplay("rviz/Image", "Front camera",true);
   camera_display->setTopic("/front_web/rgb/image_raw", "sensor_msgs/Image");
-//   camera_display->subProp("Transport Hint")->setValue("compressed");
-  camera_display->subProp("Overlay Alpha")->setValue(0.9);
+  camera_display->subProp("Transport Hint")->setValue("compressed");
+//   camera_display->subProp("Overlay Alpha")->setValue(0.9);
 //   camera_display->subProp("Image Rendering")->setValue("background");
   
-  rviz::CameraDisplay *a = dynamic_cast<rviz::CameraDisplay*>(camera_display);
+//   rviz::CameraDisplay *a = dynamic_cast<rviz::CameraDisplay*>(camera_display);
+  rviz::ImageDisplay *a = dynamic_cast<rviz::ImageDisplay*>(camera_display);
   if (a!=NULL) {
 //     std::cout << "Here Camera\n";
     
@@ -298,9 +301,10 @@ void BaseStation::updateSiarStatus(const siar_driver::SiarStatus& state)
   if (state.operation_mode == 0) {
     radioButton_manual->setChecked(true);
   } else {
-    radioButton_automatic->setChecked(false);
+    radioButton_automatic->setChecked(true);
   }
-    
+  checkBox_front->setChecked( state.front_light!=0);
+  checkBox_rear->setChecked( state.rear_light!=0);
   
   label_width->setText(QString::number(state.width));
   
