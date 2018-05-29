@@ -68,16 +68,11 @@ t_log(), xy_dist(1.2), z_dist(0.3), node(NULL), uavs(), pos_log(), time_step(0.1
 //   window_1->resize(640, 480);
   window_1->setWindowTitle("PointClouds");
   
-  
-  
   window_2 = configureCameraDisplay();
-  
   
   window_3 = configureRVizDisplay(manager_2, render_panel_2, "map", mdiArea);
   window_3->setWindowTitle("Map");
   configureMap();
-  
-  
   
   // End of RVIZ stuff
   resizeWindows();
@@ -85,8 +80,6 @@ t_log(), xy_dist(1.2), z_dist(0.3), node(NULL), uavs(), pos_log(), time_step(0.1
   QMdiArea &q = *mdiArea;
 //   q.tileSubWindows();
 //   q.cascadeSubWindows();
- 
-  
   
   // Make Qt connections
   connect(emergencyButton, SIGNAL(released()), node, SLOT(setEmergencyStop())); 
@@ -112,7 +105,6 @@ void BaseStation::resizeWindows()
   window_3->setMaximumHeight(size_.height()*1.2);
   window_3->setMinimumHeight(size_.height()*0.2);
 }
-
 
 BaseStation::BaseStation(const QMainWindow& ): QMainWindow()
 {
@@ -156,8 +148,6 @@ QMdiSubWindow *BaseStation::configureRVizDisplay(rviz::VisualizationManager*& ma
     manager->initialize();
     manager->startUpdate();
     manager->setFixedFrame(QString::fromStdString(frame));
-    
-    
   }
   
   return ret_val;
