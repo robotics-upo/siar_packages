@@ -3,5 +3,7 @@ string description
 bool attach_images
 int8 position
 uint8 type
+float32 dist_manhole
+string subtype
 ---
 bool result
