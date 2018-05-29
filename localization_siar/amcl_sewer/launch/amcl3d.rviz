@@ -12,7 +12,7 @@ Panels:
         - /TF1/Frames1
         - /Front_web1
       Splitter Ratio: 0.5
-    Tree Height: 269
+    Tree Height: 437
   - Class: rviz/Selection
     Name: Selection
   - Class: rviz/Tool Properties
@@ -31,7 +31,7 @@ Panels:
     Experimental: false
     Name: Time
     SyncMode: 0
-    SyncSource: ""
+    SyncSource: Front_web
 Visualization Manager:
   Class: ""
   Displays:
@@ -175,7 +175,39 @@ Visualization Manager:
       Tree:
         map:
           odom:
-            {}
+            base_link:
+              electronics_center:
+                arm_link:
+                  {}
+                back_left_link:
+                  {}
+                back_link:
+                  {}
+                back_right_link:
+                  {}
+                front_left_link:
+                  front_left_depth_frame:
+                    front_left_depth_optical_frame:
+                      {}
+                  front_left_rgb_frame:
+                    front_left_rgb_optical_frame:
+                      {}
+                front_link:
+                  front_depth_frame:
+                    front_depth_optical_frame:
+                      {}
+                  front_rgb_frame:
+                    front_rgb_optical_frame:
+                      {}
+                front_right_link:
+                  front_right_depth_frame:
+                    front_right_depth_optical_frame:
+                      {}
+                  front_right_rgb_frame:
+                    front_right_rgb_optical_frame:
+                      {}
+                up_link:
+                  {}
       Update Interval: 0
       Value: true
     - Class: rviz/Image
