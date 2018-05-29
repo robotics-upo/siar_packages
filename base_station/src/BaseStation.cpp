@@ -97,19 +97,19 @@ t_log(), xy_dist(1.2), z_dist(0.3), node(NULL), uavs(), pos_log(), time_step(0.1
 
 void BaseStation::resizeWindows()
 {
-  QSize size_ = tab_2->size();
+  QSize size_ = size();
   
-  window_1->setMinimumWidth(size_.width()*0.66);
-  window_1->setMaximumWidth(size_.width()*1.1);
-  window_1->setMaximumHeight(size_.height()*1.2);
-  window_1->setMinimumHeight(size_.height()*0.75);
-  window_2->setMinimumWidth(size_.width()*0.62);
-  window_2->setMaximumWidth(size_.width()*1.0);
-  window_2->setMaximumHeight(size_.height()*1.2);
-  window_2->setMinimumHeight(size_.height()*0.75);
+  window_1->setMinimumWidth(size_.width()*0.5);
+  window_1->setMaximumWidth(size_.width()*2.1);
+  window_1->setMaximumHeight(size_.height()*2.2);
+  window_1->setMinimumHeight(size_.height()*0.6);
+  window_2->setMinimumWidth(size_.width()*0.5);
+  window_2->setMaximumWidth(size_.width()*2.0);
+  window_2->setMaximumHeight(size_.height()*2.2);
+  window_2->setMinimumHeight(size_.height()*0.6);
   window_3->setMinimumWidth(size_.width());
-  window_3->setMaximumWidth(size_.width()*2);
-  window_3->setMaximumHeight(size_.height()*0.8);
+  window_3->setMaximumWidth(size_.width()*3);
+  window_3->setMaximumHeight(size_.height()*1.2);
   window_3->setMinimumHeight(size_.height()*0.2);
 }
 
@@ -222,7 +222,7 @@ void BaseStation::configureMap() {
     
     std::cerr << "COuld not create satellite view\n";
   }
-  render_panel_2->setMaximumHeight(300);
+//   render_panel_2->setMaximumHeight(300);
   
   // Create a Grid display.
   grid_display2 = manager_2->createDisplay( "rviz/Grid", "grid", true );

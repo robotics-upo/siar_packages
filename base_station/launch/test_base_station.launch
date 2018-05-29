@@ -3,7 +3,7 @@
   
   <arg name="joystick" default="true"/>
   
-  <arg name="bag_file" default="/home/chur/siar_2018-05-09-11-40-21.bag"/>
+  <arg name="bag_file" default="/home/chur/GasNatural/siar_2018-05-10-09-58-55.bag"/>
   <arg name="play_bag" default="true"/>
   
   <arg name="start" default="0"/>
@@ -21,7 +21,7 @@
     
     # Use simulation time fro TFs
     <remap from="/front_web/rgb/camera_info" to="/front/rgb/camera_info"/>
-    <remap from="/front_web/rgb/image_raw" to="/front/rgb/image_raw"/>
+    <remap from="/front_web/rgb/image_raw/compressed" to="/front/rgb/image_raw/compressed"/>
     <remap from="/front_left_web/rgb/camera_info" to="/front_left/rgb/camera_info"/>
     <remap from="/front_left_web/rgb/image_raw" to="/front_left/rgb/image_raw"/>
     <remap from="/front_right_web/rgb/camera_info" to="/front_right/rgb/camera_info"/>
