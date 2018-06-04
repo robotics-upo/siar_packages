@@ -33,6 +33,7 @@
 #include <QMdiArea>
 #include <QMdiSubWindow>
 #include "rviz/default_plugin/camera_display.h"
+#include "rviz/default_plugin/image_display.h"
 
 using namespace std;
 using namespace functions;
@@ -67,16 +68,11 @@ t_log(), xy_dist(1.2), z_dist(0.3), node(NULL), uavs(), pos_log(), time_step(0.1
 //   window_1->resize(640, 480);
   window_1->setWindowTitle("PointClouds");
   
-  
-  
   window_2 = configureCameraDisplay();
-  
   
   window_3 = configureRVizDisplay(manager_2, render_panel_2, "map", mdiArea);
   window_3->setWindowTitle("Map");
   configureMap();
-  
-  
   
   // End of RVIZ stuff
   resizeWindows();
@@ -84,8 +80,6 @@ t_log(), xy_dist(1.2), z_dist(0.3), node(NULL), uavs(), pos_log(), time_step(0.1
   QMdiArea &q = *mdiArea;
 //   q.tileSubWindows();
 //   q.cascadeSubWindows();
- 
-  
   
   // Make Qt connections
   connect(emergencyButton, SIGNAL(released()), node, SLOT(setEmergencyStop())); 
@@ -96,22 +90,21 @@ t_log(), xy_dist(1.2), z_dist(0.3), node(NULL), uavs(), pos_log(), time_step(0.1
 
 void BaseStation::resizeWindows()
 {
-  QSize size_ = tab_2->size();
+  QSize size_ = size();
   
-  window_1->setMinimumWidth(size_.width()*0.66);
-  window_1->setMaximumWidth(size_.width()*1.1);
-  window_1->setMaximumHeight(size_.height()*1.2);
-  window_1->setMinimumHeight(size_.height()*0.75);
-  window_2->setMinimumWidth(size_.width()*0.62);
-  window_2->setMaximumWidth(size_.width()*1.0);
-  window_2->setMaximumHeight(size_.height()*1.2);
-  window_2->setMinimumHeight(size_.height()*0.75);
+  window_1->setMinimumWidth(size_.width()*0.5);
+  window_1->setMaximumWidth(size_.width()*2.1);
+  window_1->setMaximumHeight(size_.height()*2.2);
+  window_1->setMinimumHeight(size_.height()*0.6);
+  window_2->setMinimumWidth(size_.width()*0.5);
+  window_2->setMaximumWidth(size_.width()*2.0);
+  window_2->setMaximumHeight(size_.height()*2.2);
+  window_2->setMinimumHeight(size_.height()*0.6);
   window_3->setMinimumWidth(size_.width());
-  window_3->setMaximumWidth(size_.width()*2);
-  window_3->setMaximumHeight(size_.height()*0.8);
+  window_3->setMaximumWidth(size_.width()*3);
+  window_3->setMaximumHeight(size_.height()*1.2);
   window_3->setMinimumHeight(size_.height()*0.2);
 }
-
 
 BaseStation::BaseStation(const QMainWindow& ): QMainWindow()
 {
@@ -155,8 +148,6 @@ QMdiSubWindow *BaseStation::configureRVizDisplay(rviz::VisualizationManager*& ma
     manager->initialize();
     manager->startUpdate();
     manager->setFixedFrame(QString::fromStdString(frame));
-    
-    
   }
   
   return ret_val;
@@ -172,13 +163,15 @@ void BaseStation::configurePointCloud(rviz::Display *&pc_display, const std::str
 
 QMdiSubWindow *BaseStation::configureCameraDisplay() {
   QMdiSubWindow *ret_val = NULL;
-  camera_display = manager_->createDisplay("rviz/Camera", "Front camera",true);
+//   camera_display = manager_->createDisplay("rviz/Camera", "Front camera",true);
+  camera_display = manager_->createDisplay("rviz/Image", "Front camera",true);
   camera_display->setTopic("/front_web/rgb/image_raw", "sensor_msgs/Image");
-//   camera_display->subProp("Transport Hint")->setValue("compressed");
-  camera_display->subProp("Overlay Alpha")->setValue(0.9);
+  camera_display->subProp("Transport Hint")->setValue("compressed");
+//   camera_display->subProp("Overlay Alpha")->setValue(0.9);
 //   camera_display->subProp("Image Rendering")->setValue("background");
   
-  rviz::CameraDisplay *a = dynamic_cast<rviz::CameraDisplay*>(camera_display);
+//   rviz::CameraDisplay *a = dynamic_cast<rviz::CameraDisplay*>(camera_display);
+  rviz::ImageDisplay *a = dynamic_cast<rviz::ImageDisplay*>(camera_display);
   if (a!=NULL) {
 //     std::cout << "Here Camera\n";
     
@@ -219,7 +212,7 @@ void BaseStation::configureMap() {
     
     std::cerr << "COuld not create satellite view\n";
   }
-  render_panel_2->setMaximumHeight(300);
+//   render_panel_2->setMaximumHeight(300);
   
   // Create a Grid display.
   grid_display2 = manager_2->createDisplay( "rviz/Grid", "grid", true );
@@ -298,9 +291,10 @@ void BaseStation::updateSiarStatus(const siar_driver::SiarStatus& state)
   if (state.operation_mode == 0) {
     radioButton_manual->setChecked(true);
   } else {
-    radioButton_automatic->setChecked(false);
+    radioButton_automatic->setChecked(true);
   }
-    
+  checkBox_front->setChecked( state.front_light!=0);
+  checkBox_rear->setChecked( state.rear_light!=0);
   
   label_width->setText(QString::number(state.width));
   

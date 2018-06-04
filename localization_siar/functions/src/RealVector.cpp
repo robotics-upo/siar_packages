@@ -1,6 +1,6 @@
-#include "RealVector.h"
-#include "functions.h"
-#include "RandomNumberGenerator.h"
+#include "functions/RealVector.h"
+#include "functions/functions.h"
+#include "functions/RandomNumberGenerator.h"
 
 using namespace std;
 
@@ -286,21 +286,25 @@ double RealVector::distanceToSegment(const functions::RealVector& s1, const func
 {
   // As indicated in http://local.wasp.uwa.edu.au/~pbourke/geometry/pointline/
   // Calculate the u value.
-  // This value will be used to calculate the projection point (P') of this point to the line that passes through s1 and s2
-  // P = P1 + u (P2 - P1)
   
-  double u = (*this - s1) * (s2 - s1) / ((s2 - s1) * (s2 - s1));
+  RealVector n = s2 - s1;
+  RealVector v = (*this) - s1;
+ 
+  double c = n * v;
+ 
+  // Closest point is a
+  if ( c < 0.0 )
+    return v.norm();
   
-  if (u > 0 && u < 1) {
-    // The projection point is inside the segment -> so the distance to the segment is the distance to the projection
-    return distance(s1 + (s2 - s1) * u);
-  } else {
-    // If the projection point does not belong to the segment
-    // The distance to the segment is the minimum distance to the vertices
-    return minimum(distance(s1), distance(s2));
+  if ( c > n * n) {
+    return distance(s2);
   }
   
-  RealVector aux; 
+  
+  // Closest point is between a and b
+  RealVector e = v - n * (c / (n*n) );
+
+  return e.norm();
 }
 
 double RealVector::angle(const functions::RealVector& other) const

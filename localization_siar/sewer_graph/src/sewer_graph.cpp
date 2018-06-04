@@ -223,7 +223,7 @@ double SewerGraph::getDistanceToClosestEdge(double x, double y, int &id1, int &i
   
   static RealVector v1(2),v2(2);
   for (int i = 0; i < nVertices(); i++) {
-    static SewerVertex v = getVertexContent(i);
+    SewerVertex v = getVertexContent(i);
     v1[0] = v.x;v1[1] = v.y;
     
     // iterate the edges
@@ -234,11 +234,19 @@ double SewerGraph::getDistanceToClosestEdge(double x, double y, int &id1, int &i
       //! @brief Calculates the distance between the point and a segment with vertices s1 and s2
       v = getVertexContent(*it);
       v2[0] = v.x;v2[1] = v.y;
+      
       double dis = pos.distanceToSegment(v1, v2);
       if (ret_val < 0.0 || ret_val > dis) {
 	id1 = i;
 	id2 = *it;
         ret_val = dis;
+	
+	// Debug
+// 	std::cout << "v1 = " << v1.toString() << "\t";
+// 	std::cout << "v2 = " << v2.toString() << "\t";
+// 	std::cout << "pos = " << pos.toString() << "\t";
+// 	std::cout << "ids= " << id1 <<", " << id2 << "\t";
+// 	std::cout << "dis = " << dis << "\n";
       }
       
     }
@@ -386,8 +394,7 @@ std::vector<visualization_msgs::Marker> SewerGraph::getMarkers(std::string ref_f
     else 
       normal.points.push_back(p);
   
-  // TODO: Represent edges
-  
+    // Representing edges  
   
     std::list<int> n = vertices[i].getNeighbours();
     std::list<int>::iterator it = n.begin();

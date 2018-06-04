@@ -19,9 +19,9 @@ initial_a=2.4788
 bag_file=/home/chur/Dataset/2017-10-17_Demo_Sewers/siar_2017-10-17-10-12-16.bag
 ground_file=/home/chur/Dataset/2017-10-17_Demo_Sewers/input_vector_2017-10-17-10-12-16_ground_truth.txt
 start=1670
-odom_a_mod=0.15
-odom_a_noise=0.075
-odom_x_mod=0.3
+odom_a_mod=0.2
+odom_a_noise=0.1
+odom_x_mod=0.4
 
 
 # # With yaw estimation --> yaw_estimator --> true

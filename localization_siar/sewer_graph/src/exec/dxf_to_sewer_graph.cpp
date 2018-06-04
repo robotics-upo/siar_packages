@@ -32,7 +32,7 @@ SewerGraph g;
 
 int main(int argc, char ** argv) {
   if (argc < 5) {
-    cerr << "Usage: " << argv[0] << " <dxf_filename> <x> <y> <out_file> <max_d>\n";
+    cerr << "Usage: " << argv[0] << " <dxf_filename> <out_file> <x> <y> <max_d>\n";
     return -1;
   }
   string out_file(argv[2]);
