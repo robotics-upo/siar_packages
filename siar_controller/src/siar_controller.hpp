@@ -40,7 +40,7 @@ public:
   
 protected:
   // Camera info subscribers and initialization
-  ros::Subscriber costmap_sub, cmd_vel_sub, odom_sub, mode_sub, planned_cmd_vel_sub;
+  ros::Subscriber costmap_sub, cmd_vel_sub, odom_sub, mode_sub, planned_cmd_vel_sub, status_sub;
   ros::Publisher cmd_vel_pub, footprint_marker_pub, trajectory_marker_pub;
   
   // Operation mode
@@ -143,6 +143,9 @@ reconfigure_server_(),config_init_(false),occ_received(false), cmd_eval(NULL), t
   cmd_vel_pub = nh.advertise<geometry_msgs::Twist>(nh.resolveName("cmd_vel_out"), 2);
   trajectory_marker_pub = nh.advertise<visualization_msgs::MarkerArray>("/trajectory_marker", 10);
   footprint_marker_pub = nh.advertise<visualization_msgs::Marker>("/best_marker", 10);
+
+    status_sub = nh.subscribe("/siar_status", 2, &SiarController::statusCallback, this);
+
   
 //   ROS_INFO("Update Rate: %f", _conf.T);
   ros::Rate r(1.0/_conf.T);
@@ -156,6 +159,8 @@ reconfigure_server_(),config_init_(false),occ_received(false), cmd_eval(NULL), t
   
   // Initialize random sequence
   srand((unsigned)std::time(NULL));
+
+
 }
 
 void SiarController::getParameters(ros::NodeHandle& pn)
@@ -596,11 +601,11 @@ void SiarController::copyMarker(visualization_msgs::Marker& dst, const visualiza
 void SiarController::statusCallback(const siar_driver::SiarStatus& msg)
 {
   // Check if the width has changed enough to perform an actualization of the footprint
-  
-  if (fabs(msg.width - _conf.robot_width) > width_thres) {
-    cmd_eval->getFootprint()->setWidth(msg.width + width_thres*0.5);
-    _conf.robot_width = msg.width + width_thres*0.5;
-    ROS_INFO("Setting new width footprint: %f", msg.width);
+  double new_width = msg.width - 0.04;
+  if (fabs(new_width - _conf.robot_width) > width_thres && cmd_eval != NULL ) {
+    cmd_eval->setWidth(new_width);
+    _conf.robot_width = new_width;
+    ROS_INFO("Setting new width footprint: %f", new_width);
   }
 }
 
