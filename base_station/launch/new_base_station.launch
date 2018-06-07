@@ -4,6 +4,7 @@
   <arg name="joystick" default="true"/>
   <arg name="mode_360" default="true"/>
   <arg name="ip_address" default="192.168.168.11"/>
+  <arg name="detection" default="false"/>
   
   <!-- TF stuff (only odom is going through the wifi) -->
   <include file="$(find siar_driver)/launch/frames_7_cam_new_platform.launch"/>
@@ -109,7 +110,7 @@
   
   <node pkg="alert_db" type="alert_db_node" name="alert_db" output="screen"/>
   
-  <include file="$(find pcl_processing)/launch/map_analysis.launch">
+  <include file="$(find pcl_processing)/launch/map_analysis.launch" if="$(arg detection)">
     <arg name="generate_cloud" value="false"/>
   </include>
   

@@ -6,6 +6,7 @@
 #include <ros/ros.h>
 #include <sensor_msgs/NavSatFix.h>
 #include "alert_db/GenerateAlert.h"
+#include <std_msgs/String.h>
 #include <visualization_msgs/Marker.h>
 #include <tf/transform_listener.h>
 
@@ -45,7 +46,7 @@ public:
   
 protected:
   std::vector<Alert> alerts;
-  ros::Publisher marker_pub;
+  ros::Publisher marker_pub, text_pub;
   ros::Subscriber gps_fix_sub, image_sub;
   ros::ServiceServer generate_alert_server;
   sensor_msgs::NavSatFix fix;
@@ -77,6 +78,7 @@ AlertDB::AlertDB(ros::NodeHandle &nh, ros::NodeHandle &lnh):fix_init(false), ini
   }
   
   // Publishers, Subscribers and Services
+  text_pub = nh.advertise<std_msgs::String>("/alert_text", 10);
   marker_pub = nh.advertise<visualization_msgs::Marker>("/alerts", 10);
   generate_alert_server = nh.advertiseService("/generate_alert", &AlertDB::generateAlert, this);
   gps_fix_sub = nh.subscribe("/gps/fix", 2, &AlertDB::gpsFixCb, this);
@@ -116,6 +118,10 @@ bool AlertDB::generateAlert(GenerateAlert::Request& req, GenerateAlert::Response
     alerts.push_back(curr_alert);
     ret_val = true;
     publishMarker();
+    
+    std_msgs::String text_msg;
+    text_msg.data = toString();
+    text_pub.publish(text_msg);
     
     ROS_INFO("New alert generated. Type = %d. Description = %s", req.type, req.description.c_str());
   } catch (std::exception &e) {
@@ -196,6 +202,7 @@ string AlertDB::toString() const
   
   return os.str();
 }
+
 
 
 }

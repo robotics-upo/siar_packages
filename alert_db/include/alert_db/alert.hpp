@@ -13,7 +13,7 @@ namespace alert_db
 {
 
 enum AlertType {
-  INIT, REPEATER, STRUCTURAL_DEFECT, SERVICEABILITY, END, ALL = 255
+  INIT, REPEATER, STRUCTURAL_DEFECT, SERVICEABILITY, INLET, MANHOLE, END=254, ALL = 255
 };
 
 class Alert {
@@ -51,11 +51,15 @@ string Alert::toString() const
 {
   std::ostringstream os;
   
-  os << "Alert ID: " << m_id << "\t";
-  os << "Type: " << m_type << "\n";
-  os << "Stamp: " << m_alert.head.stamp << "\n";
-  os << "Location: " << m_location.toString() << std::endl;
-  os << "Description: " << m_alert.description << std::endl;
+  const std::string sep="\t\t";
+  
+  os << "Alert ID: " << sep << m_id << "\n";
+  os << "  Type: " << sep << m_type << "\n";
+  os << "  Stamp: " << sep << m_alert.head.stamp << "\n";
+  os << "  Global Location: " << sep << m_location.toString() << std::endl;
+  os << "  Local Location: " << sep << "(" << m_pose.position.x << ", " << m_pose.position.y << ")\n";
+  os << "  Description: " << sep << m_alert.description << std::endl;
+  os << "  Distance to manhole: " << sep << m_alert.dist_manhole << std::endl;
   
   return os.str();
 }
@@ -121,7 +125,7 @@ visualization_msgs::Marker Alert::getMarker(const std::string &map_frame) const
       break;
       
     case STRUCTURAL_DEFECT:
-      m.color.b = 1.0;
+      m.color.r = 1.0;
       m.text = "structural defect";
       m.type = m.type = visualization_msgs::Marker::SPHERE;
       break;
@@ -133,6 +137,12 @@ visualization_msgs::Marker Alert::getMarker(const std::string &map_frame) const
       m.text = "repeater";
       m.type = visualization_msgs::Marker::CUBE;
       break;
+      
+    case INLET:
+      m.color.g = m.color.r = 0.2;
+      m.color.b = 1.0;
+      m.text = "inlet";
+      m.type = visualization_msgs::Marker::CYLINDER;
   }
   
   return m;

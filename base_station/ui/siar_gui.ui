@@ -91,7 +91,7 @@
           </property>
           <property name="icon">
            <iconset>
-            <normaloff>../../../../../.designer/icons/emer_stop.jpeg</normaloff>../../../../../.designer/icons/emer_stop.jpeg</iconset>
+            <normaloff>../../../../../../../../../../../.designer/icons/emer_stop.jpeg</normaloff>../../../../../../../../../../../.designer/icons/emer_stop.jpeg</iconset>
           </property>
           <property name="iconSize">
            <size>
@@ -532,7 +532,15 @@
     </property>
     <addaction name="actionAbout"/>
    </widget>
+   <widget class="QMenu" name="menuView">
+    <property name="title">
+     <string>View</string>
+    </property>
+    <addaction name="actionExploration"/>
+    <addaction name="actionAlert"/>
+   </widget>
    <addaction name="menuFile"/>
+   <addaction name="menuView"/>
    <addaction name="menuHelp"/>
   </widget>
   <widget class="QStatusBar" name="statusbar"/>
@@ -543,7 +551,17 @@
   </action>
   <action name="actionLoad_Graph">
    <property name="text">
-    <string>Load Graph</string>
+    <string>Save Log</string>
+   </property>
+  </action>
+  <action name="actionExploration">
+   <property name="text">
+    <string>Exploration</string>
+   </property>
+  </action>
+  <action name="actionAlert">
+   <property name="text">
+    <string>Mission</string>
    </property>
   </action>
  </widget>

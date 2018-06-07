@@ -39,8 +39,12 @@ Comms::Comms(int argc, char** argv):spinner(NULL),emergency(false),slow(false),a
   // Subscribers:
   status_sub = nh.subscribe<const siar_driver::SiarStatus::ConstPtr&>("siar_status", 2, &Comms::siarStatusCallback, this);
   rssi_sub = nh.subscribe<const rssi_get::Nvip_status::ConstPtr&>("/rssi_nvip_2400", 2, &Comms::nvipCallback, this);
+  text_sub = nh.subscribe<const std_msgs::String::ConstPtr&>("/alert_text", 2, &Comms::alertTextCallback, this);
+  
+  // Publisher
   emergency_pub = nh.advertise<std_msgs::Bool>("/emergency_stop",2);
   elec_x_pub = nh.advertise<std_msgs::Float32>("/width_pos",2);
+  
 }
  
 
@@ -76,6 +80,11 @@ void Comms::siarStatusCallback(const siar_driver::SiarStatus::ConstPtr& s)
 void Comms::nvipCallback(const rssi_get::Nvip_status::ConstPtr& msg)
 {
   emit newRSSI(*msg);
+}
+
+void Comms::alertTextCallback(const std_msgs::String::ConstPtr& msg)
+{
+  emit alertDBReceived(msg->data);
 }
 
 

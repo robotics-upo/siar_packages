@@ -17,7 +17,7 @@
   <node pkg="odom_to_tf" type="odom_to_tf.py" name="odom_to_tf"/>
   
   <!-- Representation stuff-->
-  <node pkg="base_station" type="base_station" name="bs" >
+  <node pkg="base_station" type="base_station" name="bs" output="screen">
     
     # Use simulation time fro TFs
     <remap from="/front_web/rgb/camera_info" to="/front/rgb/camera_info"/>

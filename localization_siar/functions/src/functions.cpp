@@ -344,7 +344,7 @@ string loadStringFile(const string& filename)
   try {
     filestr.open( filename.c_str() );
     if (filestr.is_open()) {
-      filestr.exceptions(ifstream::failbit | ifstream::badbit);
+//       filestr.exceptions(ifstream::failbit | ifstream::badbit);
       while ( !filestr.eof() && filestr.good() ) {
 	filestr.getline(buff, MAX_BUFFER_SIZE_FUNCTIONS__ - 1); // Get the current line
 	string s(buff);

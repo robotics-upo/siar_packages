@@ -1,15 +1,15 @@
 
 #include <ros/ros.h>
+#include <std_msgs/String.h>
+
 #include <iostream>
 #include <math.h>
 #include <boost/lexical_cast.hpp>
 
-#include <sstream>
-#include <fstream>
-#include "functions/FormattedTime.h"
 #include "functions/functions.h"
 
-#include "Comms.h"
+#include <sstream>
+#include <fstream>
 
 #include <iostream>
 
@@ -17,33 +17,33 @@ using namespace std;
 
 int main(int argc, char **argv) {
   
-  if (argc < 3) {
-    std::cout << "Usage: " << argv[0] << " <uav1> <uav2> ..." << std::endl;
+  if (argc < 2) {
+    std::cout << "Usage: " << argv[0] << " <text file> ..." << std::endl;
     return -1;
   }
   
   ros::init(argc, argv, "testComm");
-  Comms comms(argc, argv);
-  uint n_uavs;
-  std::vector<uint> uavs;
-   
-  for (int i = 1; i < argc; i++) {
-    std::istringstream iss(argv[i]);
-    iss >> n_uavs;
-    uavs.push_back(n_uavs);
+  ros::NodeHandle nh;
+  
+  string s(argv[1]);
+  string topic("/alert_text");
+
+  ros::Publisher text_pub = nh.advertise<std_msgs::String>(topic,2);
+
+  string text = functions::loadStringFile(s);
+  
+  
+  cout << "Publishing " << text << "\n to topic: " << topic << endl;
+  
+  std_msgs::String msg;
+  msg.data = text;
+  
+  
+  while (ros::ok()) { 
+    text_pub.publish(msg);
+    sleep (1);
+    
   }
-  n_uavs = uavs.size();
-  
-  comms.setTopics("ual_", "quad_state_estimation", "v_pref", "cmd_vel", "state", "emergency_stop");
-  
-  cout << "Starting Communication with UAVs: " << functions::printVector(uavs) << endl;
-  comms.startComms(uavs);
-  
-//   std::string s;
-//   std::cin >> s;
-  while (ros::ok()) { sleep (1);}
-  
-  comms.shutdownComms();
   
   return 0;
 }

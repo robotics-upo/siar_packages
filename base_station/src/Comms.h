@@ -34,6 +34,7 @@
 #include <geometry_msgs/Twist.h>
 #include <boost/thread.hpp>
 #include <boost/thread/mutex.hpp>
+#include <std_msgs/String.h>
 
 class Comms:public QObject
 {
@@ -50,6 +51,7 @@ public:
 signals:
   void siarStatusChanged(const siar_driver::SiarStatus new_status);
   void newRSSI(const rssi_get::Nvip_status new_status);
+  void alertDBReceived(const std::string alert_string);
   
 public slots:
   void setEmergencyStop();
@@ -60,7 +62,7 @@ private:
   bool emergency, slow; // Are we in emergency mode?
   int automatic; // Are we in automatic mode?
   
-  ros::Subscriber status_sub, rssi_sub;
+  ros::Subscriber status_sub, rssi_sub, text_sub;
   ros::Publisher emergency_pub, elec_x_pub;
   functions::FormattedTime init_log_time;
   
@@ -69,6 +71,9 @@ private:
   
   //! @brief Gets the comms status
   void nvipCallback(const rssi_get::Nvip_status::ConstPtr& msg);
+  
+  //! @brief Gets the comms status
+  void alertTextCallback(const std_msgs::String::ConstPtr& msg);
   
   // ROS stuff
   ros::AsyncSpinner *spinner;

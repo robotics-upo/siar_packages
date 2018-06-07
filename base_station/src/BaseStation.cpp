@@ -34,6 +34,9 @@
 #include <QMdiSubWindow>
 #include "rviz/default_plugin/camera_display.h"
 #include "rviz/default_plugin/image_display.h"
+#include "rviz/view_controller.h"
+
+#include "OGRE/OgreCamera.h"
 
 using namespace std;
 using namespace functions;
@@ -42,7 +45,7 @@ using boost::bad_lexical_cast;
 
 BaseStation::BaseStation(int argc, char **argv, QWidget* parent, Qt::WindowFlags flags): 
 QMainWindow(parent, flags), argc(argc), argv(argv), init_log_time(), curves(), curves_z(), distance_log(), distance_log_z(), position_log(),
-t_log(), xy_dist(1.2), z_dist(0.3), node(NULL), uavs(), pos_log(), time_step(0.1), timer(NULL), count(0), started(false)
+t_log(), node(NULL), uavs(), pos_log(), started(false)
 {
   setupUi(this);
   QwtDialSimpleNeedle *nd = new QwtDialSimpleNeedle(QwtDialSimpleNeedle::Arrow, Qt::white, Qt::red);
@@ -75,36 +78,89 @@ t_log(), xy_dist(1.2), z_dist(0.3), node(NULL), uavs(), pos_log(), time_step(0.1
   configureMap();
   
   // End of RVIZ stuff
-  resizeWindows();
+  
+  // Tree widget!!
+  tree_widget = new QTreeWidget(this);
+  window_4 = mdiArea->addSubWindow(tree_widget);
+  window_4->showMinimized();
+  window_4->setWindowTitle("Database");
+  
+  
+  setExploreView();
+  
+  setRvizExplorationView(false);
+  last_status.reverse = false;
  
   QMdiArea &q = *mdiArea;
 //   q.tileSubWindows();
 //   q.cascadeSubWindows();
   
   // Make Qt connections
-  connect(emergencyButton, SIGNAL(released()), node, SLOT(setEmergencyStop())); 
+  connect(actionExploration, SIGNAL(triggered()), this, SLOT(setExploreView()));
+  connect(actionAlert, SIGNAL(triggered()), this, SLOT(setMissionView()));
+  connect(emergencyButton, SIGNAL(clicked()), node, SLOT(setEmergencyStop())); 
   connect(node, SIGNAL(siarStatusChanged(const siar_driver::SiarStatus &)), this, SLOT(updateSiarStatus(const siar_driver::SiarStatus &)));
   connect(node, SIGNAL(newRSSI(const rssi_get::Nvip_status&)), this, SLOT(updateRSSIStatus(const rssi_get::Nvip_status &)));
+  connect(node, SIGNAL(alertDBReceived(const std::string&)), this, SLOT(updateTreeContent(const std::string&)));
   connect(horizontalSlider_width_indicator_2, SIGNAL(valueChanged(int)), node, SLOT(setElecX(int)));
 }
 
-void BaseStation::resizeWindows()
+void BaseStation::setExploreView()
 {
-  QSize size_ = size();
+  QSize size_ = this->size();
   
-  window_1->setMinimumWidth(size_.width()*0.5);
+  window_1->showNormal();
+  window_2->showNormal();
+  window_3->showNormal();
+  window_4->showMinimized();
+  
+  window_1->setMinimumWidth(size_.width()*0.2);
+  window_1->resize(size_.width()*0.4, size_.height()*0.7);
   window_1->setMaximumWidth(size_.width()*2.1);
   window_1->setMaximumHeight(size_.height()*2.2);
-  window_1->setMinimumHeight(size_.height()*0.6);
-  window_2->setMinimumWidth(size_.width()*0.5);
+  window_1->setMinimumHeight(size_.height()*0.2);
+  window_2->setMinimumWidth(size_.width()*0.1);
   window_2->setMaximumWidth(size_.width()*2.0);
+  window_2->resize(size_.width()*0.4, size_.height()*0.7);
   window_2->setMaximumHeight(size_.height()*2.2);
-  window_2->setMinimumHeight(size_.height()*0.6);
-  window_3->setMinimumWidth(size_.width());
+  window_2->setMinimumHeight(size_.height()*0.1);
+  window_3->setMinimumWidth(size_.width()*0.2);
   window_3->setMaximumWidth(size_.width()*3);
   window_3->setMaximumHeight(size_.height()*1.2);
-  window_3->setMinimumHeight(size_.height()*0.2);
+  window_3->setMinimumHeight(size_.height()*0.1);
+  window_3->resize(size_.width()*0.8, size_.height()*0.2);
+  
+  window_1->move(0,0);
+  window_2->move(size_.width()*0.4,0);
+  window_3->move(0, size_.height()*0.7);
 }
+
+void BaseStation::setMissionView()
+{
+  QSize size_ = this->size();
+  
+  window_1->showMinimized();
+  window_2->showMinimized();
+  window_3->showNormal();
+  window_4->showNormal();
+  
+  window_3->setMinimumWidth(size_.width()*0.2);
+  window_3->setMaximumWidth(size_.width()*3);
+  window_3->setMaximumHeight(size_.height()*2.2);
+  window_3->setMinimumHeight(size_.height()*0.1);
+  window_3->resize(size_.width()*0.6, size_.height()*0.9);
+  window_3->move(0, 0);
+  
+  window_4->setMinimumWidth(size_.width()*0.2);
+  window_4->setMaximumWidth(size_.width()*3);
+  window_4->setMaximumHeight(size_.height()*2.2);
+  window_4->setMinimumHeight(size_.height()*0.1);
+  window_4->resize(size_.width()*0.2, size_.height()*0.9);
+  
+  window_4->move(size_.width()*0.6, 0);
+}
+
+
 
 BaseStation::BaseStation(const QMainWindow& ): QMainWindow()
 {
@@ -173,8 +229,6 @@ QMdiSubWindow *BaseStation::configureCameraDisplay() {
 //   rviz::CameraDisplay *a = dynamic_cast<rviz::CameraDisplay*>(camera_display);
   rviz::ImageDisplay *a = dynamic_cast<rviz::ImageDisplay*>(camera_display);
   if (a!=NULL) {
-//     std::cout << "Here Camera\n";
-    
     ret_val = mdiArea->addSubWindow(a->getAssociatedWidget());
 //     a->set
   }
@@ -194,7 +248,6 @@ QMdiSubWindow *BaseStation::configureCameraDisplay() {
   robot_model_display = manager_->createDisplay("rviz/RobotModel", "robot model", true);
   
   
-  
   return ret_val;
 //   image_display = manager_->createDisplay("rviz/Image", "Front image", true);
 //   image_display->setTopic("/front_web/rgb/image_raw", "sensor_msgs/Image");
@@ -203,16 +256,16 @@ QMdiSubWindow *BaseStation::configureCameraDisplay() {
 void BaseStation::configureMap() {
   sat_view = manager_2->createDisplay("rviz_plugins/AerialMapDisplay","Localization display",true);
   if (sat_view != NULL) {
-    std::cout << "Here\nHere\nhere\n";
+//     std::cout << "Here\nHere\nhere\n"; (does enter)
     sat_view->subProp("Zoom")->setValue(18);
     sat_view->subProp("Object URI")->setValue("http://a.tiles.mapbox.com/v4/mapbox.streets/{z}/{x}/{y}.jpg?access_token=pk.eyJ1IjoiY2h1cnIiLCJhIjoiY2l6dHQzZWJyMDFnZjMzbnA1cDR4MWV3cCJ9.r-YuBsl8JXSBQ_UXTOeSYA");
     sat_view->setTopic("/gps/fix","sensor_msgs/NavSatFix");
-    sat_view->subProp("Robot Frame")->setValue("map");
+    sat_view->subProp("Robot frame")->setValue("map");
+    sat_view->subProp("Blocks")->setValue(8);
+//     ROS_INFO("%s", sat_view->subProp("Status")->getValue());
   } else {
-    
-    std::cerr << "COuld not create satellite view\n";
+    std::cerr << "Could not create satellite view\n";
   }
-//   render_panel_2->setMaximumHeight(300);
   
   // Create a Grid display.
   grid_display2 = manager_2->createDisplay( "rviz/Grid", "grid", true );
@@ -255,21 +308,10 @@ void BaseStation::stopComms()
     started = false;
     node->shutdownComms();
   }
-  delete timer;
-  timer = NULL;
 }
 
 void BaseStation::updateValues()
 {
-  FormattedTime t;
-  t.getTime();
-  
-//   ostringstream os;
-//   os << "Getting Values " << count;
-//   statusBar()->showMessage(QString(os.str().c_str()));
-   
-  t_log.push_back(t - init_log_time);
-  count++;
 }
 
 void BaseStation::updateSiarStatus(const siar_driver::SiarStatus& state)
@@ -300,11 +342,102 @@ void BaseStation::updateSiarStatus(const siar_driver::SiarStatus& state)
   
   QwtDial &d = *Dial_speed;
   d.setValue(fabs(state.speed));
+  
+  if (last_status.reverse != state.reverse) {
+    // The mode has changed --> change the view automatically
+    setRvizExplorationView(state.reverse);
+  }
+ 
+  last_status = state;
 }
 
 void BaseStation::updateRSSIStatus(const rssi_get::Nvip_status& status)
 {
   progressBar_rssi->setValue(status.rssi_perc);
+}
+
+void BaseStation::updateTreeContent(const string& string)
+{
+  tree_widget->clear();
+  // Get the Lines
+  QString text(QString::fromStdString(string));
+  QStringList lines = text.split("\n");
+  
+  
+  QList<QTreeWidgetItem*> parents;
+  QList<int> indentations;
+  parents << tree_widget->invisibleRootItem();
+  indentations << 0;
+
+  int number = 0;
+  
+//   Adapted from Qt Simple Tree Model Tutorial
+  while (number < lines.count()) 
+  {
+    int position = 0;
+    while (position < lines[number].length()) {
+      if (lines[number].at(position) != ' ')
+        break;
+      position++;
+    }
+
+    QString lineData = lines[number].mid(position).trimmed();
+
+    if (!lineData.isEmpty()) {
+      // Read the column data from the rest of the line.
+      QStringList columnStrings = lineData.split("\t", QString::SkipEmptyParts);
+      QList<QVariant> columnData;
+      for (int column = 0; column < columnStrings.count(); ++column)
+        columnData << columnStrings[column];
+
+      if (position > indentations.last()) {
+          // The last child of the current parent is now the new parent
+          // unless the current parent has no children.
+
+          if (parents.last()->childCount() > 0) {
+              parents << parents.last()->child(parents.last()->childCount()-1);
+              indentations << position;
+          }
+      } else {
+          while (position < indentations.last() && parents.count() > 0) {
+              parents.pop_back();
+              indentations.pop_back();
+          }
+      }
+
+      // Append a new item to the current parent's list of children.
+      QTreeWidgetItem *new_item = new QTreeWidgetItem(parents.last(), columnStrings);
+    }
+
+    ++number;
+  }
+}
+
+void BaseStation::setRvizExplorationView(bool reverse)
+{
+  ROS_INFO("Changing view. Reverse = %d", reverse);
+  rviz::ViewController *v = render_panel_->getViewController();
+  Ogre::Camera *old_cam = v->getCamera();
+
+  Ogre::Radian rad;
+  if (!reverse) {
+    old_cam->setPosition(-0.5, 0, 1.0);
+    rad = 0;
+    old_cam->yaw(rad);
+    rad = 0.1;
+    old_cam->pitch(rad);
+    old_cam->lookAt(5,0,0);
+  } else {
+    old_cam->setPosition(0.5, 0, 1.0);
+    rad = M_PI;
+    old_cam->yaw(rad);
+    rad = 0.1;
+    old_cam->pitch(rad);
+    old_cam->lookAt(-5,0,0);
+  }
+  
+  
+  render_panel_->setCamera(old_cam);
 }
 
 

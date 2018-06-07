@@ -43,6 +43,9 @@
 #include <QWebView>
 #include <QMdiArea>
 
+#include <QTreeWidget>
+#include <QStandardItemModel>
+#include <QStandardItem>
 
 class BaseStation:public QMainWindow, Ui::MainWindow
 {
@@ -56,19 +59,22 @@ public:
 public slots:
   void updateSiarStatus(const siar_driver::SiarStatus &state);
   void updateRSSIStatus(const rssi_get::Nvip_status &status);
+  void updateTreeContent(const std::string &string);
+  void setExploreView();
+  void setMissionView();
   
 private slots:
   void updateValues();
   
 private:
-  
-
-  
   //! @brief Clears the data contained in the logs
   void clearLogs();
   //! @brief Stop the ROS communication (in Comms.h)
   void stopComms();
   bool startComms();
+  
+  //! Rviz views
+  void setRvizExplorationView(bool reverse);
   
   int argc;
   char **argv;
@@ -82,18 +88,13 @@ private:
   std::vector<std::vector<functions::Point3D> > position_log;
   std::vector<double> t_log;
   
-  // Automatic emergency stop!!
-  double xy_dist, z_dist;
-  
   // Communication stuff
   Comms *node;
   std::vector<uint> uavs;
   std::vector<std::vector<functions::Point3D> > pos_log;
   
-  // Configuration
-  double time_step;
-  QTimer *timer;
-  unsigned int count;
+  // Last messages
+  siar_driver::SiarStatus last_status;
   
   // Flags
   bool started;
@@ -107,19 +108,21 @@ private:
   rviz::Display* axes_display, *grid_display, *grid_display2;
   rviz::Display* camera_display, *image_display;
   rviz::Display* marker_1, *marker_2;
-  QMdiSubWindow *window_1, *window_2, *window_3;
+  QMdiSubWindow *window_1, *window_2, *window_3, *window_4;
 //   rviz::RenderPanel* 
+  //! @brief Old version when the panel is located in a Layout (deprecated)
   void configureRVizDisplay(rviz::VisualizationManager *&manager, rviz::RenderPanel *&panel, 
                             const std::string &frame="/base_link", QLayout *parent = NULL);
+  
+  //! @brief Configures the display when the panel is located in a mdiArea
   QMdiSubWindow * configureRVizDisplay(rviz::VisualizationManager*& manager, rviz::RenderPanel*& panel, 
                                        const std::string &frame, QMdiArea *parent);
   void configurePointCloud(rviz::Display *&pc_display, const std::string &topic);
   QMdiSubWindow * configureCameraDisplay();
   void configureMap();
-  void resizeWindows();
   
   // Web kit
-  QWebView *web_view;
+  QTreeWidget *tree_widget;
 };
 
 #endif // BASE_STATION_H____
