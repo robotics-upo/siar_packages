@@ -262,6 +262,8 @@ class SiarManagerWidthAdjustment:public SiarManager
   std::string lin_mot_vec_file, width_file, elec_x_file;
   functions::LinearInterpolator *width_inter, *x_inter, *width_to_lin_pos, *x_elec_to_lin_pos;
   
+  u_int16_t linear_velocity;
+  
   //! @brief Calculates the increments of the position and orientation variables of the robot by integrating odometry measures
   //! @retval true Got ticks from the encoders and performed the calculations
   //! @retval false Some error while retrieving the ticks
@@ -376,6 +378,13 @@ width_to_lin_pos(NULL), x_elec_to_lin_pos(NULL)
   if (!pn.getParam("elec_x_file", elec_x_file)) {
     elec_x_file = "elec_x_file";
   }
+  int lv;
+  if (!pn.getParam("linear_velocity", lv)) {
+    linear_velocity = 190;
+  } else {
+    linear_velocity = lv;
+  }
+  
   width_inter = new functions::LinearInterpolator(lin_mot_vec_file, width_file);
   x_inter = new functions::LinearInterpolator(lin_mot_vec_file, elec_x_file);
   width_to_lin_pos = new functions::LinearInterpolator(width_file, lin_mot_vec_file); // TODO: not invertible!!
@@ -384,6 +393,9 @@ width_to_lin_pos(NULL), x_elec_to_lin_pos(NULL)
   // Stop robot
   setVelocity(0.0f, 0.0f);
   resetOdometry();
+  
+  // Set the linear position to 190 as the default
+  setLinearVelocity(linear_velocity);
   
   // Last cmd
   last_cmd = ros::Time::now() - ros::Duration(CMD_TIME_OUT);
@@ -881,6 +893,13 @@ bool SiarManagerWidthAdjustment::setLinearPosition(u_int16_t value)
 {
   bool ret_val = true;
   int tam = 4;
+  
+  // Reduce the input to the correct range
+  double max = width_inter->upper_bound(10000)->first;
+  if (value > max) {
+    value = max;
+  }
+  
   command[0] = _config.set_lin_pos;
   command[1] = value >> 8;
   command[2] = value & 0xFF;
