@@ -30,7 +30,7 @@ public:
 protected:
   
   
-  void getTransformFromTF();
+  bool getTransformFromTF();
   
   void infoCallback_1(const sensor_msgs::CameraInfoConstPtr &info);
   void imgCallback_1(const sensor_msgs::ImageConstPtr &img);
@@ -94,7 +94,10 @@ FloorDetector::FloorDetector(ros::NodeHandle &nh, ros::NodeHandle &pnh): PlaneDe
   info_topic_1 = cam_1 + "/depth_registered/camera_info";
   pc_topic = nh.resolveName("/out_cloud");
   
-  getTransformFromTF();
+  
+  while (!getTransformFromTF()) {
+    sleep(1);
+  }
   
   info_sub_1 = nh.subscribe(info_topic_1, 2, &FloorDetector::infoCallback_1, this);
   img_sub_1 = nh.subscribe(img_topic_1, 2, &FloorDetector::imgCallback_1, this);
@@ -216,22 +219,22 @@ void FloorDetector::detectFloor(const sensor_msgs::Image &img)
   }
 }
 
-void FloorDetector::getTransformFromTF()
+bool FloorDetector::getTransformFromTF()
 {
   ROS_INFO("Waiting for transform between: %s and %s", link_1.c_str(), link_2.c_str());
-  bool ok = false;
   tf::StampedTransform tf_;
-  while (!tfListener.waitForTransform(link_1, link_2, ros::Time::now(), ros::Duration(1.0)) && ros::ok() && !ok) {
+  while (!tfListener.waitForTransform(link_1, link_2, ros::Time(0), ros::Duration(1.0)) && ros::ok()) {
       sleep(1);
+  }
     try {
-      tfListener.lookupTransform(link_1, link_2, ros::Time::now(), tf_);
-      ok = true;
+      tfListener.lookupTransform(link_1, link_2, ros::Time(0), tf_);
     } catch (std::exception &e) {
-      
+      return false;
     }
-  } 
   
   ROS_INFO("Got transform");
+  
+  
   
   // Get rotation
   tf::Quaternion q = tf_.getRotation();
@@ -255,6 +258,7 @@ void FloorDetector::getTransformFromTF()
   
   std::cout << T.matrix() << std::endl;
   std::cout << T_inv.matrix() << std::endl;
+  return true;
 }
 
 

@@ -51,8 +51,20 @@ namespace siar_controller {
     
     inline void setWeightDistance(double w_d) {
       m_w_dist = w_d;
+
     }
-    
+
+    inline void setWidth(double width) {
+        double cellsize = footprint_params->m_cellsize;
+        double length = footprint_params->m_length;
+        double w_width = footprint_params->m_wheel_width;
+        bool simplified = footprint_params->m_simplified;
+	delete footprint_params;
+        footprint_params = new SiarFootprint(cellsize, length, width, w_width, simplified);
+        delete footprint;
+        footprint = NULL;
+    }
+ 
     inline void setWeightSafe(double w_s) {
       m_w_safe = w_s;
     }

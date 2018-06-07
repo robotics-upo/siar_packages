@@ -17,7 +17,7 @@ public:
   
   //! @brief Constructor from ROS 
   SiarFootprint(ros::NodeHandle &pn);
-  
+
   ~SiarFootprint();
   
   //! @BRIEF Gets the wheel part of the footprint
@@ -40,9 +40,8 @@ public:
   
   size_t size, size_2; // Size of matrices
 
-protected:  
   double m_cellsize;
-  
+protected:  
   void init();
 
   FootprintType footprint_p;
