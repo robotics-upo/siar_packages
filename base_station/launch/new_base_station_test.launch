@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<launch>
+  
+  <arg name="nav_pitch" default="0.3"/>
+  <arg name="nav_z" default="0.5"/>
+  
+  <!-- Representation stuff-->
+  <node pkg="base_station" type="base_station" name="bs"  output="screen">
+    <param name="cloud_pitch" value="$(arg nav_pitch)"/>
+    <param name="cloud_f_z" value="$(arg nav_z)"/>
+    <param name="cloud_f_x" value="-0.2"/>
+    <param name="cloud_yaw" value="0"/>
+  </node> 
+    
+</launch>

@@ -54,11 +54,13 @@ SET( siar_gui_UIS
   set (siar_gui_SRCS
   src/BaseStation.cpp
   src/Comms.cpp
+  src/CameraSettings.cpp
 )
 
 set(siar_gui_HDRS
   src/BaseStation.h
   src/Comms.h
+  src/CameraSettings.cpp
 )
 
 

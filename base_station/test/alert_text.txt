@@ -1,0 +1,31 @@
+Alert ID: 0	
+  Type: 2
+  Stamp: 1508230353.472674949
+  Location: 41.387525128089, 2.18212288040813
+  Description: Crack
+Alert ID: 1	
+  Type: 2
+  Stamp: 1508230696.537540469
+  Location: 41.3872057769439, 2.18208298997105
+  Description: Crack
+Alert ID: 2	
+  Type: 2
+  Stamp: 1508232922.700145622
+  Location: 41.3881251170416, 2.18213090149189
+  Description: Crack right
+Alert ID: 3	
+  Type: 2
+  Stamp: 1508233157.296814636
+  Location: 41.3881501742666, 2.18194658553769
+  Description: Wall cracked
+Alert ID: 4	
+  Type: 2
+  Stamp: 1508234347.184932473
+  Location: 41.3885272137772, 2.18116207383339
+  Description: Sediments on the floor
+Alert ID: 5	
+  Type: 4
+  Stamp: 1508235715.392655224
+  Location: 41.3882862601289, 2.18108060686104
+  Description: End of the experiment!
+

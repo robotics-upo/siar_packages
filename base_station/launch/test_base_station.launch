@@ -8,6 +8,8 @@
   
   <arg name="start" default="0"/>
   <arg name="rate" default="1"/>
+  <arg name="nav_pitch" default="0.3"/>
+  <arg name="nav_z" default="0.5"/>
   
   <param name="use_sim_time" value="true" />
   
@@ -18,6 +20,10 @@
   
   <!-- Representation stuff-->
   <node pkg="base_station" type="base_station" name="bs" output="screen">
+    <param name="cloud_pitch" value="$(arg nav_pitch)"/>
+    <param name="cloud_f_z" value="$(arg nav_z)"/>
+    <param name="cloud_f_x" value="-0.2"/>
+    <param name="cloud_yaw" value="0"/>
     
     # Use simulation time fro TFs
     <remap from="/front_web/rgb/camera_info" to="/front/rgb/camera_info"/>
