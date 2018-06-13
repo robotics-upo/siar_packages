@@ -1,8 +1,0 @@
-# Define the goal
-int16[5] position_servos_goal
----
-# Define the result
-int16[5] position_servos_final
----
-# Define a feedback message
-uint16[5] servos_position
