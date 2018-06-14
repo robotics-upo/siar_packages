@@ -20,7 +20,7 @@ find_package(catkin REQUIRED COMPONENTS
   simple_graph
   visualization_msgs
   nav_msgs
-  
+  plane_detector
 )
 
 # GSL package

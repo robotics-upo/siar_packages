@@ -293,8 +293,6 @@ void joyReceived(const sensor_msgs::Joy::ConstPtr& joy)
   interpretJoy(joy);
 }
   
-
-
 void sendCmdVel(double linearVelocity, double angularVelocity, ros::Publisher& vel_pub)
 {
   geometry_msgs::Twist vel;

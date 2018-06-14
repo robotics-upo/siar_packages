@@ -50,7 +50,7 @@
   <build_depend>functions</build_depend>
   <build_depend>rviz</build_depend>
   <build_depend>rviz_satellite</build_depend>
-  <build_depend>rqt_image_view</build_depend>
+  <build_depend>siar_driver</build_depend>
 <!--   <build_depend>default_plugin</build_depend> TODO: Did not find the package for rviz default plugins -->
   
   <run_depend>functions</run_depend>
@@ -63,7 +63,7 @@
   <run_depend>std_msgs</run_depend>
   <run_depend>rviz</run_depend>
   <run_depend>rviz_satellite</run_depend>
-  <run_depend>rqt_image_view</run_depend>
+  <run_depend>siar_driver</run_depend>
 <!--   <run_depend>default_plugin</run_depend> -->
 
 
