@@ -10,6 +10,7 @@
   <arg name="rate" default="1"/>
   <arg name="nav_pitch" default="0.3"/>
   <arg name="nav_z" default="0.5"/>
+  <arg name="detection" default="false"/>
   
   <param name="use_sim_time" value="true" />
   
@@ -78,6 +79,8 @@
     <param name="range_max" value = "6.0"/>                             # Max range in meters for point cloud generation
     <param name="down_sampling" value = "1"/>                   # Camera down sampling factor. Values: 1, 2 or 4. The bigger the faster.
   </node>
-  
+  <include file="$(find pcl_processing)/launch/map_analysis.launch" if="$(arg detection)">
+    <arg name="generate_cloud" value="false"/>
+  </include>  
   
 </launch>
