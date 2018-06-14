@@ -249,14 +249,9 @@ QMdiSubWindow *BaseStation::configureCameraDisplay() {
 //   camera_display->subProp("Image Rendering")->setValue("background");
   
 //   rviz::CameraDisplay *a = dynamic_cast<rviz::CameraDisplay*>(camera_display);
-  rviz::ImageDisplay *a = dynamic_cast<rviz::ImageDisplay*>(camera_display);
-  if (a!=NULL) {
-    ret_val = mdiArea->addSubWindow(a->getAssociatedWidget());
-//     a->set
-  }
+  ret_val = mdiArea->addSubWindow(camera_display->getAssociatedWidget());
   
-  
-  // Create a Grid display.
+  // Create a Grid display. 
   grid_display = manager_->createDisplay( "rviz/Grid", "grid", true );
 //   ROS_ASSERT( grid_ != NULL );
 
