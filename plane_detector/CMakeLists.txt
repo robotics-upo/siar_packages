@@ -24,7 +24,8 @@ find_package(catkin REQUIRED COMPONENTS
   visualization_msgs
 )
 
-find_package(Eigen3 REQUIRED)
+#find_package(Eigen3 REQUIRED)
+set(EIGEN3_INCLUDE_DIR "/usr/include/eigen3")
 find_package(OpenCV REQUIRED)
 
 ## System dependencies are found with CMake's conventions
@@ -35,10 +36,7 @@ SET(CMAKE_CXX_FLAGS "-std=c++11")
 set(CMAKE_BUILD_TYPE Release)
 
 #Dynamic reconfigure stuff
-generate_dynamic_reconfigure_options(
-  cfg/Detector.cfg
-  #...
-)
+generate_dynamic_reconfigure_options(cfg/Detector.cfg)
 
 add_message_files(
   FILES
@@ -96,12 +94,15 @@ target_link_libraries(test_wall_detector ${catkin_LIBRARIES} ${OpenCV_LIBRARIES}
 #target_link_libraries(test_hole_detector ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Boost_LIBRARIES})
 
 
-add_dependencies(test_detector_bag ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(test_detector ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(test_detector_marker ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(test_floor_detector_bag ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(test_floor_detector ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-add_dependencies(test_wall_detector ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} plane_detector_generate_messages_cpp)
+
+add_dependencies(test_wall_detector ${PROJECT_NAME}_gencfg ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} plane_detector_generate_messages_cpp)
+add_dependencies(test_detector_bag ${PROJECT_NAME}_gencfg )
+add_dependencies(test_detector ${PROJECT_NAME}_gencfg )
+add_dependencies(test_detector_marker ${PROJECT_NAME}_gencfg )
+add_dependencies(test_floor_detector ${PROJECT_NAME}_gencfg )
+add_dependencies(test_floor_detector_bag ${PROJECT_NAME}_gencfg )
+add_dependencies(test_wall_detector ${PROJECT_NAME}_gencfg )
+
 
 
 ## Declare a C++ library
@@ -112,8 +113,7 @@ add_dependencies(test_wall_detector ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-
-
+# add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
