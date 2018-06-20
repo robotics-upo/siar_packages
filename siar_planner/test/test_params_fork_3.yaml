@@ -1,2 +1,0 @@
-{T: 1, cellsize_m: 0.1, cellsize_rad: 0.3,  delta_T: 0.2,  K: 16, goal_gap_m: 0.10, goal_gap_rad: 0.2,
-  n_iter: 200, n_rounds: 10, omega_max: 0.25, optimize: false, positive_obs: 100, min_wheel: 0.41, cost_weight: 0.00001, wheel_decrease: 0.02 }

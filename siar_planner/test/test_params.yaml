@@ -1,2 +1,0 @@
-{T_hor: 0.35, a0: 0, a_g: -1, cellsize_m: 0.1, delta_T: 0.05, delta_t: 0.3, K: 10,
-  n_iter: 1000, omega_max: 0.25, positive_obs: 100, x0: 0, x_g: 5.3, y0: 0.8, y_g: -1.7, }

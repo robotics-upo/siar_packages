@@ -1,4 +1,0 @@
-{T: 0.1, T_hor: 2.0, a_max: 0.5, a_max_theta: 1.0, delta_T: 0.2, n_ang: 12, n_interpols: 3, n_lin: 3,
-  omega_max: 0.4, robot_longitude: 0.78, robot_width: 0.56, use_dynamic_reconfigure: false,
-  v_max: 0.5, v_min: 0.075,
-  w_dist: 1e+5, w_safe: 1.0, wheel_width: 0.075  }

@@ -1,8 +1,0 @@
-# Define the goal
-uint8 direction  # Specify the direction in which the fork will be negotiated ( -1 --> right;  0 --> straight ; 1 --> left)
----
-# Define the result
-int32 error_msg  # 0 --> Ok ; -1 --> SIAR fell ; -2 --> Fork not detected
----
-# Define a feedback message
-float32 percent_complete

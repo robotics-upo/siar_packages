@@ -1,2 +1,0 @@
-{T: 0.3, allow_only_negative: true, cellsize_m: 0.05, cellsize_rad: 0.02, delta_t: 0.3, goal_gap_m: 0.2, goal_gap_rad: 0.4, K: 0, limit_exploration: 1.2,
-  n_iter: 250, omega_max: 0.45, positive_obs: 127, n_rounds: 3, negative_obs: -127, optimize: false, min_wheel: 0.2, cost_weight: 0.000000002, wheel_decrease: 0.05}
