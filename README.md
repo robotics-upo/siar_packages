@@ -9,11 +9,12 @@ This metapackage is composed by the following packages. For more details about t
 * *frame_dropper* Contains two utilities: "frame_dropper" and "image_splitter" for replicating image flow that could be used for transmitting images over the network.
 * *rssi_get* Contains a utility for publishing the perceived RSSI of nVIP2400 equipments
 * *siar_driver* A driver for controlling the SIAR platform
+* *siar_rqt_plugin* Provides a 3D representation of the robot in RViz
 * *udp_bridge* A bridge module to transmit data over a UDP link
 
 ## Compilation
 
-Before compiling, please install the dependencies (see Dependencies section for details) (tested in Ubuntu 14.04). Recommended steps:
+Before compiling, please install the dependencies (see Dependencies section for details) (yet to be tested in Ubuntu 16.04 and ros kinetic). Recommended steps:
 
 
  > roscd 
@@ -22,8 +23,6 @@ Before compiling, please install the dependencies (see Dependencies section for 
  
  > git clone https://github.com/robotics-upo/siar_packages.git
  > git clone https://github.com/robotics-upo/arduimu-v3.git
- 
- > sudo apt-get install libgsl0-dev libkml-dev libsuitesparse-metis-dev libsuperlu3-dev liblapack-dev libblas-dev libdxflib-dev libgeotranz3-dev
  
  > roscd
  
