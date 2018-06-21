@@ -14,8 +14,7 @@ This metapackage is composed by the following packages. For more details about t
 
 ## Compilation
 
-Before compiling, please install the dependencies (see Dependencies section for details) (yet to be tested in Ubuntu 16.04 and ros kinetic). Recommended steps:
-
+Recommended steps:
 
  > roscd 
  
@@ -28,10 +27,3 @@ Before compiling, please install the dependencies (see Dependencies section for 
  > cd ..
  
  > catkin_make
-
-## Dependencies
-
-- libkml-1.2.0 (or higher)
-- Rgbd-odom package. Can be downloaded from: https://github.com/robotics-upo/rgbd_odom.git
-- Nonlinear_optimiation package (internal dependency of Rbgd-odom): https://github.com/robotics-upo/nonlinear_optimization
-
