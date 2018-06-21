@@ -20,11 +20,10 @@ Before compiling, please install the dependencies (see Dependencies section for 
  > roscd 
  
  > cd ../src
- 
- > git clone https://github.com/robotics-upo/siar_packages.git
+  
  > git clone https://github.com/robotics-upo/arduimu-v3.git
  
- > roscd
+ > git clone https://github.com/robotics-upo/siar_packages.git
  
  > cd ..
  
