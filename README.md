@@ -14,6 +14,8 @@ This metapackage is composed by the following packages. For more details about t
 
 ## Compilation
 
+Make sure that you have created a workspace and have configured the proper environment variables with the "setup.bash" script (see http://wiki.ros.org/catkin/Tutorials/create_a_workspace)
+
 Recommended steps:
 
  > roscd 
