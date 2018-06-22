@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<launch>
+	<node pkg="siar_model" type="siar_model_viz" name="siar_model_viz" output="screen">
+		<param name="frame_id" value="/base_link"/>
+		<param name="hz" value="10.0"/>
+	</node>
+</launch>
