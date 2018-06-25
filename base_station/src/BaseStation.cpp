@@ -264,7 +264,7 @@ QMdiSubWindow *BaseStation::configureCameraDisplay() {
   // Create a robot model display
 //   robot_model_display = manager_->createDisplay("rviz/RobotModel", "robot model", true);
   robot_model_display = manager_->createDisplay("rviz/Marker", "marker", true);
-  robot_model_display->setTopic("/siar_marker");
+  robot_model_display->setTopic("/siar_marker", "rviz/Marker");
   
   
   return ret_val;
