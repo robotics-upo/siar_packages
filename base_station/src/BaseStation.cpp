@@ -262,7 +262,9 @@ QMdiSubWindow *BaseStation::configureCameraDisplay() {
 //   grid_display->subProp( "Color" )->setValue( Qt::yellow );
   
   // Create a robot model display
-  robot_model_display = manager_->createDisplay("rviz/RobotModel", "robot model", true);
+//   robot_model_display = manager_->createDisplay("rviz/RobotModel", "robot model", true);
+  robot_model_display = manager_->createDisplay("rviz/Marker", "marker", true);
+  robot_model_display->setTopic("/siar_marker");
   
   
   return ret_val;
