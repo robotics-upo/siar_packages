@@ -257,14 +257,14 @@ QMdiSubWindow *BaseStation::configureCameraDisplay() {
 
   // Configure the GridDisplay the way we like it.
   grid_display->subProp( "Line Style" )->setValue( "Lines" );
-  grid_display->subProp( "Cell Size" )->setValue(0.2);
+  grid_display->subProp( "Cell Size" )->setValue(0.2); 
   grid_display->subProp( "Plane Cell Count" )->setValue(50);
 //   grid_display->subProp( "Color" )->setValue( Qt::yellow );
   
   // Create a robot model display
 //   robot_model_display = manager_->createDisplay("rviz/RobotModel", "robot model", true);
-  robot_model_display = manager_->createDisplay("rviz/Marker", "marker", true);
-  robot_model_display->setTopic("/siar_marker", "rviz/Marker");
+  robot_model_display = manager_->createDisplay("rviz/MarkerArray", "marker", true);
+  robot_model_display->setTopic("/siar_model", "visualization_msgs/MarkerArray");
   
   
   return ret_val;

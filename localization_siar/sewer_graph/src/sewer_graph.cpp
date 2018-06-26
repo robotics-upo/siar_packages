@@ -103,10 +103,16 @@ bool SewerGraph::loadGraph(const string& filename)
     }
     
     for (;i < info.size(); i++) {
-      if (info[i].size() >= 2) {
+      if (info[i].size() == 2) {
 //         cout << "Adding edge: " << info[i][0] << " to " << info[i][1] << "\t";
         addEdge(info[i][0], info[i][1]);
         
+        
+      } else if (info[i].size() == 3) {
+        addEdge(info[i][0], info[i][1], info[i][2]);
+        
+      } else if (info[i].size() >= 4) {
+        addEdge(info[i][0], info[i][1], info[i][2], info[i][3]);
         
       }
       
@@ -127,6 +133,21 @@ void SewerGraph::addEdge(int i, int j) {
   e.distance = origin.distance(dest);
   RealVector v = dest.toRelative(origin);
   e.route = atan2(v[1], v[0]);
+//   cout << "v = " << v.toString() << "\tRoute: " << e.route << endl;
+  SimpleGraph::addEdge(i, j, e);
+  SimpleGraph::addEdge(j, i, e);
+}
+
+void SewerGraph::addEdge(int i, int j, int type, int suffix) {
+  SewerEdge e;
+  EarthLocation origin(getVertexContent(i).e);
+  EarthLocation dest(getVertexContent(j).e);
+  e.distance = origin.distance(dest);
+  RealVector v = dest.toRelative(origin);
+  e.route = atan2(v[1], v[0]);
+  
+  e.section = parseSectionType(type, suffix);
+  
 //   cout << "v = " << v.toString() << "\tRoute: " << e.route << endl;
   SimpleGraph::addEdge(i, j, e);
   SimpleGraph::addEdge(j, i, e);
@@ -435,7 +456,36 @@ sensor_msgs::NavSatFix SewerGraph::getReferencePosition() const
   return ret;
 }
 
-
+// Parses the type: the thousand digit indicates: if 0 --> T. if 1 --> D, if 2 --> NT
+std::string SewerGraph::parseSectionType(int type, char suffix) const {
+  ostringstream os;
+  
+  int sec = type / 10000;
+  int num = type % 10000;
+  
+  switch (sec) {
+    case 2:
+      os << "NT";
+      break;
+      
+    case 1:
+      os << "D";
+      break;
+      
+    default:
+      os << "T";
+    
+  }
+  
+  os << num;
+ 
+  if (suffix > 0) {
+    os << suffix;
+  }
+  
+  return os.str();
+  
+}
 
 
 // string SewerGraph::toString() const
