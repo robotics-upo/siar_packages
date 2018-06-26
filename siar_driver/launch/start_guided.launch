@@ -15,7 +15,7 @@
   <arg name="perception" default="true"/>
   <arg name="bag" default="true"/>
   <arg name="publish_tf" default="false"/>
-  <arg name="obstacle_height" default="0.065"/>
+  <arg name="obstacle_height" default="0.075"/>
   <arg name="resolution" default ="0.025"/>
   <arg name="localize" default="false"/>
   
@@ -58,6 +58,7 @@
   <include file="$(find siar_costmap)/launch/siar_costmap.launch">
     <arg name="obstacle_height" value="$(arg obstacle_height)"/>
     <arg name="resolution" value="$(arg resolution)"/>
+    <arg name="exponential_decay" value="0.15"/>
 <!--  <arg name="robot_height" value="0.50"/> -->
     
     <arg name="camera_1" value="/front_left"/>
@@ -70,7 +71,7 @@
     <arg name="roi_w" value="300"/>
     <arg name="roi_y" value="5"/>
     <arg name="roi_h" value="230"/>
-    <param name="min_radius" value="0.64"/>
+    <param name="min_radius" value="1.64"/>
     <param name="max_radius" value="1.2"/>
   </include>
   

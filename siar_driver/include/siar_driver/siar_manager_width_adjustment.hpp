@@ -895,10 +895,13 @@ bool SiarManagerWidthAdjustment::setLinearPosition(u_int16_t value)
   int tam = 4;
   
   // Reduce the input to the correct range
-  double max = width_inter->upper_bound(10000)->first;
-  if (value > max) {
-    value = max;
-  }
+  double max = width_inter->lower_bound(10000)->first;
+//  if (value > max) {
+//     ROS_INFO("SiarManager::setLinearPosition --> Wrong command with value %u received. Bounded to %f", value, max);
+//     value = max;
+    if (value >120) // TODO: erase it
+      value = 120;
+//  }
   
   command[0] = _config.set_lin_pos;
   command[1] = value >> 8;
@@ -1392,10 +1395,13 @@ bool SiarManagerWidthAdjustment::setXElectronics(const double value)
 double SiarManagerWidthAdjustment::setNormWidth(const double value)
 {
   std::map<double, double>::const_iterator it = x_elec_to_lin_pos->lower_bound(10000);
-  double up_bound = it->first;
+  double up_bound = (*x_inter)[0];
   it = x_elec_to_lin_pos -> upper_bound(-10000);
+  double eff_val = value*up_bound;
   double low_bound = fabs(it->first);
-  double eff_val = value*low_bound;
+
+  if (value < 0.0)
+	  eff_val = value*low_bound;
   
   uint16_t val = x_elec_to_lin_pos->interpolate(eff_val);
   ROS_INFO("Linear Pos: %u\tUp=%f\tlow=%fValue=%f", val,up_bound, low_bound, value);

@@ -17,6 +17,7 @@
   <arg name="roi_h" default="232"/>
   <arg name="roi_w2" default="632"/>
   <arg name="roi_h2" default="472"/>
+  <arg name="exponential_decay" default="0.2"/>
   
   <arg name="range_min" default="0.35"/>
   <arg name="range_max" default="5.0"/>
@@ -107,7 +108,7 @@
     <param name="hz" value = "10.0"/>                                                   # Costmap update rate
     <param name="obstacle_height" value = "$(arg obstacle_height)"/>                               # Absolute value of obstacle height (or hole depth)
     <param name="resolution" value="$(arg resolution)"/>
-    <param name="exp_decay" value = "10.0"/>					    # Obstacle exponential decay (it is counted in cells)
+    <param name="exp_decay" value = "$(arg exponential_decay)"/>					    # Obstacle exponential decay (it is counted in cells)
     <param name="width" value="2.5"/>
     <param name="height" value="5.0"/>
     <param name="tilt_compensate" value="$(arg tilt_compensate)"/>

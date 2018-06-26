@@ -73,6 +73,7 @@ protected:
   geometry_msgs::Twist user_command, last_velocity, planned_cmd;
   CommandEvaluator *cmd_eval;
   double width_thres;
+  double safety_width;
   
   // Include ways to escape the local minima
   double t_unfeasible,ang_scape_inc, max_t_unfeasible;
@@ -185,6 +186,7 @@ void SiarController::getParameters(ros::NodeHandle& pn)
   pn.param("n_lin", _conf.n_lin, 3);
   pn.param("n_ang", _conf.n_ang, 12);
   pn.param("width_thres", width_thres, 0.02);
+  pn.param("safety_width", safety_width, 0.02);
   pn.getParam("min_wheel_left", min_wheel_left);
   pn.getParam("min_wheel_right", min_wheel_right);
   
@@ -601,7 +603,7 @@ void SiarController::copyMarker(visualization_msgs::Marker& dst, const visualiza
 void SiarController::statusCallback(const siar_driver::SiarStatus& msg)
 {
   // Check if the width has changed enough to perform an actualization of the footprint
-  double new_width = msg.width - 0.04;
+  double new_width = msg.width - 0.04 + safety_width;
   if (fabs(new_width - _conf.robot_width) > width_thres && cmd_eval != NULL ) {
     cmd_eval->setWidth(new_width);
     _conf.robot_width = new_width;
