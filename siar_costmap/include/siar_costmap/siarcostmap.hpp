@@ -3,6 +3,7 @@
 
 #include <ros/ros.h>
 #include <tf/transform_listener.h>
+#include <std_msgs/Bool.h>
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/point_cloud2_iterator.h>
@@ -96,7 +97,11 @@ public:
       m_max_radius = 1.5;
     if(!lnh.getParam("inflate_negative", m_inflate_negative))
       m_inflate_negative = 1;
-    
+    if(!lnh.getParam("integrate_odom", m_integrateOdom))
+      m_integrateOdom = false;
+    if(!lnh.getParam("odom_frame_id", m_odomFrameId))
+      m_odomFrameId = "odom"; 
+      
     m_min_radius*=m_min_radius;
     m_max_radius*=m_max_radius;
     
@@ -115,7 +120,8 @@ public:
       m_cloudNew[i] = false;
     m_sub6 = m_nh.subscribe("imu", 1, &SiarCostmap::imuCallback, this);
     m_imuNew = false;
-  
+	m_sub7 = m_nh.subscribe(nodeName+"/odom_integrate", 1, &SiarCostmap::odomIntegrateCallback, this);
+
     // Setup publisher
     m_pub = m_nh.advertise<nav_msgs::OccupancyGrid>(nodeName+"/costmap", 0);
     
@@ -143,18 +149,82 @@ public:
     m_maxY = m_width/2.0;
     m_minY = -m_width/2.0;
     m_divRes = 1/m_resolution;
-    }
+    m_lastCostmap = m_costmap;
     
-    // Class destructor
-    ~SiarCostmap(void)
-    {
+    // Setup last odom transform in case of need
+    m_integrateOdomInit = false;
+  }
+    
+  // Class destructor
+  ~SiarCostmap(void)
+  {
   }
   
-  nav_msgs::OccupancyGrid &updateCostmap(void)
+  bool updateCostmap(void)
   {
     // Time stamp
     ros::Time t = ros::Time::now();
     
+    // Compute odometric trasnlation and rotation since last costmap update 
+    // and also make a copy of the previous costmap before modification
+	if(m_integrateOdom)
+	{
+		// Get the transform since last costmap update
+		tf::StampedTransform odomTf;
+		try
+		{
+			m_tfListener.waitForTransform(m_odomFrameId, m_baseFrameId, ros::Time::now(), ros::Duration(1.0));
+			m_tfListener.lookupTransform(m_odomFrameId, m_baseFrameId, ros::Time::now(), odomTf);
+		}
+		catch (tf::TransformException ex)
+		{
+			ROS_ERROR("SiarCostmap error: %s",ex.what());
+			return false;
+		}
+		if(!m_integrateOdomInit)
+		{
+			m_lastOdomTf = odomTf;
+			m_integrateOdomInit = true;
+		}
+		tf::Transform T = (m_lastOdomTf.inverse()*odomTf).inverse();
+		
+		// Get rotation and translation in 2D
+		int tx = (int)(T.getOrigin().x()/m_resolution);
+		int ty = (int)(T.getOrigin().y()/m_resolution);
+		double yaw, pitch, roll;
+		T.getBasis().getRPY(roll, pitch, yaw);
+		float r00 = cos(yaw), r01 = -sin(yaw);
+		float r10 = sin(yaw), r11 = cos(yaw); 
+		
+		// Get the transformed costamp if robot moved
+		//if(abs(tx) > 0 || abs(ty) > 0 || fabs(yaw) > 0.1)
+		{
+			// Initialize all cells in the grid to unkown value
+			for(int i=0; i<m_lastCostmap.data.size(); i++)
+				m_lastCostmap.data[i] = SC_UNKNOWN;
+			
+			// Transform each cell considereing the odometry
+			int k=0;
+			for(int i=0; i<m_costmap.info.height; i++)
+			{
+				for(int j=0; j<m_costmap.info.width; j++, k++)
+				{
+					if(m_costmap.data[k] != SC_UNKNOWN)
+					{
+						int x = tx + r00*i + r01*j;
+						int y = ty + r10*i + r11*j; 
+						int index = x*m_lastCostmap.info.width + y;
+						m_lastCostmap.data[index] = m_costmap.data[k]; 
+					}
+				}
+			} 
+			
+			// Save current odom for next iteration
+			m_lastOdomTf = odomTf;     
+		}
+		
+	}
+	
     // Initialize all cells in the grid to unkown value
     for(int i=0; i<m_costmap.data.size(); i++)
       m_costmap.data[i] = SC_UNKNOWN;
@@ -287,16 +357,23 @@ public:
       }      
     }
     
+    // Add accumulated information if needed
+    if(m_integrateOdom)
+	{
+		// Transform each cell considereing the odometry
+		int k=0;
+		for(int i=0; i<m_costmap.info.height; i++)	
+			for(int j=0; j<m_costmap.info.width; j++, k++)
+				if(m_costmap.data[k] == SC_UNKNOWN && m_lastCostmap.data[k] != SC_UNKNOWN)
+					m_costmap.data[k] = m_lastCostmap.data[k]; 
+	}
+    
     // Update costmap info
     m_costmap.header.seq++;
     m_costmap.header.stamp = t;
     m_costmap.info.map_load_time = t;
-    
-    // Prepare next sensor reading
-    //for(int i=0; i<6; i++)
-    //  m_cloudNew[i] = false;
       
-    return m_costmap;
+    return true;
   }
   
   bool isInRoi(int index) {
@@ -370,7 +447,7 @@ private:
   }
   
   void cloud4Callback(const sensor_msgs::PointCloud2ConstPtr& msg)
-    {
+  {
     processCloud(msg, 4);
   }
   
@@ -384,14 +461,26 @@ private:
     m_imu = *msg;
     m_imuNew = true;
   } 
+  
+  void odomIntegrateCallback(const std_msgs::Bool::ConstPtr& msg)
+  {
+	if(msg->data == 0)
+	  m_integrateOdom = false;
+	else
+	{
+	  m_integrateOdom = true; 
+	  m_integrateOdomInit = false;
+    }	  
+  }
 
   void updateTimer(const ros::TimerEvent& event)
   {
     // Update costmap
-    updateCostmap();
-    
-    // Publish costmap
-    m_pub.publish(m_costmap);
+    if(updateCostmap())
+    {
+		// Publish costmap
+		m_pub.publish(m_costmap);
+	}
   }
   
   void processCloud(const sensor_msgs::PointCloud2ConstPtr& msg, int id)
@@ -448,15 +537,17 @@ private:
   // Params
   double m_hz, m_obstacleHeight, m_obstacleHeightNeg, m_expDecay;
   double m_width, m_height, m_resolution, m_robotHeight;
-  std::string m_baseFrameId;
-  bool m_tiltCompesante;
+  std::string m_baseFrameId, m_odomFrameId;
+  bool m_tiltCompesante, m_integrateOdom, m_integrateOdomInit;
   
   // ROS stuff
   ros::NodeHandle m_nh;  
   ros::Timer timer;
   tf::TransformListener m_tfListener;
-  ros::Subscriber m_sub0, m_sub1, m_sub2, m_sub3, m_sub4, m_sub5, m_sub6;
+  ros::Subscriber m_sub0, m_sub1, m_sub2, m_sub3, m_sub4, m_sub5, m_sub6, m_sub7;
   ros::Publisher m_pub;
+  tf::StampedTransform m_lastOdomTf;
+
 
   // Sensor data
   sensor_msgs::PointCloud2 m_cloud[6];
@@ -468,7 +559,7 @@ private:
   float m_minX, m_maxX, m_minY, m_maxY;
   float m_min_radius, m_max_radius;
   float m_divRes;
-  nav_msgs::OccupancyGrid m_costmap; 
+  nav_msgs::OccupancyGrid m_costmap, m_lastCostmap; 
   bool m_considerSign;
   int m_inflate_negative;
 };
