@@ -1,4 +1,4 @@
--<?xml version="1.0" ?>
+<?xml version="1.0" ?>
 <launch>
 
 <arg name="bag_file" default="/home/robolab/siar/bags/barcelona0416/siar_2016-04-27-11-36-27.bag"/>

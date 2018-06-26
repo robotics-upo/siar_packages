@@ -7,15 +7,56 @@ cmake_minimum_required(VERSION 2.6)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS roscpp functions visualization_msgs roscpp geometry_msgs simple_graph)
 # find_package(Boost REQUIRED)
-# find_package(kml REQUIRED)
-# find_package(geotranz REQUIRED)
+
 
 catkin_package(
  INCLUDE_DIRS include
- LIBRARIES sewer_graph
+ LIBRARIES sewer_graph kmlbase kmldom kmlengine kmlconvenience dxflib geotranz
  CATKIN_DEPENDS roscpp functions visualization_msgs roscpp geometry_msgs simple_graph
- DEPENDS Boost kml
+ DEPENDS Boost 
 )
+
+# Check dependencies for kml libraries
+find_library(KMLBASE_LIB NAMES kmlbase)
+IF(${KMLBASE_LIB} STREQUAL "KMLBASE_LIB-NOTFOUND")
+  message(FATAL_ERROR "kmlbase library not found!\nTry 'sudo apt-get install libkml-dev'\n")
+ELSE()
+  message(STATUS "Found kmlbase lib = ${KMLBASE_LIB}")
+ENDIF()
+find_library(KMLDOM_LIB NAMES kmldom)
+IF(${KMLDOM_LIB} STREQUAL "KMLDOM_LIB-NOTFOUND")
+  message(FATAL_ERROR "kmldom library not found!\nTry 'sudo apt-get install libkml-dev'\n")
+ELSE()
+  message(STATUS "Found kmldom lib = ${KMLDOM_LIB}")
+ENDIF()
+find_library(KMLENGINE_LIB NAMES kmlengine)
+IF(${KMLENGINE_LIB} STREQUAL "KMLENGINE_LIB-NOTFOUND")
+  message(FATAL_ERROR "kmlengine library not found!\nTry 'sudo apt-get install libkml-dev'\n")
+ELSE()
+  message(STATUS "Found kmlengine lib = ${KMLENGINE_LIB}")
+ENDIF()
+find_library(KMLCONV_LIB NAMES kmlconvenience)
+IF(${KMLCONV_LIB} STREQUAL "KMLCONV_LIB-NOTFOUND")
+  message(FATAL_ERROR "kmlconvenience library not found!\nTry 'sudo apt-get install libkml-dev'\n")
+ELSE()
+  message(STATUS "Found kmlconvenience lib = ${KMLCONV_LIB}")
+ENDIF()
+
+# Check dependencies for dxflib library
+find_library(DXFLIB_LIB NAMES dxflib)
+IF(${DXFLIB_LIB} STREQUAL "DXFLIB_LIB-NOTFOUND")
+  message(FATAL_ERROR "dxflib library not found!\nTry 'sudo apt-get install libdxflib-dev'\n")
+ELSE()
+  message(STATUS "Found dxflib lib = ${DXFLIB_LIB}")
+ENDIF()
+
+# Check dependencies for geotranz library
+find_library(GEOTRANZ_LIB NAMES geotranz)
+IF(${GEOTRANZ_LIB} STREQUAL "GEOTRANZ_LIB-NOTFOUND")
+  message(FATAL_ERROR "geotranz library not found!\nTry 'sudo apt-get install libgeotranz3-dev'\n")
+ELSE()
+  message(STATUS "Found geotranz lib = ${GEOTRANZ_LIB}")
+ENDIF()
 
 set(geotranz_include /usr/include/geotranz/dtcc/CoordinateSystems/ /usr/include/CoordinateSystemParameters/ 
 /usr/include/CoordinateTuples/ /usr/include/geotranz/dtcc/CoordinateSystems/misc/ /usr/include/geotranz/dtcc
@@ -44,7 +85,7 @@ target_link_libraries(dxf_to_sewer_graph ${PROJECT_NAME} ${LIBS})
 
 add_executable(get_results src/exec/get_results.cpp)
 target_link_libraries(get_results ${PROJECT_NAME} ${LIBS})
-
+ 
  ## Mark executables and/or libraries for installation
 install(TARGETS sewer_graph
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}

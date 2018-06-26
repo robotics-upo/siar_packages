@@ -14,7 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   image_transport
   functions
   rviz
-  rqt_image_view
+  siar_driver
 )
 
 ## System dependencies are found with CMake's conventions
@@ -54,11 +54,13 @@ SET( siar_gui_UIS
   set (siar_gui_SRCS
   src/BaseStation.cpp
   src/Comms.cpp
+  src/CameraSettings.cpp
 )
 
 set(siar_gui_HDRS
   src/BaseStation.h
   src/Comms.h
+  src/CameraSettings.cpp
 )
 
 
@@ -84,15 +86,17 @@ include_directories(
   ${OGRE_INCLUDE_DIRS}
 )
 
-
-message(${catkin_LIBRARIES})
+# 
+# message(${catkin_LIBRARIES})
 
 # 
 # ## Base station exec
 add_executable(${PROJECT_NAME} src/base_station.cpp ${BASE_SRCS} ${siar_gui_HDRS} ${siar_gui_SRCS} ${siar_gui_MOCS} ${siar_gui_UIS_H})
 target_link_libraries(${PROJECT_NAME}
-  ${catkin_LIBRARIES} /opt/ros/indigo/lib/libdefault_plugin.so
+  ${catkin_LIBRARIES} 
 )
+
+add_dependencies(${PROJECT_NAME} siar_driver_generate_messages_cpp)
 
 add_executable(test_comm src/testComm.cpp)
 target_link_libraries(test_comm ${catkin_LIBRARIES} )

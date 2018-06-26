@@ -181,12 +181,23 @@ void WallDetector::detectWalls(const sensor_msgs::Image &img)
 void WallDetector::getTransformFromTF()
 {
   ROS_INFO("Waiting for transform between: %s and %s", link_1.c_str(), link_2.c_str());
-  while (!tfListener.waitForTransform(link_1, link_2, ros::Time::now(), ros::Duration(1.0))) {
-    sleep(1);
-  }
-  
   tf::StampedTransform tf_;
-  tfListener.lookupTransform(link_1, link_2, ros::Time::now() - ros::Duration(0.1), tf_);
+  try {
+    while (!tfListener.waitForTransform( link_1, link_2, ros::Time(0), ros::Duration(0.1))) {
+      sleep(1);
+    }
+  
+    bool ok = false;
+  
+    while (!ok && ros::ok()) {
+      
+      tfListener.lookupTransform(link_1, link_2, ros::Time(0), tf_);
+      ok = true;
+    } 
+  } catch (tf2::ExtrapolationException &e) {
+    ROS_ERROR("Problems with tfs");
+    usleep(100000);
+  }
   
   // Get rotation
   tf::Quaternion q = tf_.getRotation();

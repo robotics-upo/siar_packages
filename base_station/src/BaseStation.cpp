@@ -35,6 +35,7 @@
 #include "rviz/default_plugin/camera_display.h"
 #include "rviz/default_plugin/image_display.h"
 #include "rviz/view_controller.h"
+#include "rviz/default_plugin/view_controllers/xy_orbit_view_controller.h"
 
 #include "OGRE/OgreCamera.h"
 
@@ -44,8 +45,7 @@ using boost::lexical_cast;
 using boost::bad_lexical_cast;
 
 BaseStation::BaseStation(int argc, char **argv, QWidget* parent, Qt::WindowFlags flags): 
-QMainWindow(parent, flags), argc(argc), argv(argv), init_log_time(), curves(), curves_z(), distance_log(), distance_log_z(), position_log(),
-t_log(), node(NULL), uavs(), pos_log(), started(false)
+QMainWindow(parent, flags), argc(argc), argv(argv), init_log_time(), node(NULL), uavs(), pos_log(), started(false)
 {
   setupUi(this);
   QwtDialSimpleNeedle *nd = new QwtDialSimpleNeedle(QwtDialSimpleNeedle::Arrow, Qt::white, Qt::red);
@@ -62,6 +62,8 @@ t_log(), node(NULL), uavs(), pos_log(), started(false)
   // Start ROS comms
   startComms();
   
+  
+  
   // RViz stuff
   
   window_1 = configureRVizDisplay(manager_, render_panel_, "base_link", mdiArea);
@@ -76,6 +78,16 @@ t_log(), node(NULL), uavs(), pos_log(), started(false)
   window_3 = configureRVizDisplay(manager_2, render_panel_2, "map", mdiArea);
   window_3->setWindowTitle("Map");
   configureMap();
+  
+  CameraSettings cloud_cam;
+  cloud_cam.getSettings("cloud");
+  cloud_camera_ = cloud_cam;
+  CameraSettings map_cam("map", 300, M_PI, 1.53, 50, -100, -40);
+  map_cam.getSettings("map");
+  map_camera_ = map_cam;
+  
+  ROS_INFO("Camera cloud settings: %s" , cloud_camera_.toString().c_str());
+  ROS_INFO("Map camera settings: %s" , map_camera_.toString().c_str());
   
   // End of RVIZ stuff
   
@@ -103,6 +115,16 @@ t_log(), node(NULL), uavs(), pos_log(), started(false)
   connect(node, SIGNAL(newRSSI(const rssi_get::Nvip_status&)), this, SLOT(updateRSSIStatus(const rssi_get::Nvip_status &)));
   connect(node, SIGNAL(alertDBReceived(const std::string&)), this, SLOT(updateTreeContent(const std::string&)));
   connect(horizontalSlider_width_indicator_2, SIGNAL(valueChanged(int)), node, SLOT(setElecX(int)));
+  
+  // Setviews:
+  // Set the view
+  sleep(1);
+  rviz::ViewController *v = render_panel_2->getViewController();
+  map_camera_.setSettings(v);
+  
+  v = render_panel_->getViewController();
+  cloud_camera_.setSettings(v);
+  
 }
 
 void BaseStation::setExploreView()
@@ -115,24 +137,24 @@ void BaseStation::setExploreView()
   window_4->showMinimized();
   
   window_1->setMinimumWidth(size_.width()*0.2);
-  window_1->resize(size_.width()*0.4, size_.height()*0.7);
+  window_1->resize(size_.width()*0.4, size_.height()*0.55);
   window_1->setMaximumWidth(size_.width()*2.1);
   window_1->setMaximumHeight(size_.height()*2.2);
   window_1->setMinimumHeight(size_.height()*0.2);
   window_2->setMinimumWidth(size_.width()*0.1);
   window_2->setMaximumWidth(size_.width()*2.0);
-  window_2->resize(size_.width()*0.4, size_.height()*0.7);
+  window_2->resize(size_.width()*0.4, size_.height()*0.55);
   window_2->setMaximumHeight(size_.height()*2.2);
   window_2->setMinimumHeight(size_.height()*0.1);
   window_3->setMinimumWidth(size_.width()*0.2);
   window_3->setMaximumWidth(size_.width()*3);
   window_3->setMaximumHeight(size_.height()*1.2);
   window_3->setMinimumHeight(size_.height()*0.1);
-  window_3->resize(size_.width()*0.8, size_.height()*0.2);
+  window_3->resize(size_.width()*0.8, size_.height()*0.4);
   
   window_1->move(0,0);
   window_2->move(size_.width()*0.4,0);
-  window_3->move(0, size_.height()*0.7);
+  window_3->move(0, size_.height()*0.54);
 }
 
 void BaseStation::setMissionView()
@@ -227,25 +249,22 @@ QMdiSubWindow *BaseStation::configureCameraDisplay() {
 //   camera_display->subProp("Image Rendering")->setValue("background");
   
 //   rviz::CameraDisplay *a = dynamic_cast<rviz::CameraDisplay*>(camera_display);
-  rviz::ImageDisplay *a = dynamic_cast<rviz::ImageDisplay*>(camera_display);
-  if (a!=NULL) {
-    ret_val = mdiArea->addSubWindow(a->getAssociatedWidget());
-//     a->set
-  }
+  ret_val = mdiArea->addSubWindow(camera_display->getAssociatedWidget());
   
-  
-  // Create a Grid display.
+  // Create a Grid display. 
   grid_display = manager_->createDisplay( "rviz/Grid", "grid", true );
 //   ROS_ASSERT( grid_ != NULL );
 
   // Configure the GridDisplay the way we like it.
   grid_display->subProp( "Line Style" )->setValue( "Lines" );
-  grid_display->subProp( "Cell Size" )->setValue(0.2);
+  grid_display->subProp( "Cell Size" )->setValue(0.2); 
   grid_display->subProp( "Plane Cell Count" )->setValue(50);
 //   grid_display->subProp( "Color" )->setValue( Qt::yellow );
   
   // Create a robot model display
-  robot_model_display = manager_->createDisplay("rviz/RobotModel", "robot model", true);
+//   robot_model_display = manager_->createDisplay("rviz/RobotModel", "robot model", true);
+  robot_model_display = manager_->createDisplay("rviz/MarkerArray", "marker", true);
+  robot_model_display->setTopic("/siar_model", "visualization_msgs/MarkerArray");
   
   
   return ret_val;
@@ -256,13 +275,16 @@ QMdiSubWindow *BaseStation::configureCameraDisplay() {
 void BaseStation::configureMap() {
   sat_view = manager_2->createDisplay("rviz_plugins/AerialMapDisplay","Localization display",true);
   if (sat_view != NULL) {
-//     std::cout << "Here\nHere\nhere\n"; (does enter)
+//     sat_view->setTopic("/gps/fix","Topic");
+    sat_view->subProp("Topic")->setValue("/gps/fix");
     sat_view->subProp("Zoom")->setValue(18);
     sat_view->subProp("Object URI")->setValue("http://a.tiles.mapbox.com/v4/mapbox.streets/{z}/{x}/{y}.jpg?access_token=pk.eyJ1IjoiY2h1cnIiLCJhIjoiY2l6dHQzZWJyMDFnZjMzbnA1cDR4MWV3cCJ9.r-YuBsl8JXSBQ_UXTOeSYA");
-    sat_view->setTopic("/gps/fix","sensor_msgs/NavSatFix");
     sat_view->subProp("Robot frame")->setValue("map");
     sat_view->subProp("Blocks")->setValue(8);
-//     ROS_INFO("%s", sat_view->subProp("Status")->getValue());
+    
+    // Set the view
+    rviz::ViewController *v = render_panel_2->getViewController();
+    map_camera_.setSettings(v);
   } else {
     std::cerr << "Could not create satellite view\n";
   }
@@ -278,6 +300,9 @@ void BaseStation::configureMap() {
   // Sewer graph marker
   marker_1 = manager_2->createDisplay("rviz/Marker", "marker_1", true);
   marker_1->setTopic("/amcl_sewer_node/sewer_graph","visualization_msgs/Marker");
+  
+  marker_2 = manager_2->createDisplay("rviz/Marker", "marker_1", true);
+  marker_2->setTopic("/alerts","visualization_msgs/Marker");
 //   marker_1->
 }
 
@@ -417,27 +442,19 @@ void BaseStation::setRvizExplorationView(bool reverse)
 {
   ROS_INFO("Changing view. Reverse = %d", reverse);
   rviz::ViewController *v = render_panel_->getViewController();
-  Ogre::Camera *old_cam = v->getCamera();
-
-  Ogre::Radian rad;
   if (!reverse) {
-    old_cam->setPosition(-0.5, 0, 1.0);
-    rad = 0;
-    old_cam->yaw(rad);
-    rad = 0.1;
-    old_cam->pitch(rad);
-    old_cam->lookAt(5,0,0);
+    if (cloud_camera_.f_x > 0.0) {
+      cloud_camera_.f_x *= -1.0;
+      cloud_camera_.yaw += M_PI;
+      cloud_camera_.setSettings(v);
+    }
   } else {
-    old_cam->setPosition(0.5, 0, 1.0);
-    rad = M_PI;
-    old_cam->yaw(rad);
-    rad = 0.1;
-    old_cam->pitch(rad);
-    old_cam->lookAt(-5,0,0);
+    if (cloud_camera_.f_x < 0.0) {
+      cloud_camera_.f_x *= -1.0;
+      cloud_camera_.yaw += M_PI;
+      cloud_camera_.setSettings(v);
+    }
   }
-  
-  
-  render_panel_->setCamera(old_cam);
 }
 
 

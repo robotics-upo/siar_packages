@@ -36,6 +36,8 @@
 #include <boost/thread/mutex.hpp>
 #include <std_msgs/String.h>
 
+// #include "CameraSettings.hpp"
+
 class Comms:public QObject
 {
   Q_OBJECT

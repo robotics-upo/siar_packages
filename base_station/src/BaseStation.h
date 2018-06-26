@@ -47,6 +47,8 @@
 #include <QStandardItemModel>
 #include <QStandardItem>
 
+#include "CameraSettings.h"
+
 class BaseStation:public QMainWindow, Ui::MainWindow
 {
   Q_OBJECT
@@ -73,20 +75,16 @@ private:
   void stopComms();
   bool startComms();
   
-  //! Rviz views
+  //! Rviz views and related parameters
   void setRvizExplorationView(bool reverse);
+  CameraSettings cloud_camera_;
+  CameraSettings map_camera_;
   
   int argc;
   char **argv;
   functions::FormattedTime init_log_time;
   
   // Curves
-  std::vector<QwtPlotCurve *> curves;
-  std::vector<QwtPlotCurve *> curves_z;
-  std::vector<std::vector <double> > distance_log;
-  std::vector<std::vector <double> > distance_log_z;
-  std::vector<std::vector<functions::Point3D> > position_log;
-  std::vector<double> t_log;
   
   // Communication stuff
   Comms *node;
@@ -107,7 +105,7 @@ private:
   rviz::Display* robot_model_display;
   rviz::Display* axes_display, *grid_display, *grid_display2;
   rviz::Display* camera_display, *image_display;
-  rviz::Display* marker_1, *marker_2;
+  rviz::Display* marker_1, *marker_2, *marker_3;
   QMdiSubWindow *window_1, *window_2, *window_3, *window_4;
 //   rviz::RenderPanel* 
   //! @brief Old version when the panel is located in a Layout (deprecated)

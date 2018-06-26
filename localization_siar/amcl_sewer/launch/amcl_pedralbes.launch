@@ -39,6 +39,7 @@
     <param name="fork_dist" value="3.0"/>
     
     <param name="sewer_graph_file" value="$(find sewer_graph)/test/pedralbes_graph"/>
+<!--     <param name="sewer_graph_file" value="$(find sewer_graph)/test/pedralbes_alternative"/> -->
     
     <remap from="/amcl_sewer_node/initial_pose" to="/initialpose"/>
     

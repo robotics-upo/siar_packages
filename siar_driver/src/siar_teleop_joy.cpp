@@ -42,7 +42,7 @@
 // It has been configured to control with the   ///
 // Logitech wireless pad controller              //
 
-#define STOP_EXIT	      1
+#define STOP_EXIT	      0
 #define FREQ                100 
 #define PANIC_FREQ          300
 
@@ -62,7 +62,7 @@
 #define REVERSE_BUTTON        0
 #define MED_WIDTH_BUTTON      1
 // New buttons ARM and width
-#define ARM_TORQUE_BUTTON     4
+#define ACCUM_COSTMAP_BUTTON  4
 #define WIDTH_AXIS            4
 #define WIDTH_AXIS_2          5
 #define WHEEL_AXIS            2
@@ -103,13 +103,13 @@ int front_light_button, rear_light_button;
 int slowButton;
 int auto_button;
 
+int accum_costmapButton;
 
 // Arm and width buttons and axes
-int arm_torque_button;
 int width_pos_axis, width_pos_axis_2, wheel_pos_axis, wheel_pos_axis_2;
 int med_width_button, last_med_width_button;
 uint8_t arm_torque = 0; // Current state of arm_torque
-int ant_arm_torque_button = 0;
+int ant_costmap_button = 0;
 double ant_width_pos = 0.0;
 
 //////////////////////////////////
@@ -128,6 +128,7 @@ bool ant_reverse_but = false;
 bool slow_mode = false;
 bool last_slow = false;
 bool publishSlow = false;
+bool accum_costmap = false;
 bool ant_auto_button = false;
 int auto_mode = 0;
 int max_auto_mode;
@@ -143,8 +144,8 @@ ros::Publisher slow_pub;
 ros::Publisher mode_pub;
 
 ros::Publisher width_pos_pub;
-ros::Publisher arm_torque_pub;
 ros::Publisher light_cmd_pub;
+ros::Publisher accum_costmap_pub;
 
 bool setAutomaticMode(int new_mode);
 void publishLight();
@@ -200,17 +201,14 @@ void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
     last_slow = joy->buttons[slowButton] == 1;
     
     // Arm Button
-    int curr_arm_but = joy->buttons[arm_torque_button];
-    if (curr_arm_but && curr_arm_but != ant_arm_torque_button) {
-      arm_torque++;
-      if (arm_torque > 2) {
-        arm_torque = 0;
-      }
-      std_msgs::UInt8 msg;
-      msg.data = arm_torque;
-      arm_torque_pub.publish(msg);
+    int curr_cost_but = joy->buttons[accum_costmapButton];
+    if (curr_cost_but && curr_cost_but != ant_costmap_button) {
+      accum_costmap = !accum_costmap;
+      std_msgs::Bool msg;
+      msg.data = accum_costmap;
+      accum_costmap_pub.publish(msg);
     }
-    ant_arm_torque_button = curr_arm_but;
+    ant_costmap_button = curr_cost_but;
     
     // Width position
     double width_pos = joy->axes[width_pos_axis]; 
@@ -293,8 +291,6 @@ void joyReceived(const sensor_msgs::Joy::ConstPtr& joy)
   interpretJoy(joy);
 }
   
-
-
 void sendCmdVel(double linearVelocity, double angularVelocity, ros::Publisher& vel_pub)
 {
   geometry_msgs::Twist vel;
@@ -350,7 +346,7 @@ int main(int argc, char** argv)
   pn.param<int>("med_width_button", med_width_button, MED_WIDTH_BUTTON);
   pn.param<int>("wheel_pos_axis", wheel_pos_axis, WHEEL_AXIS);
   pn.param<int>("wheel_pos_axis_2", wheel_pos_axis_2, WHEEL_AXIS_2);
-  pn.param<int>("arm_torque_button", arm_torque_button, ARM_TORQUE_BUTTON);
+  pn.param<int>("accum_costmap_button", accum_costmapButton, ACCUM_COSTMAP_BUTTON);
   pn.param<int>("front_light_button", front_light_button, FRONT_LIGHT_BUTTON);
   pn.param<int>("rear_light_button", rear_light_button, REAR_LIGHT_BUTTON);
   
@@ -374,9 +370,9 @@ int main(int argc, char** argv)
   slow_pub = n.advertise<std_msgs::Bool>("/slow_motion", 1);
   mode_pub = n.advertise<std_msgs::Int8>("/operation_mode", 1 );
   
-  // Width and arm
+  // Width, costmap, light
   width_pos_pub = n.advertise<std_msgs::Float32>("width_pos", 1);
-  arm_torque_pub = n.advertise<std_msgs::UInt8>("arm_torque", 1);
+  accum_costmap_pub = n.advertise<std_msgs::Bool>("/costmap_node/odom_integrate", 1);
   light_cmd_pub = n.advertise<siar_driver::SiarLightCommand>("light_cmd", 1);
   
   // ---------END WIDTH ARM ---
@@ -437,12 +433,20 @@ int main(int argc, char** argv)
     ros::spinOnce();
   }
   if (backPressed) {
-    ROS_INFO("Back button pressed --> stopping Siar and exiting the program. ");
+    ROS_INFO("Back button pressed --> stopping Siar and raposa bag. ");
     // Before exiting --> stop Siar
     sendCmdVel(0.0, 0.0, vel_pub);
     if (stopExit) {
       ROS_INFO("Killing all ros nodes.");
       system("rosnode kill -a");
+    } else {
+      system ("rosnode kill /rosbag_raposa");
+      pid_t pid = fork();
+      
+      if (pid == 0) {
+        system("roslaunch siar_driver bag.launch");
+        return 0;
+      }
     }
   }
   

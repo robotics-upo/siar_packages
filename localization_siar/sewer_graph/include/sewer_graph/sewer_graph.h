@@ -74,6 +74,8 @@ public:
   
   virtual void addEdge(int i, int j);
   
+  virtual void addEdge(int i, int j, int type, int suffix = 0);
+  
 //   std::string toString() const;        Por ahora usamos la versión de SimpleGraph
   
   double getDistanceToClosestManhole(double x, double y) const;
@@ -114,6 +116,12 @@ protected:
   void addKMLStyle(kmldom::DocumentPtr& doc) const;
 #endif
   // End of KML stuff -----------------------------------------------
+  
+  //! @brief Parses the type: the thousand digit indicates: if 0 --> T. if 1 --> D, if 2 --> NT
+  //! @param type The number as readed from file
+  //! @param type The suffix ASCII code (65 = A, 66 = B, 67 = C) (if zero, none)
+  //! @return The string describing the section type
+  std::string parseSectionType(int type, char suffix = 0) const;
 };
 
 

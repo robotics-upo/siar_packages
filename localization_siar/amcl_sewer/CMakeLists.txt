@@ -20,7 +20,7 @@ find_package(catkin REQUIRED COMPONENTS
   simple_graph
   visualization_msgs
   nav_msgs
-  
+  plane_detector
 )
 
 # GSL package
@@ -56,7 +56,7 @@ add_executable(amcl_node src/amcl_node.cpp)
 
 ## Add cmake target dependencies of the executable/library
 ## as an example, message headers may need to be generated before nodes
-# add_dependencies(stereo_processing_node stereo_processing_generate_messages_cpp)
+add_dependencies(amcl_node plane_detector_generate_messages_cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(amcl_node
