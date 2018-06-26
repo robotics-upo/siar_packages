@@ -386,7 +386,7 @@ int main(int argc, char** argv)
   bool start = false;
   bool first_start = true;
   ROS_INFO("Siar teleop node. Press START to have fun. Press BACK at any moment to exit.");
-  while (n.ok() && !backPressed) {
+  while (n.ok()) {
     if (!start) 
     {
       sendCmdVel(0.0, 0.0, vel_pub);
@@ -431,24 +431,40 @@ int main(int argc, char** argv)
       rate.sleep();
     }
     ros::spinOnce();
-  }
-  if (backPressed) {
+    
+    if (backPressed) {
     ROS_INFO("Back button pressed --> stopping Siar and raposa bag. ");
     // Before exiting --> stop Siar
     sendCmdVel(0.0, 0.0, vel_pub);
-    if (stopExit) {
-      ROS_INFO("Killing all ros nodes.");
+    
+    system ("rosnode kill /rosbag_raposa");
+    
+    int cont = 0;
+    while (backPressed && cont < 5) {
+      sendCmdVel(0.0, 0.0, vel_pub);
+      ros::spinOnce();
+      sleep(1);
+      cont++;
+    }
+    
+    if (cont >= 5) {
+      ROS_INFO("Killing all ros nodes and shutting down.");
       system("rosnode kill -a");
+      system("shutdown now");
     } else {
-      system ("rosnode kill /rosbag_raposa");
+      
       pid_t pid = fork();
       
       if (pid == 0) {
+        //Client
         system("roslaunch siar_driver bag.launch");
         return 0;
       }
+      backPressed = false;
     }
   }
+  }
+  
   
   // Before exiting --> stop Siar
   sendCmdVel(0.0, 0.0, vel_pub);
