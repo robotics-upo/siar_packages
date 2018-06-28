@@ -67,6 +67,7 @@ include_directories(include/
 ## Declare a C++ executable
 add_executable(siar_node src/siar_node.cpp)
 add_executable(siar_calibration_node src/siar_calibration_node.cpp)
+add_executable(siar_raw_motors src/siar_raw_motors.cpp)
 add_executable(siar_teleop_joy src/siar_teleop_joy.cpp)
 add_executable(arm_tester src/arm_tester.cpp)
 add_executable(arm_saver src/arm_saver.cpp)
@@ -86,7 +87,7 @@ target_link_libraries(siar_node
 target_link_libraries(siar_calibration_node
   ${catkin_LIBRARIES}
 )
-
+target_link_libraries(siar_raw_motors ${catkin_LIBRARIES})
 target_link_libraries(siar_teleop_joy ${catkin_LIBRARIES})
 target_link_libraries(arm_tester ${catkin_LIBRARIES})
 target_link_libraries(arm_saver ${catkin_LIBRARIES})

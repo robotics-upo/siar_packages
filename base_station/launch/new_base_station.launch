@@ -109,7 +109,7 @@
   </node>
   
   <!-- Run localization on the laptop also -->
-  <include file="$(find amcl_sewer)/launch/amcl_pedralbes.launch">
+  <include file="$(find amcl_sewer)/launch/amcl_virrei_amat.launch">
     <arg name="visualization" value="true"/>
   </include>
   
