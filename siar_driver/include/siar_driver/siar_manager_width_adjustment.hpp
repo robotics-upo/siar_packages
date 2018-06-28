@@ -224,6 +224,14 @@ class SiarManagerWidthAdjustment:public SiarManager
   
   bool setRawVelocityCarlos(int16_t left, int16_t right, int16_t left_out, int16_t right_out);
   
+  //! --------------------- RAW commands for motor diagnostics
+  //! @brief Sets the raw velocities of one motor
+  //! @param motor number of the motor
+  //! @param vel The raw velocity command
+  //! @retval true Success
+  //! @retval false Error
+  virtual bool setMotorVelocity(int motor, int16_t vel);
+  
   double getWidth() const;
   
   //! @brief Sets the norm width
@@ -577,8 +585,8 @@ inline bool SiarManagerWidthAdjustment::setRawVelocity(int16_t left, int16_t rig
   bool ret_val = true;
   
   if(state.slow) {
-    left /= 4;
-    right /= 4;
+    left /= 3;
+    right /= 3;
   }
   
   right *= -1; // The right motors are reversed
@@ -587,8 +595,10 @@ inline bool SiarManagerWidthAdjustment::setRawVelocity(int16_t left, int16_t rig
   command[0] = _config.set_vel;
   command[1] = (unsigned char)(left >> 8);
   command[2] = (unsigned char)(left & 0xFF);
-  command[3] = (unsigned char)(right >> 8);
-  command[4] = (unsigned char)(right & 0xFF);
+  //command[3] = (unsigned char)(right >> 8);
+  //command[4] = (unsigned char)(right & 0xFF);
+  command[3] = 0;
+  command[4] = 0;
   command[5] = (unsigned char)(left >> 8);
   command[6] = (unsigned char)(left & 0xFF);
   command[7] = (unsigned char)(right >> 8);
@@ -605,6 +615,29 @@ inline bool SiarManagerWidthAdjustment::setRawVelocity(int16_t left, int16_t rig
   
   return ret_val;
 }
+
+bool SiarManagerWidthAdjustment::setMotorVelocity(int motor, int16_t vel)
+{
+  bool ret_val = true;
+  // get the right command
+  command[0] = _config.set_vel;
+  for (int i = 1; i < 12; i++) {
+    command[i] = 0;
+  }
+  if (motor > 0 && motor < 6) {
+    command[motor*2 + 1] = (unsigned char)(vel >> 8);
+    command[motor*2 + 2] = (unsigned char)(vel & 0xFF);
+  }
+  
+  // Send it to front and rear board and wait for response
+  siar_serial_1.flush();
+  ret_val = siar_serial_1.write(command, 13);
+  ret_val = siar_serial_1.getResponse(buffer, 4);
+  
+  return ret_val;
+}
+
+
 
 inline bool SiarManagerWidthAdjustment::setVelocity(double linear, double angular)
 {

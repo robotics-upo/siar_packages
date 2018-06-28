@@ -122,6 +122,14 @@ class SiarManager
   //! @retval false Error
   virtual bool setRawVelocity(int16_t left, int16_t right) = 0;
   
+  //! --------------------- RAW commands for motor diagnostics
+  //! @brief Sets the raw velocities of one motor
+  //! @param motor number of the motor
+  //! @param vel The raw velocity command
+  //! @retval true Success
+  //! @retval false Error
+  virtual bool setMotorVelocity(int motor, int16_t vel) = 0;
+  
   protected:
   SiarConfig _config;
   siar_driver::SiarStatus state;

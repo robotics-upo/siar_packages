@@ -115,7 +115,7 @@
     <param name="consider_sign" value="$(arg consider_sign)"/>
     <remap from="imu" to="/arduimu_v3/imu"/>
     <param name="min_radius" value="4.0"/>
-    <param name="max_radius" value="10.0"/>
+    <param name="max_radius" value="8.0"/>
     <param name="inflate_negative" value="0"/>
     <param name="robot_height" value="1.0"/>
   </node>
