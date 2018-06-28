@@ -120,7 +120,6 @@ int main(int argc, char** argv)
     siar->setMotorVelocity(n_motor, command_vel);
     r.sleep();
     t += delta_t;
-//    siar->update();
     ros::spinOnce();
   }
 

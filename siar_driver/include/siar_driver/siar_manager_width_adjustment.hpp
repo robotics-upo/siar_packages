@@ -624,7 +624,7 @@ bool SiarManagerWidthAdjustment::setMotorVelocity(int motor, int16_t vel)
   for (int i = 1; i < 12; i++) {
     command[i] = 0;
   }
-  if (motor > 0 && motor < 6) {
+  if (motor >= 0 && motor < 6) {
     command[motor*2 + 1] = (unsigned char)(vel >> 8);
     command[motor*2 + 2] = (unsigned char)(vel & 0xFF);
   }
