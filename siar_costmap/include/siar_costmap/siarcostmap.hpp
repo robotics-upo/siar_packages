@@ -179,8 +179,8 @@ public:
 		tf::StampedTransform odomTf;
 		try
 		{
-			m_tfListener.waitForTransform(m_odomFrameId, m_baseFrameId, ros::Time::now(), ros::Duration(1.0));
-			m_tfListener.lookupTransform(m_odomFrameId, m_baseFrameId, ros::Time::now(), odomTf);
+			m_tfListener.waitForTransform(m_odomFrameId, m_baseFrameId, ros::Time(0), ros::Duration(1.0));
+			m_tfListener.lookupTransform(m_odomFrameId, m_baseFrameId, ros::Time(0), odomTf);
 		}
 		catch (tf::TransformException ex)
 		{

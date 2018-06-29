@@ -595,8 +595,10 @@ inline bool SiarManagerWidthAdjustment::setRawVelocity(int16_t left, int16_t rig
   command[0] = _config.set_vel;
   command[1] = (unsigned char)(left >> 8);
   command[2] = (unsigned char)(left & 0xFF);
-  command[3] = (unsigned char)(right >> 8);
-  command[4] = (unsigned char)(right & 0xFF);
+  //command[3] = (unsigned char)(right >> 8);
+  //command[4] = (unsigned char)(right & 0xFF);
+  command[3] = 0;
+  command[4] = 0;
   command[5] = (unsigned char)(left >> 8);
   command[6] = (unsigned char)(left & 0xFF);
   command[7] = (unsigned char)(right >> 8);
