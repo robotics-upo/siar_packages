@@ -76,6 +76,7 @@ add_executable(arm_saver src/arm_saver.cpp)
 ## same as for the library above
 add_dependencies(siar_calibration_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} siar_driver_generate_messages_cpp)
 add_dependencies(siar_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} siar_driver_generate_messages_cpp)
+add_dependencies(siar_raw_motors ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} siar_driver_generate_messages_cpp)
 add_dependencies(siar_teleop_joy ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} siar_driver_generate_messages_cpp)
 add_dependencies(arm_tester ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} siar_driver_generate_messages_cpp)
 add_dependencies(arm_saver ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS} siar_driver_generate_messages_cpp)
