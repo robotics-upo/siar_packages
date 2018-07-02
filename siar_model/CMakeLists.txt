@@ -102,7 +102,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES siar_model
-#  CATKIN_DEPENDS roscpp siar_driver visualization_msgs
+ CATKIN_DEPENDS roscpp siar_driver visualization_msgs
 #  DEPENDS system_lib
 )
 
@@ -132,7 +132,7 @@ add_executable(siar_model_viz src/siar_model_viz.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(siar_model_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(siar_model_viz ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(siar_model_viz
