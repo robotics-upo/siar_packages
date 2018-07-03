@@ -39,19 +39,6 @@
       </item>
       <item>
        <layout class="QGridLayout" name="gridLayout">
-        <item row="1" column="0">
-         <widget class="QLabel" name="label_4">
-          <property name="maximumSize">
-           <size>
-            <width>150</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <property name="text">
-           <string>Motor Battery</string>
-          </property>
-         </widget>
-        </item>
         <item row="2" column="1">
          <widget class="QProgressBar" name="progressBar_rssi">
           <property name="maximumSize">
@@ -62,6 +49,19 @@
           </property>
           <property name="value">
            <number>24</number>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <widget class="QLabel" name="label_4">
+          <property name="maximumSize">
+           <size>
+            <width>150</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Motor Battery</string>
           </property>
          </widget>
         </item>
@@ -198,22 +198,6 @@
           </property>
           <property name="value">
            <number>24</number>
-          </property>
-         </widget>
-        </item>
-        <item row="3" column="0">
-         <widget class="QwtCompass" name="Compass">
-          <property name="maximumSize">
-           <size>
-            <width>150</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <property name="readOnly">
-           <bool>true</bool>
-          </property>
-          <property name="lineWidth">
-           <number>4</number>
           </property>
          </widget>
         </item>
@@ -464,43 +448,8 @@
           </layout>
          </widget>
         </item>
-        <item row="3" column="1">
-         <widget class="QwtDial" name="Dial_speed">
-          <property name="maximumSize">
-           <size>
-            <width>150</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <property name="font">
-           <font>
-            <pointsize>7</pointsize>
-            <weight>75</weight>
-            <bold>true</bold>
-           </font>
-          </property>
-          <property name="readOnly">
-           <bool>true</bool>
-          </property>
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="lineWidth">
-           <number>7</number>
-          </property>
-          <property name="frameShadow">
-           <enum>QwtDial::Sunken</enum>
-          </property>
-          <property name="mode">
-           <enum>QwtDial::RotateScale</enum>
-          </property>
-          <property name="origin">
-           <double>135.000000000000000</double>
-          </property>
-          <property name="wrapping">
-           <bool>true</bool>
-          </property>
-         </widget>
+        <item row="3" column="0">
+         <widget class="QDial" name="dial_2"/>
         </item>
        </layout>
       </item>
@@ -565,18 +514,6 @@
    </property>
   </action>
  </widget>
- <customwidgets>
-  <customwidget>
-   <class>QwtCompass</class>
-   <extends>QwtDial</extends>
-   <header>qwt_compass.h</header>
-  </customwidget>
-  <customwidget>
-   <class>QwtDial</class>
-   <extends>QWidget</extends>
-   <header>qwt_dial.h</header>
-  </customwidget>
- </customwidgets>
  <resources/>
  <connections/>
 </ui>

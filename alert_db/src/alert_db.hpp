@@ -6,6 +6,7 @@
 #include <ros/ros.h>
 #include <sensor_msgs/NavSatFix.h>
 #include "alert_db/GenerateAlert.h"
+#include "alert_db/ServiceabilityAlert.h"
 #include <std_msgs/String.h>
 #include <visualization_msgs/Marker.h>
 #include <tf/transform_listener.h>
@@ -44,11 +45,13 @@ public:
   
   std::string toString() const;
   
+  bool generateReports();
+  
 protected:
   std::vector<Alert> alerts;
   ros::Publisher marker_pub, text_pub;
   ros::Subscriber gps_fix_sub, image_sub;
-  ros::ServiceServer generate_alert_server;
+  ros::ServiceServer generate_alert_server, serviceability_alert_server;
   sensor_msgs::NavSatFix fix;
   sewer_graph::EarthLocation center;
   bool fix_init, init;
@@ -60,7 +63,10 @@ protected:
   
   tf::TransformListener tfl;
   
+  bool getPose(geometry_msgs::Pose& pose, sewer_graph::EarthLocation& loc);
+  
   bool generateAlert(GenerateAlert::Request &req, GenerateAlert::Response &res);
+  bool serviceabilityAlert(ServiceabilityAlert::Request &req, ServiceabilityAlert::Response &res);
   void gpsFixCb(const sensor_msgs::NavSatFix::ConstPtr &msg);
   void publishMarker();
 };
@@ -81,6 +87,7 @@ AlertDB::AlertDB(ros::NodeHandle &nh, ros::NodeHandle &lnh):fix_init(false), ini
   text_pub = nh.advertise<std_msgs::String>("/alert_text", 10);
   marker_pub = nh.advertise<visualization_msgs::Marker>("/alerts", 10);
   generate_alert_server = nh.advertiseService("/generate_alert", &AlertDB::generateAlert, this);
+  serviceability_alert_server = nh.advertiseService("/serviceability_alert", &AlertDB::serviceabilityAlert, this);
   gps_fix_sub = nh.subscribe("/gps/fix", 2, &AlertDB::gpsFixCb, this);
 //   image_sub = nh.subscribe("/front_web/rgb/image_raw/compressed", 2, &AlertDB::gpsFixCb, this);
   
@@ -97,47 +104,49 @@ bool AlertDB::generateAlert(GenerateAlert::Request& req, GenerateAlert::Response
 {
   ROS_INFO("In generateAlert");
   bool ret_val = false;
-  try {
-    tf::StampedTransform transf;
-    tfl.lookupTransform(map_tf, base_tf, ros::Time(0), transf);
-    sewer_graph::EarthLocation loc(center);
-    double x = transf.getOrigin().getX();
-    double y = transf.getOrigin().getY();
-    loc.shift(y, x);
-    geometry_msgs::Pose pose;
-    pose.position.x = x;
-    pose.position.y = y;
-    pose.position.z = 0.0;
-    tf::Quaternion q = transf.getRotation();
-    pose.orientation.w = q.getW();
-    pose.orientation.x = q.getX();
-    pose.orientation.y = q.getY();
-    pose.orientation.z = q.getZ();
+   
+  geometry_msgs::Pose pose;
+  sewer_graph::EarthLocation loc(center);
+  if (getPose(pose,loc)) {
     
     Alert curr_alert(alerts.size(), loc, req, pose);
     alerts.push_back(curr_alert);
     ret_val = true;
     publishMarker();
-    
+      
     std_msgs::String text_msg;
     text_msg.data = toString();
     text_pub.publish(text_msg);
-    
+      
     ROS_INFO("New alert generated. Type = %d. Description = %s", req.type, req.description.c_str());
-  } catch (std::exception &e) {
-    
-    ROS_ERROR("Could not generate alert. Exception content: %s", e.what());
+    res.result = 1;
+  } else {
+    ROS_INFO("Could not generate alert.");
+    res.result = 0;
+    ret_val = false;
   }
-  
-  res.result = (ret_val)?1:0;
   
   if (ret_val && alerts.size() > 0) {
 //     if (alerts[alerts.size() - 1].getType() == END) {
-    if (req.type >= 4) { // end!
-      exportKMLFile(kml_out_file);
-      ROS_INFO("Alerts content:\n%s", toString().c_str());
-      functions::writeStringToFile(text_out_file, toString());
+    if (req.type > 100) { // end!
+      generateReports();
     }
+  }
+  
+  return ret_val;
+}
+
+bool AlertDB::serviceabilityAlert(ServiceabilityAlert::Request &req, ServiceabilityAlert::Response &res)
+{
+  bool ret_val = true;
+  
+  geometry_msgs::Pose pose;
+  sewer_graph::EarthLocation loc(center);
+  if (getPose(pose,loc)) {
+    Alert curr_alert(alerts.size(), loc,  pose, req);
+    alerts.push_back(curr_alert);
+    ret_val = true;
+    publishMarker();
   }
   
   return ret_val;
@@ -203,6 +212,41 @@ string AlertDB::toString() const
   return os.str();
 }
 
+bool AlertDB::generateReports()
+{
+  exportKMLFile(kml_out_file);
+  ROS_INFO("Alerts content:\n%s", toString().c_str());
+  functions::writeStringToFile(text_out_file, toString());
+}
+
+
+bool AlertDB::getPose(geometry_msgs::Pose& pose, sewer_graph::EarthLocation &loc)
+{
+  bool ret_val = false;
+  
+  try {
+    tf::StampedTransform transf;
+    tfl.lookupTransform(map_tf, base_tf, ros::Time(0), transf);
+    sewer_graph::EarthLocation loc(center);
+    double x = transf.getOrigin().getX();
+    double y = transf.getOrigin().getY();
+    loc.shift(y, x);
+    geometry_msgs::Pose pose;
+    pose.position.x = x;
+    pose.position.y = y;
+    pose.position.z = 0.0;
+    tf::Quaternion q = transf.getRotation();
+    pose.orientation.w = q.getW();
+    pose.orientation.x = q.getX();
+    pose.orientation.y = q.getY();
+    pose.orientation.z = q.getZ();
+    ret_val = true;
+  } catch (std::exception &e) {
+    ROS_ERROR("AlertDB::getPose --> Could not get the transform from %s to %s.", map_tf.c_str(), base_tf.c_str());
+  }
+  
+  return ret_val;
+}
 
 
 }
