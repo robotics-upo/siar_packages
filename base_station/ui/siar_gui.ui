@@ -39,19 +39,6 @@
       </item>
       <item>
        <layout class="QGridLayout" name="gridLayout">
-        <item row="2" column="1">
-         <widget class="QProgressBar" name="progressBar_rssi">
-          <property name="maximumSize">
-           <size>
-            <width>150</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <property name="value">
-           <number>24</number>
-          </property>
-         </widget>
-        </item>
         <item row="1" column="0">
          <widget class="QLabel" name="label_4">
           <property name="maximumSize">
@@ -62,6 +49,19 @@
           </property>
           <property name="text">
            <string>Motor Battery</string>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="1">
+         <widget class="QProgressBar" name="progressBar_rssi">
+          <property name="maximumSize">
+           <size>
+            <width>150</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="value">
+           <number>24</number>
           </property>
          </widget>
         </item>
@@ -451,6 +451,13 @@
         <item row="3" column="0">
          <widget class="QDial" name="dial_2"/>
         </item>
+        <item row="3" column="1">
+         <widget class="QwtDial" name="Dial_speed">
+          <property name="lineWidth">
+           <number>4</number>
+          </property>
+         </widget>
+        </item>
        </layout>
       </item>
      </layout>
@@ -514,6 +521,13 @@
    </property>
   </action>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>QwtDial</class>
+   <extends>QWidget</extends>
+   <header>qwt_dial.h</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>
