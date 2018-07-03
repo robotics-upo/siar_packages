@@ -3,6 +3,7 @@
 
 #include "ros/ros.h"
 #include "alert_db/GenerateAlert.h"
+#include "alert_db/ServiceabilityAlertRequest.h"
 #include <string>
 #include <sewer_graph/earthlocation.h>
 #include "std_msgs/Header.h"
@@ -21,6 +22,9 @@ public:
   Alert(int id, const sewer_graph::EarthLocation &location, const alert_db::GenerateAlertRequest &alert_req,
   const geometry_msgs::Pose &pose);
   
+  Alert(int id, const sewer_graph::EarthLocation &location, 
+  const geometry_msgs::Pose &pose, const alert_db::ServiceabilityAlertRequest &serv_req);
+  
   kmldom::PlacemarkPtr toKML() const;
   
   std::string toHTML() const;
@@ -38,6 +42,13 @@ protected:
   alert_db::GenerateAlertRequest m_alert;
   geometry_msgs::Pose m_pose;
   AlertType m_type;
+  
+  // Serviceability info
+  alert_db::ServiceabilityAlertRequest m_serv;
+// //   float bucket_level, curb_level, still_level; // heights of the waste on areas
+//   int quality;
+
+  
 };
 
 Alert::Alert(int id, const sewer_graph::EarthLocation& location, const GenerateAlertRequest& alert_req,
@@ -46,6 +57,14 @@ Alert::Alert(int id, const sewer_graph::EarthLocation& location, const GenerateA
   m_type = (AlertType)alert_req.type;
 }
 
+Alert::Alert(int id, const sewer_graph::EarthLocation& location,	
+  const geometry_msgs::Pose &pose, const alert_db::ServiceabilityAlertRequest &serv_req):m_id(id),m_location(location), m_pose(pose), m_serv(serv_req)
+{
+  m_alert.description = m_serv.description;
+  m_alert.type = SERVICEABILITY;
+  m_alert.head = m_serv.head;
+  m_type = SERVICEABILITY;
+}
 
 string Alert::toString() const
 {
@@ -60,6 +79,13 @@ string Alert::toString() const
   os << "  Local Location: " << sep << "(" << m_pose.position.x << ", " << m_pose.position.y << ")\n";
   os << "  Description: " << sep << m_alert.description << std::endl;
   os << "  Distance to manhole: " << sep << m_alert.dist_manhole << std::endl;
+  
+  if (m_type == SERVICEABILITY) {
+    os << "Bucket level: " << m_serv.bucket_level << "\t";
+    os << "Curb level: " << m_serv.curb_level << "\n";
+    os << "Still level: " << m_serv.still_level << "\t";
+    os << "Quality(%): " << m_serv.quality << "\n";
+  }
   
   return os.str();
 }

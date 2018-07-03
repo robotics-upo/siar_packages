@@ -9,9 +9,12 @@
 #include <QMessageBox>
 #include <QComboBox>
 #include <QSpinBox>
+
+#ifndef Q_MOC_RUN
 #include "siar_driver/SiarStatus.h"
 #include <ros/ros.h>
 #include "alert_db/GenerateAlert.h"
+#endif
 
 #include <sstream>
 #include <string>

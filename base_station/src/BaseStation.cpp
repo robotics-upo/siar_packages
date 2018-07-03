@@ -23,19 +23,23 @@
 #include <QFileDialog>
 #include <QInputDialog>
 #include <QRadioButton>
-#include <boost/lexical_cast.hpp>
+
 #include <QStatusBar>
-#include <qwt/qwt_dial_needle.h>
-#include <qwt/qwt_dial.h>
 #include <QVBoxLayout>
 #define BUFFER_LENGTH 100000
 // #include <QUrl>
 #include <QMdiArea>
 #include <QMdiSubWindow>
+
+#include <qwt/qwt_dial_needle.h>
+
+#ifndef Q_MOC_RUN
 #include "rviz/default_plugin/camera_display.h"
 #include "rviz/default_plugin/image_display.h"
 #include "rviz/view_controller.h"
 #include "rviz/default_plugin/view_controllers/xy_orbit_view_controller.h"
+#include <boost/lexical_cast.hpp>
+#endif
 
 #include "OGRE/OgreCamera.h"
 
@@ -45,7 +49,7 @@ using boost::lexical_cast;
 using boost::bad_lexical_cast;
 
 BaseStation::BaseStation(int argc, char **argv, QWidget* parent, Qt::WindowFlags flags): 
-QMainWindow(parent, flags), argc(argc), argv(argv), init_log_time(), node(NULL), uavs(), pos_log(), started(false)
+QMainWindow(parent, flags), argc(argc), argv(argv), init_log_time(), node(NULL), started(false)
 {
   setupUi(this);
   QwtDialSimpleNeedle *nd = new QwtDialSimpleNeedle(QwtDialSimpleNeedle::Arrow, Qt::white, Qt::red);
@@ -54,9 +58,9 @@ QMainWindow(parent, flags), argc(argc), argv(argv), init_log_time(), node(NULL),
   
   d.setNeedle(nd);
   d.setMode(QwtDial::RotateNeedle);
-  d.setRange( 0.0, 1.0,  0.2);
-  d.setScale(135,45, 0.2);
-  d.setScaleArc(135,-135);
+//   d.setScaleArc(  0.0, 1.0);
+  d.setScale( 0.0, 1.0);
+  d.setScaleArc(315,35);
   
   
   // Start ROS comms
@@ -73,7 +77,8 @@ QMainWindow(parent, flags), argc(argc), argv(argv), init_log_time(), node(NULL),
 //   window_1->resize(640, 480);
   window_1->setWindowTitle("PointClouds");
   
-  window_2 = configureCameraDisplay();
+  window_2 = configureImageDisplay();
+  window_cam = configureCameraDisplay();
   
   window_3 = configureRVizDisplay(manager_2, render_panel_2, "map", mdiArea);
   window_3->setWindowTitle("Map");
@@ -90,6 +95,8 @@ QMainWindow(parent, flags), argc(argc), argv(argv), init_log_time(), node(NULL),
   ROS_INFO("Map camera settings: %s" , map_camera_.toString().c_str());
   
   // End of RVIZ stuff
+  
+ 
   
   // Tree widget!!
   tree_widget = new QTreeWidget(this);
@@ -241,15 +248,50 @@ void BaseStation::configurePointCloud(rviz::Display *&pc_display, const std::str
 
 QMdiSubWindow *BaseStation::configureCameraDisplay() {
   QMdiSubWindow *ret_val = NULL;
-//   camera_display = manager_->createDisplay("rviz/Camera", "Front camera",true);
-  camera_display = manager_->createDisplay("rviz/Image", "Front camera",true);
+  camera_display = manager_->createDisplay("rviz/Camera", "Front camera",true);
   camera_display->setTopic("/front_web/rgb/image_raw", "sensor_msgs/Image");
   camera_display->subProp("Transport Hint")->setValue("compressed");
+  camera_display->subProp("Overlay Alpha")->setValue(0.9);
+  camera_display->subProp("Image Rendering")->setValue("background");
+  
+  ret_val = mdiArea->addSubWindow(camera_display->getAssociatedWidget());
+  
+//   grid_display->subProp( "Color" )->setValue( Qt::yellow );
+  
+  // Create a robot model display
+//   robot_model_display = manager_->createDisplay("rviz/RobotModel", "robot model", true);
+  robot_model_display = manager_->createDisplay("rviz/MarkerArray", "marker", true);
+  robot_model_display->setTopic("/siar_model", "visualization_msgs/MarkerArray");
+  
+  
+  return ret_val;
+//   image_display = manager_->createDisplay("rviz/Image", "Front image", true);
+//   image_display->setTopic("/front_web/rgb/image_raw", "sensor_msgs/Image");
+}
+
+
+void BaseStation::configureGridDisplay(rviz::VisualizationManager *vis) {
+  // Create a Grid display. 
+  grid_display = vis->createDisplay( "rviz/Grid", "grid", true );
+  ROS_ASSERT( grid_display != NULL );
+
+  // Configure the GridDisplay the way we like it.
+  grid_display->subProp( "Line Style" )->setValue( "Lines" );
+  grid_display->subProp( "Cell Size" )->setValue(0.2); 
+  grid_display->subProp( "Plane Cell Count" )->setValue(50);
+}
+
+QMdiSubWindow *BaseStation::configureImageDisplay() {
+  QMdiSubWindow *ret_val = NULL;
+//   camera_display = manager_->createDisplay("rviz/Camera", "Front camera",true);
+  image_display = manager_->createDisplay("rviz/Image", "Front camera",true);
+  image_display->setTopic("/front_web/rgb/image_raw", "sensor_msgs/Image");
+  image_display->subProp("Transport Hint")->setValue("compressed");
 //   camera_display->subProp("Overlay Alpha")->setValue(0.9);
 //   camera_display->subProp("Image Rendering")->setValue("background");
   
 //   rviz::CameraDisplay *a = dynamic_cast<rviz::CameraDisplay*>(camera_display);
-  ret_val = mdiArea->addSubWindow(camera_display->getAssociatedWidget());
+  ret_val = mdiArea->addSubWindow(image_display->getAssociatedWidget());
   
   // Create a Grid display. 
   grid_display = manager_->createDisplay( "rviz/Grid", "grid", true );
@@ -365,8 +407,8 @@ void BaseStation::updateSiarStatus(const siar_driver::SiarStatus& state)
   
   label_width->setText(QString::number(state.width));
   
-  QwtDial &d = *Dial_speed;
-  d.setValue(fabs(state.speed));
+//   QwtDial &d = *Dial_speed;
+//   d.setValue(fabs(state.speed));
   
   if (last_status.reverse != state.reverse) {
     // The mode has changed --> change the view automatically

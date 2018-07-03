@@ -25,6 +25,7 @@
 #include <fstream>
 #include <plane_detector/WallInfo.h>
 #include <cmath>
+#include <amcl_sewer/Localization.h>
 
 //Struct that contains the data concerning one Particle
 struct Particle
@@ -167,6 +168,8 @@ public:
     m_posecovPub = m_nh.advertise<geometry_msgs::PoseWithCovarianceStamped>(node_name+"/estimated_pose", 1, true);
     m_graphPub = m_nh.advertise<visualization_msgs::Marker>(node_name+"/sewer_graph", 0, true);
     m_gpsPub = m_nh.advertise<sensor_msgs::NavSatFix>("/gps/fix", 2, true);
+    
+    m_localization_info_pub = m_nh.advertise<amcl_sewer::Localization>(node_name+"/localization_info", 1, false);
 
     // Launch updater timer
     updateTimer = m_nh.createTimer(ros::Duration(1.0/m_updateRate), &ParticleFilter::checkUpdateThresholdsTimer, this);
@@ -435,6 +438,8 @@ private:
     // Publish particles
     publishParticles();
     m_posecovPub.publish(m_lastPoseCov);
+    
+    getInfoAndPublish();
   }
 
   //!This function implements the PF prediction stage. Translation in X, Y and Z 
@@ -671,7 +676,7 @@ private:
   void computeGlobalTfAndPose()
   {        
     // Compute mean value from particles
-    float mx, my, ma, xv, yv, av, xycov;
+    
     computeVar(mx, my, ma, xv, yv, av, xycov);
     Particle p;
     p.x = mx;
@@ -808,6 +813,9 @@ private:
   ros::Publisher m_posesPub, m_graphPub, m_gpsPub, m_posecovPub;
   ros::Timer updateTimer;
   
+  // Publisher for sewer graph related data
+  ros::Publisher m_localization_info_pub;
+  
   // Sewer stuff
   std::string m_sewer_graph_file;
   sewer_graph::SewerGraph *s_g;
@@ -830,6 +838,23 @@ private:
   std::ofstream traj_file;
   std::string traj_filename;
   bool traj_file_open;
+  
+  
+  protected:
+  float mx, my, ma, xv, yv, av, xycov;
+  void getInfoAndPublish() {
+    amcl_sewer::Localization msg;
+    msg.closest_manhole = s_g->getClosestVertex(mx, my, sewer_graph::MANHOLE);
+    msg.closest_node = s_g->getClosestVertex(mx, my);
+    msg.dist_closest_manhole = s_g->getDistanceToClosestManhole(mx, my);
+    int id1, id2;
+    s_g->getDistanceToClosestEdge(mx,my,id1,id2);
+//     sewer_graph::SewerVertex &v = s_g->getClosestEdgeAngle()  s_g->getVertexContent( s_g->getClosestVertex());
+    sewer_graph::SewerEdge e;
+    s_g->getEdgeContent(id1,id2,e);
+    msg.section_type = e.section;
+    m_localization_info_pub.publish(msg);
+  }
 };
 
 #endif

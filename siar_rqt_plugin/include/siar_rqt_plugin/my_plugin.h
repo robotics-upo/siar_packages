@@ -2,12 +2,14 @@
 #ifndef SIAR_RQT_PLUGIN_MY_PLUGIN_H
 #define SIAR_RQT_PLUGIN_MY_PLUGIN_H
 
+#include <QWidget>
+
+#ifndef Q_MOC_RUN
 #include <rqt_gui_cpp/plugin.h>
 #include <siar_rqt_plugin/ui_my_plugin.h>
-#include <QWidget>
 #include <ros/ros.h>
 #include "siar_driver/SiarStatus.h"
-
+#endif
 
 namespace siar_rqt_plugin
 {

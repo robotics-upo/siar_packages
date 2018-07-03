@@ -21,26 +21,26 @@
 #ifndef BASE_STATION_H____
 #define BASE_STATION_H____
 
+#ifndef Q_MOC_RUN
 #include <functions/functions.h>
 #include <functions/Point3D.h>
 #include <functions/FormattedTime.h>
+#endif
 
 #include "Comms.h"
 
 // Qt includes
 #include <QTimer>
 #include <QMainWindow>
-#include <qwt/qwt_plot_curve.h>
-#include <qwt/qwt_plot_marker.h>
-#include <qwt/qwt_symbol.h>
 #include <base_station/ui_siar_gui.h>
+
+// #include <qwt/qwt_dial.h>
 
 #include "rviz/visualization_manager.h"
 #include "rviz/render_panel.h"
 #include "rviz/display.h"
 #include "rviz/yaml_config_reader.h"
 
-#include <QWebView>
 #include <QMdiArea>
 
 #include <QTreeWidget>
@@ -88,8 +88,6 @@ private:
   
   // Communication stuff
   Comms *node;
-  std::vector<uint> uavs;
-  std::vector<std::vector<functions::Point3D> > pos_log;
   
   // Last messages
   siar_driver::SiarStatus last_status;
@@ -106,7 +104,8 @@ private:
   rviz::Display* axes_display, *grid_display, *grid_display2;
   rviz::Display* camera_display, *image_display;
   rviz::Display* marker_1, *marker_2, *marker_3;
-  QMdiSubWindow *window_1, *window_2, *window_3, *window_4;
+  QMdiSubWindow *window_1, *window_2, *window_3, *window_4, *window_cam;
+  
 //   rviz::RenderPanel* 
   //! @brief Old version when the panel is located in a Layout (deprecated)
   void configureRVizDisplay(rviz::VisualizationManager *&manager, rviz::RenderPanel *&panel, 
@@ -116,11 +115,16 @@ private:
   QMdiSubWindow * configureRVizDisplay(rviz::VisualizationManager*& manager, rviz::RenderPanel*& panel, 
                                        const std::string &frame, QMdiArea *parent);
   void configurePointCloud(rviz::Display *&pc_display, const std::string &topic);
+  QMdiSubWindow *configureImageDisplay();
   QMdiSubWindow * configureCameraDisplay();
+  void configureGridDisplay(rviz::VisualizationManager *vis);
   void configureMap();
   
-  // Web kit
+  // Tree widget
   QTreeWidget *tree_widget;
+  
+  // qwt_dial
+//   QwtDial *Dial_speed;
 };
 
 #endif // BASE_STATION_H____

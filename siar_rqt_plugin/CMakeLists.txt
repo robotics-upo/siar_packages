@@ -113,7 +113,7 @@ roslint_cpp()
 catkin_package(
 #  INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME}
-  CATKIN_DEPENDS roscpp rqt_gui_cpp std_msgs siar_driver
+  CATKIN_DEPENDS alert_db roscpp rqt_gui_cpp std_msgs siar_driver
 #  DEPENDS system_lib
 )
 
@@ -162,7 +162,7 @@ add_library(${PROJECT_NAME}
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
-# add_dependencies(rqt_example_cpp_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(${PROJECT_NAME}

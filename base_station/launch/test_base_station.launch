@@ -35,7 +35,7 @@
     <remap from="/front_right_web/rgb/image_raw" to="/front_right/rgb/image_raw"/>
   </node>
   
-  <include file="$(find siar_stl_model)/launch/siar.launch"/>
+  <include file="$(find siar_model)/launch/siar_model_viz.launch"/>
   
   <node name="uncompresser_front_rgb" pkg="image_transport" type="republish"
         args="compressed in:=/front/rgb/image_raw raw out:=/front/rgb/image_raw"/>

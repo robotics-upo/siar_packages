@@ -26,6 +26,7 @@ SET(LIBS ${catkin_LIBRARIES} kmlbase kmldom kmlengine kmlconvenience)
 add_service_files(
   FILES
   GenerateAlert.srv
+  ServiceabilityAlert.srv
 )
 
 ## Generate added messages and services with any dependencies listed here

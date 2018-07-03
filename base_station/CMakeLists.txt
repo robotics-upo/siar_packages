@@ -17,18 +17,20 @@ find_package(catkin REQUIRED COMPONENTS
   siar_driver
 )
 
+set(qt_gui_cpp_USE_QT_MAJOR_VERSION 5 )
+
 ## System dependencies are found with CMake's conventions
 find_package(Boost REQUIRED)
 find_package(OpenCV REQUIRED)
 # find_package(Ogre REQUIRED)
 
-## System dependencies are found with CMake's conventions
+# System dependencies are found with CMake's conventions
 if("${qt_gui_cpp_USE_QT_MAJOR_VERSION} " STREQUAL "5 ")
   find_package(Qt5Widgets REQUIRED)
 else()
   find_package(Qt4 COMPONENTS QtCore QtGui QtWebKit REQUIRED)
   include(${QT_USE_FILE})
-endif()
+  endif()
 
 SET ( QWT_INCLUDE /usr/include/qwt/)
 
@@ -102,7 +104,7 @@ add_executable(test_comm src/testComm.cpp)
 target_link_libraries(test_comm ${catkin_LIBRARIES} )
 
 if("${qt_gui_cpp_USE_QT_MAJOR_VERSION} " STREQUAL "5 ")
-  target_link_libraries(${PROJECT_NAME} Qt5::Widgets)
+  target_link_libraries(${PROJECT_NAME} Qt5::Widgets qwt-qt5)
 else()
   target_link_libraries(${PROJECT_NAME} ${QT_QTCORE_LIBRARY} ${QT_QTGUI_LIBRARY} ${QT_QTWEBKIT_LIBRARY} qwt)
 endif()

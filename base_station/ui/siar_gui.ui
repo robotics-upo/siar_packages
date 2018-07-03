@@ -201,22 +201,6 @@
           </property>
          </widget>
         </item>
-        <item row="3" column="0">
-         <widget class="QwtCompass" name="Compass">
-          <property name="maximumSize">
-           <size>
-            <width>150</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <property name="readOnly">
-           <bool>true</bool>
-          </property>
-          <property name="lineWidth">
-           <number>4</number>
-          </property>
-         </widget>
-        </item>
         <item row="0" column="0">
          <widget class="QLabel" name="label_3">
           <property name="maximumSize">
@@ -464,41 +448,13 @@
           </layout>
          </widget>
         </item>
+        <item row="3" column="0">
+         <widget class="QDial" name="dial_2"/>
+        </item>
         <item row="3" column="1">
          <widget class="QwtDial" name="Dial_speed">
-          <property name="maximumSize">
-           <size>
-            <width>150</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <property name="font">
-           <font>
-            <pointsize>7</pointsize>
-            <weight>75</weight>
-            <bold>true</bold>
-           </font>
-          </property>
-          <property name="readOnly">
-           <bool>true</bool>
-          </property>
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
           <property name="lineWidth">
-           <number>7</number>
-          </property>
-          <property name="frameShadow">
-           <enum>QwtDial::Sunken</enum>
-          </property>
-          <property name="mode">
-           <enum>QwtDial::RotateScale</enum>
-          </property>
-          <property name="origin">
-           <double>135.000000000000000</double>
-          </property>
-          <property name="wrapping">
-           <bool>true</bool>
+           <number>4</number>
           </property>
          </widget>
         </item>
@@ -566,11 +522,6 @@
   </action>
  </widget>
  <customwidgets>
-  <customwidget>
-   <class>QwtCompass</class>
-   <extends>QwtDial</extends>
-   <header>qwt_compass.h</header>
-  </customwidget>
   <customwidget>
    <class>QwtDial</class>
    <extends>QWidget</extends>
