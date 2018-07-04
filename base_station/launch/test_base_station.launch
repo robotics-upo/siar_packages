@@ -3,7 +3,7 @@
   
   <arg name="joystick" default="true"/>
   
-  <arg name="bag_file" default="/home/chur/GasNatural/siar_2018-05-10-09-58-55.bag"/>
+  <arg name="bag_file" default="/datos/siar_2018-06-27-10-31-55.bag"/>
   <arg name="play_bag" default="true"/>
   
   <arg name="start" default="0"/>
@@ -11,6 +11,22 @@
   <arg name="nav_pitch" default="0.3"/>
   <arg name="nav_z" default="0.5"/>
   <arg name="detection" default="false"/>
+  
+   <arg name="roi_x" default="5"/>
+  <arg name="roi_y" default="5"/>
+  <arg name="roi_w" default="310"/>
+  <arg name="roi_h" default="230"/>
+  <arg name="roi_w2" default="630"/>
+  <arg name="roi_h2" default="470"/>
+  
+  
+  <arg name="min_thres_defects" default="0.01"/> <!--Squared distance for error detection 0.02-->
+  <arg name="max_thres_defects" default="0.1"/> <!--Squared distance 0.1-->
+  <arg name="global_align_thres" default="0.4"/> <!--ICP Euclidean fitness score (e.g., sum of squared distances from the source to the target)-->
+  <arg name="hysteresis" default="10"/> <!--Hysteresis (iterations to raise an alarm)-->
+  <arg name="min_serviceability_level" default="0.11"/> <!--Free space from base_link (in meters)-->
+
+  
   
   <param name="use_sim_time" value="true" />
   
@@ -50,6 +66,10 @@
     <param name="range_min" value = "0.5"/>                             # Min range in meters for point cloud generation
     <param name="range_max" value = "6.0"/>                             # Max range in meters for point cloud generation
     <param name="down_sampling" value = "1"/>                   # Camera down sampling factor. Values: 1, 2 or 4. The bigger the faster.
+     <param name="roi_x" value="$(arg roi_x)"/>
+    <param name="roi_y" value="$(arg roi_y)"/>
+    <param name="roi_w" value="$(arg roi_w2)"/>
+    <param name="roi_h" value="$(arg roi_h2)"/>
   </node>
   
   <node name="uncompresser_front_left" pkg="image_transport" type="republish"
@@ -64,6 +84,10 @@
     <param name="range_min" value = "0.5"/>                             # Min range in meters for point cloud generation
     <param name="range_max" value = "6.0"/>                             # Max range in meters for point cloud generation
     <param name="down_sampling" value = "1"/>                   # Camera down sampling factor. Values: 1, 2 or 4. The bigger the faster.
+    <param name="roi_x" value="$(arg roi_x)"/>
+    <param name="roi_y" value="$(arg roi_y)"/>
+    <param name="roi_w" value="$(arg roi_w)"/>
+    <param name="roi_h" value="$(arg roi_h)"/>
   </node>
   
   <node name="uncompresser_front_right" pkg="image_transport" type="republish"
@@ -78,9 +102,38 @@
     <param name="range_min" value = "0.5"/>                             # Min range in meters for point cloud generation
     <param name="range_max" value = "6.0"/>                             # Max range in meters for point cloud generation
     <param name="down_sampling" value = "1"/>                   # Camera down sampling factor. Values: 1, 2 or 4. The bigger the faster.
+    <param name="roi_x" value="$(arg roi_x)"/>
+    <param name="roi_y" value="$(arg roi_y)"/>
+    <param name="roi_w" value="$(arg roi_w)"/>
+    <param name="roi_h" value="$(arg roi_h)"/>
   </node>
-  <include file="$(find pcl_processing)/launch/map_analysis.launch" if="$(arg detection)">
-    <arg name="generate_cloud" value="false"/>
-  </include>  
   
+  <!-- Point Cloud Processing node -->
+<node name="concatenate" pkg="siar_inspection" type="siar_concat_clouds" output="screen">
+  
+</node>
+
+<!-- Run localization on the laptop also -->
+  <include file="$(find amcl_sewer)/launch/amcl_virrei_amat.launch">
+    <arg name="visualization" value="true"/>
+  </include>
+  
+  <node pkg="alert_db" type="alert_db_node" name="alert_db" output="screen">
+    <param name="kml_out_file" value="/datos/test.kml"/>
+    <param name="text_out_file" value="/datos/test.txt"/>
+    
+  </node>
+
+
+<!-- Point Cloud Processing node -->
+  <node name="test_analysis" pkg="siar_inspection" type="siar_map_analysis">
+    <remap from="points2" to="concatenatedCloud"/>
+    <param name="min_thres_defects" value="$(arg min_thres_defects)"/>
+    <param name="max_thres_defects" value="$(arg max_thres_defects)"/>
+    <param name="global_align_thres" value="$(arg global_align_thres)"/>
+    <param name="hysteresis" value="$(arg hysteresis)"/>
+    <param name="min_serviceability_level" value="$(arg min_serviceability_level)"/>
+    
+  </node>
+
 </launch>

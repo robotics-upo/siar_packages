@@ -52,7 +52,7 @@ generate_messages(DEPENDENCIES geometry_msgs std_msgs  nav_msgs)
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES stereo_processing
- CATKIN_DEPENDS roscpp rospy std_msgs pcl_ros nav_msgs tf sewer_graph simple_graph gsll geometry_msgs message_runtime
+ CATKIN_DEPENDS roscpp rospy std_msgs pcl_ros nav_msgs tf sewer_graph simple_graph geometry_msgs message_runtime
 #  DEPENDS system_lib
 )
 

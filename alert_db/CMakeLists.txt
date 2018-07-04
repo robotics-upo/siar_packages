@@ -17,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   visualization_msgs
   sewer_graph
+  amcl_sewer
   functions
 )
 

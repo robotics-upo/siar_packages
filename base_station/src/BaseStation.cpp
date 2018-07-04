@@ -67,18 +67,18 @@ QMainWindow(parent, flags), argc(argc), argv(argv), init_log_time(), node(NULL),
   startComms();
   
   
-  
+  mdiArea->setFocusPolicy(Qt::ClickFocus);
   // RViz stuff
   
   window_1 = configureRVizDisplay(manager_, render_panel_, "base_link", mdiArea);
-  configurePointCloud(point_cloud_1,"/front/points");
-  configurePointCloud(point_cloud_2,"/front_left/points");
-  configurePointCloud(point_cloud_3,"/front_right/points");
+  configurePointCloud(point_cloud_1,"/front/points", manager_);
+  configurePointCloud(point_cloud_2,"/front_left/points", manager_);
+  configurePointCloud(point_cloud_3,"/front_right/points", manager_);
 //   window_1->resize(640, 480);
   window_1->setWindowTitle("PointClouds");
   
   window_2 = configureImageDisplay();
-  window_cam = configureCameraDisplay();
+  
   
   window_3 = configureRVizDisplay(manager_2, render_panel_2, "map", mdiArea);
   window_3->setWindowTitle("Map");
@@ -94,9 +94,23 @@ QMainWindow(parent, flags), argc(argc), argv(argv), init_log_time(), node(NULL),
   ROS_INFO("Camera cloud settings: %s" , cloud_camera_.toString().c_str());
   ROS_INFO("Map camera settings: %s" , map_camera_.toString().c_str());
   
+  // Third display:
+  window_unused = configureRVizDisplay(manager_3, render_panel_3, "base_link", mdiArea);
+  window_unused->showMinimized();
+  window_unused->setWindowTitle("Processed Points");
+  window_cam = configureCameraDisplay();
+  configurePointCloud(point_cloud_defects, "/serviceabilityProblems", manager_3);
+  point_cloud_defects->subProp("Size (m)")->setValue(0.05);
+  configurePointCloud(p_c_curb, "/curbCloud", manager_3);
+  p_c_curb->subProp("Size (m)")->setValue(0.05);
+  configurePointCloud(p_c_gutter, "/gutterCloud", manager_3);
+  p_c_curb->subProp("Color Transformer")->setValue("FlatColor");
+  p_c_curb->subProp("Color")->setValue("#0000FF");
+  p_c_gutter->subProp("Size (m)")->setValue(0.05);
+  window_cam->setWindowTitle("Serviceability Window");
+  p_c_gutter->subProp("Color Transformer")->setValue("FlatColor");
+  p_c_gutter->subProp("Color")->setValue("#777777");
   // End of RVIZ stuff
-  
- 
   
   // Tree widget!!
   tree_widget = new QTreeWidget(this);
@@ -104,6 +118,13 @@ QMainWindow(parent, flags), argc(argc), argv(argv), init_log_time(), node(NULL),
   window_4->showMinimized();
   window_4->setWindowTitle("Database");
   
+  
+  window_1->setFocusPolicy(Qt::ClickFocus);
+  window_2->setFocusPolicy(Qt::ClickFocus);
+  window_3->setFocusPolicy(Qt::ClickFocus);
+  window_4->setFocusPolicy(Qt::ClickFocus);
+  window_cam->setFocusPolicy(Qt::ClickFocus);
+  window_unused->setFocusPolicy(Qt::ClickFocus);
   
   setExploreView();
   
@@ -114,14 +135,21 @@ QMainWindow(parent, flags), argc(argc), argv(argv), init_log_time(), node(NULL),
 //   q.tileSubWindows();
 //   q.cascadeSubWindows();
   
+  
+  
   // Make Qt connections
   connect(actionExploration, SIGNAL(triggered()), this, SLOT(setExploreView()));
   connect(actionAlert, SIGNAL(triggered()), this, SLOT(setMissionView()));
+  connect(actionServiceability, SIGNAL(triggered()), this, SLOT(setServiceabilityView()));
   connect(emergencyButton, SIGNAL(clicked()), node, SLOT(setEmergencyStop())); 
   connect(node, SIGNAL(siarStatusChanged(const siar_driver::SiarStatus &)), this, SLOT(updateSiarStatus(const siar_driver::SiarStatus &)));
   connect(node, SIGNAL(newRSSI(const rssi_get::Nvip_status&)), this, SLOT(updateRSSIStatus(const rssi_get::Nvip_status &)));
   connect(node, SIGNAL(alertDBReceived(const std::string&)), this, SLOT(updateTreeContent(const std::string&)));
   connect(horizontalSlider_width_indicator_2, SIGNAL(valueChanged(int)), node, SLOT(setElecX(int)));
+  connect(checkBox_Curb, SIGNAL(toggled(bool)), p_c_curb, SLOT(setEnabled(bool)));
+  connect(checkBox_Gutter, SIGNAL(toggled(bool)), p_c_gutter, SLOT(setEnabled(bool)));
+  connect(checkBox_Defects, SIGNAL(toggled(bool)), point_cloud_defects, SLOT(setEnabled(bool)));
+  connect(checkBox, SIGNAL(toggled(bool)), marker_section, SLOT(setEnabled(bool)));
   
   // Setviews:
   // Set the view
@@ -142,6 +170,7 @@ void BaseStation::setExploreView()
   window_2->showNormal();
   window_3->showNormal();
   window_4->showMinimized();
+  window_cam->showMinimized();
   
   window_1->setMinimumWidth(size_.width()*0.2);
   window_1->resize(size_.width()*0.4, size_.height()*0.55);
@@ -172,6 +201,7 @@ void BaseStation::setMissionView()
   window_2->showMinimized();
   window_3->showNormal();
   window_4->showNormal();
+  window_cam->showMinimized();
   
   window_3->setMinimumWidth(size_.width()*0.2);
   window_3->setMaximumWidth(size_.width()*3);
@@ -189,6 +219,39 @@ void BaseStation::setMissionView()
   window_4->move(size_.width()*0.6, 0);
 }
 
+void BaseStation::setServiceabilityView()
+{
+  QSize size_ = this->size();
+  
+  window_1->showNormal();
+  window_2->showMinimized();
+  window_3->showNormal();
+  window_4->showMinimized();
+  window_cam->showNormal();
+  
+  
+  window_1->setMinimumWidth(size_.width()*0.2);
+  window_1->resize(size_.width()*0.4, size_.height()*0.55);
+  window_1->setMaximumWidth(size_.width()*2.1);
+  window_1->setMaximumHeight(size_.height()*2.2);
+  window_1->setMinimumHeight(size_.height()*0.2);
+  window_1->move(0, size_.height() * 0.4);
+  
+  window_3->setMinimumWidth(size_.width()*0.2);
+  window_3->setMaximumWidth(size_.width()*3);
+  window_3->setMaximumHeight(size_.height()*2.2);
+  window_3->setMinimumHeight(size_.height()*0.1);
+  window_3->resize(size_.width()*0.85, size_.height()*0.2);
+  window_3->move(0, 0);
+  
+  window_cam->setMinimumWidth(size_.width()*0.2);
+  window_cam->setMaximumWidth(size_.width()*3);
+  window_cam->setMaximumHeight(size_.height()*2.2);
+  window_cam->setMinimumHeight(size_.height()*0.1);
+  window_cam->resize(size_.width()*0.5, size_.height()*0.9);
+  
+  window_cam->move(size_.width()*0.4, 0);
+}
 
 
 BaseStation::BaseStation(const QMainWindow& ): QMainWindow()
@@ -238,9 +301,9 @@ QMdiSubWindow *BaseStation::configureRVizDisplay(rviz::VisualizationManager*& ma
   return ret_val;
 }
 
-void BaseStation::configurePointCloud(rviz::Display *&pc_display, const std::string &topic)
+void BaseStation::configurePointCloud(rviz::Display *&pc_display, const std::string &topic, rviz::VisualizationManager *manager)
 {
-  pc_display = manager_->createDisplay("rviz/PointCloud2", "sensors_msgs::PointCloud2",true);
+  pc_display = manager->createDisplay("rviz/PointCloud2", "sensors_msgs::PointCloud2",true);
   pc_display->setTopic(QString::fromStdString(topic), "sensor_msgs/PointCloud2");
   pc_display->subProp("Color Transformer")->setValue("AxisColor");
 //   pc_display->initialize(manager_);
@@ -248,7 +311,7 @@ void BaseStation::configurePointCloud(rviz::Display *&pc_display, const std::str
 
 QMdiSubWindow *BaseStation::configureCameraDisplay() {
   QMdiSubWindow *ret_val = NULL;
-  camera_display = manager_->createDisplay("rviz/Camera", "Front camera",true);
+  camera_display = manager_3->createDisplay("rviz/Camera", "Front camera",true);
   camera_display->setTopic("/front_web/rgb/image_raw", "sensor_msgs/Image");
   camera_display->subProp("Transport Hint")->setValue("compressed");
   camera_display->subProp("Overlay Alpha")->setValue(0.9);
@@ -256,17 +319,14 @@ QMdiSubWindow *BaseStation::configureCameraDisplay() {
   
   ret_val = mdiArea->addSubWindow(camera_display->getAssociatedWidget());
   
+  marker_section = manager_3->createDisplay("rviz/Marker", "Marker Sec Typ", true);
+  marker_section->setTopic("/section_type", "visualization_msgs/Marker");
+  
+  
+  
+  
 //   grid_display->subProp( "Color" )->setValue( Qt::yellow );
-  
-  // Create a robot model display
-//   robot_model_display = manager_->createDisplay("rviz/RobotModel", "robot model", true);
-  robot_model_display = manager_->createDisplay("rviz/MarkerArray", "marker", true);
-  robot_model_display->setTopic("/siar_model", "visualization_msgs/MarkerArray");
-  
-  
   return ret_val;
-//   image_display = manager_->createDisplay("rviz/Image", "Front image", true);
-//   image_display->setTopic("/front_web/rgb/image_raw", "sensor_msgs/Image");
 }
 
 

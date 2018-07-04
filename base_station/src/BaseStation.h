@@ -64,6 +64,7 @@ public slots:
   void updateTreeContent(const std::string &string);
   void setExploreView();
   void setMissionView();
+  void setServiceabilityView();
   
 private slots:
   void updateValues();
@@ -96,15 +97,17 @@ private:
   bool started;
   
   // RViz stuff
-  rviz::VisualizationManager* manager_,*manager_2;
-  rviz::RenderPanel* render_panel_,*render_panel_2;
+  rviz::VisualizationManager* manager_,*manager_2, *manager_3;
+  rviz::RenderPanel* render_panel_,*render_panel_2, *render_panel_3;
   rviz::Display* sat_view;
   rviz::Display* point_cloud_1, *point_cloud_2, *point_cloud_3;
   rviz::Display* robot_model_display;
   rviz::Display* axes_display, *grid_display, *grid_display2;
   rviz::Display* camera_display, *image_display;
-  rviz::Display* marker_1, *marker_2, *marker_3;
-  QMdiSubWindow *window_1, *window_2, *window_3, *window_4, *window_cam;
+  rviz::Display* marker_1, *marker_2, *marker_3, *marker_alerts;
+  QMdiSubWindow *window_1, *window_2, *window_3, *window_4, *window_cam, *window_unused;
+  rviz::Display* marker_section, *point_cloud_defects, *p_c_curb, *p_c_gutter;
+  
   
 //   rviz::RenderPanel* 
   //! @brief Old version when the panel is located in a Layout (deprecated)
@@ -114,7 +117,7 @@ private:
   //! @brief Configures the display when the panel is located in a mdiArea
   QMdiSubWindow * configureRVizDisplay(rviz::VisualizationManager*& manager, rviz::RenderPanel*& panel, 
                                        const std::string &frame, QMdiArea *parent);
-  void configurePointCloud(rviz::Display *&pc_display, const std::string &topic);
+  void configurePointCloud(rviz::Display *&pc_display, const std::string &topic, rviz::VisualizationManager *manager);
   QMdiSubWindow *configureImageDisplay();
   QMdiSubWindow * configureCameraDisplay();
   void configureGridDisplay(rviz::VisualizationManager *vis);

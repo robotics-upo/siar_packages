@@ -9,6 +9,7 @@
 #include "std_msgs/Header.h"
 #include "kml/dom.h"
 #include <visualization_msgs/Marker.h>
+#include "amcl_sewer/Localization.h"
 
 namespace alert_db 
 {
@@ -36,12 +37,15 @@ public:
   
   inline AlertType getType() const { return m_type; }
   
+  void setLocalizationInfo(const amcl_sewer::Localization &info);
+  
 protected:
   int m_id;
   sewer_graph::EarthLocation m_location;
   alert_db::GenerateAlertRequest m_alert;
   geometry_msgs::Pose m_pose;
   AlertType m_type;
+  amcl_sewer::Localization m_loc_info;
   
   // Serviceability info
   alert_db::ServiceabilityAlertRequest m_serv;
@@ -70,7 +74,7 @@ string Alert::toString() const
 {
   std::ostringstream os;
   
-  const std::string sep="\t\t";
+  const std::string sep=" ";
   
   os << "Alert ID: " << sep << m_id << "\n";
   os << "  Type: " << sep << m_type << "\n";
@@ -78,13 +82,13 @@ string Alert::toString() const
   os << "  Global Location: " << sep << m_location.toString() << std::endl;
   os << "  Local Location: " << sep << "(" << m_pose.position.x << ", " << m_pose.position.y << ")\n";
   os << "  Description: " << sep << m_alert.description << std::endl;
-  os << "  Distance to manhole: " << sep << m_alert.dist_manhole << std::endl;
+  os << "  Distance to manhole: " << sep << m_loc_info.dist_closest_manhole << std::endl;
   
   if (m_type == SERVICEABILITY) {
-    os << "Bucket level: " << m_serv.bucket_level << "\t";
-    os << "Curb level: " << m_serv.curb_level << "\n";
-    os << "Still level: " << m_serv.still_level << "\t";
-    os << "Quality(%): " << m_serv.quality << "\n";
+    os << "  Bucket level: "  << sep << m_serv.bucket_level << "\n";
+    os << "  Curb level: " << sep << m_serv.curb_level << "\n";
+    os << "  Still level: " << sep << m_serv.still_level << "\n";
+    os << "  Quality(%): " << sep << m_serv.quality << "\n";
   }
   
   return os.str();
@@ -130,14 +134,19 @@ visualization_msgs::Marker Alert::getMarker(const std::string &map_frame) const
   m.pose = m_pose;
   m.lifetime = ros::Duration(0);
   m.type = 0;
+  m.id = m_id;
   
   m.color.b = m.color.r = m.color.g = 0.0;
   m.color.a = 1.0;
   
+  m.scale.x = 2.0;
+  m.scale.y = 2.0;
+  m.scale.z = 2.0;
+  
   switch(m_type) {
     case INIT:
       m.color.g = 1.0;
-      m.color.r = 1.0;
+      m.color.r = 0.0;
       m.text = "init";
       m.type = visualization_msgs::Marker::CUBE;
       break;
@@ -151,9 +160,9 @@ visualization_msgs::Marker Alert::getMarker(const std::string &map_frame) const
       break;
       
     case STRUCTURAL_DEFECT:
-      m.color.r = 1.0;
+      m.color.b = 1.0;
       m.text = "structural defect";
-      m.type = m.type = visualization_msgs::Marker::SPHERE;
+      m.type = visualization_msgs::Marker::SPHERE;
       break;
       
     case REPEATER:
@@ -169,9 +178,20 @@ visualization_msgs::Marker Alert::getMarker(const std::string &map_frame) const
       m.color.b = 1.0;
       m.text = "inlet";
       m.type = visualization_msgs::Marker::CYLINDER;
+      
+    default:
+      m.color.r = 1.0;
+      m.text = "End of inspection";
+      m.type = visualization_msgs::Marker::CUBE;
   }
   
   return m;
+}
+
+void Alert::setLocalizationInfo(const amcl_sewer::Localization& info)
+{
+  m_alert.dist_manhole = info.dist_closest_manhole;
+  m_loc_info = info;
 }
 
 
