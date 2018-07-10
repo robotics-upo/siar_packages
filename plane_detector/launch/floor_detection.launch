@@ -16,7 +16,7 @@
 <!--   <node name="bag_player" type="play" pkg="rosbag" args="$(arg bag_file) - -clock -s $(arg start)" /> -->
   
   # Uncompress depth
-  <node name="republish_depth" type="republish" pkg="image_transport" args="compressedDepth in:=$(arg camera)/depth_registered/image_raw raw out:=$(arg camera)/depth_registered/image_raw"/>
+<!--   <node name="republish_depth" type="republish" pkg="image_transport" args="compressedDepth in:=$(arg camera)/depth_registered/image_raw raw out:=$(arg camera)/depth_registered/image_raw"/> -->
   
   # Launch plane detector
   <node name="test_floor_detector" type="test_floor_detector" pkg="plane_detector" output="screen" >
