@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(amcl_sewer)
 
-set (CMAKE_BUILD_TYPE Debug)
+# set (CMAKE_BUILD_TYPE Debug)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   cmake_modules
   tf
   geometry_msgs
+  message_generation
   pcl_conversions 
   pcl_ros
   sewer_graph
@@ -26,11 +27,32 @@ find_package(catkin REQUIRED COMPONENTS
 # GSL package
 find_package( PkgConfig REQUIRED)
 pkg_check_modules( gsl REQUIRED gsl )
+ 
+
+add_message_files(
+  FILES
+  Localization.msg
+)
+
+## Generate added messages and services with any dependencies listed here
+# generate_messages(
+#   DEPENDENCIES
+#   std_msgs
+# )
+
+generate_messages(DEPENDENCIES geometry_msgs std_msgs  nav_msgs)
+
+# generate_messages(
+#   DEPENDENCIES
+#   std_msgs
+#   nav_msgs
+#   geometry_msgs
+# )
 
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES stereo_processing
- CATKIN_DEPENDS roscpp rospy std_msgs pcl_ros nav_msgs tf sewer_graph simple_graph gsll
+ CATKIN_DEPENDS roscpp rospy std_msgs pcl_ros nav_msgs tf sewer_graph simple_graph geometry_msgs message_runtime
 #  DEPENDS system_lib
 )
 

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(alert_db)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -17,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   visualization_msgs
   sewer_graph
+  amcl_sewer
   functions
 )
 
@@ -26,6 +27,7 @@ SET(LIBS ${catkin_LIBRARIES} kmlbase kmldom kmlengine kmlconvenience)
 add_service_files(
   FILES
   GenerateAlert.srv
+  ServiceabilityAlert.srv
 )
 
 ## Generate added messages and services with any dependencies listed here

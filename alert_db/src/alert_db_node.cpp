@@ -23,5 +23,7 @@ int main(int argc, char **argv)
   
   ros::spin();
   
+  db.generateReports();
+  
   return 0;
 }

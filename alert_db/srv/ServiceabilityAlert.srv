@@ -1,0 +1,12 @@
+Header head
+
+uint8 type # 0 = bucket; 1 = curb; 2 = still
+
+float32 bucket_level # height of the waste on the bucket
+float32 curb_level # height of the waste on the curb
+float32 still_level #height of the waste on still areas
+int8 quality # estimated percentage free of waste
+
+string description   # Additional description given by the operator
+---
+bool result

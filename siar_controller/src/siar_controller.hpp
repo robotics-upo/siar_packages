@@ -535,6 +535,13 @@ void SiarController::initializeDiscreteTestSet()
 void SiarController::evaluateAndActualizeBest(const geometry_msgs::Twist& cmd_vel, const geometry_msgs::Twist &v_ini)
 {
   m.points.clear();
+  if ((int)min_wheel_left.size()  < operation_mode + 1) 
+  {
+    ROS_ERROR("SiarController --> evaluateAndActualizeBest. Could not set the operation mode to %d", operation_mode);
+    ROS_ERROR("M_wheel sizes --> L = %d\t R = %d", (int)min_wheel_left.size(), (int)min_wheel_right.size());
+    return;
+  }
+  
   double m_w_l = min_wheel_left[operation_mode - 1];
   double m_w_r = min_wheel_right[operation_mode - 1];
   

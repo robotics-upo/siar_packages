@@ -1,11 +1,13 @@
 <?xml version="1.0"?>
 <launch>
-  <arg name="config" default="siar_controller.yaml"/>
-  <arg name="velocity" default="velocityset_2"/>  
-  <node name="siar_controller" pkg="siar_controller" type="siar_controller_node" output="screen">
+  <arg name="config" default="siar_controller_test.yaml"/>
+  <arg name="velocity" default="velocity_set_fast_smooth"/>  
+  <node name="siar_controller" pkg="siar_controller" type="siar_controller_node"> # launch-prefix="xterm -e gdb --args">
       <remap from="/cmd_vel_in" to="/user_cmd_vel"/>
       <remap from="/cmd_vel_out" to="/cmd_vel"/>
-      <remap from="/altitude_map" to="/costmap_node/costmap"/>
+<!--       <remap from="/altitude_map" to="/costmap_node/costmap"/> -->
+      <remap from="/altitude_map" to="/test_costmap"/>
+      <remap from="/operation_mode" to="/op"/>
       
       <rosparam file="$(find siar_controller)/cfg/$(arg config)" command="load"  /> 
       <param name="velocityset_filename" value="$(find siar_controller)/cfg/$(arg velocity)"/>

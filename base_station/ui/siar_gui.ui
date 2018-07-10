@@ -52,99 +52,6 @@
           </property>
          </widget>
         </item>
-        <item row="2" column="1">
-         <widget class="QProgressBar" name="progressBar_rssi">
-          <property name="maximumSize">
-           <size>
-            <width>150</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <property name="value">
-           <number>24</number>
-          </property>
-         </widget>
-        </item>
-        <item row="2" column="0">
-         <widget class="QLabel" name="label_2">
-          <property name="maximumSize">
-           <size>
-            <width>150</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <property name="text">
-           <string>RSSI (%)</string>
-          </property>
-         </widget>
-        </item>
-        <item row="4" column="0">
-         <widget class="QPushButton" name="emergencyButton">
-          <property name="maximumSize">
-           <size>
-            <width>150</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <property name="text">
-           <string/>
-          </property>
-          <property name="icon">
-           <iconset>
-            <normaloff>../../../../../../../../../../../.designer/icons/emer_stop.jpeg</normaloff>../../../../../../../../../../../.designer/icons/emer_stop.jpeg</iconset>
-          </property>
-          <property name="iconSize">
-           <size>
-            <width>100</width>
-            <height>100</height>
-           </size>
-          </property>
-         </widget>
-        </item>
-        <item row="5" column="1">
-         <widget class="QGroupBox" name="groupBox_3">
-          <property name="maximumSize">
-           <size>
-            <width>150</width>
-            <height>75</height>
-           </size>
-          </property>
-          <property name="title">
-           <string>Command speed</string>
-          </property>
-          <layout class="QVBoxLayout" name="verticalLayout_4">
-           <item>
-            <widget class="QRadioButton" name="radioButton_slow">
-             <property name="maximumSize">
-              <size>
-               <width>150</width>
-               <height>16777215</height>
-              </size>
-             </property>
-             <property name="text">
-              <string>Slow</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QRadioButton" name="radioButton_normal">
-             <property name="maximumSize">
-              <size>
-               <width>150</width>
-               <height>16777215</height>
-              </size>
-             </property>
-             <property name="text">
-              <string>Normal</string>
-             </property>
-             <property name="checked">
-              <bool>true</bool>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </widget>
-        </item>
         <item row="6" column="1">
          <layout class="QVBoxLayout" name="verticalLayout_8">
           <item>
@@ -201,22 +108,6 @@
           </property>
          </widget>
         </item>
-        <item row="3" column="0">
-         <widget class="QwtCompass" name="Compass">
-          <property name="maximumSize">
-           <size>
-            <width>150</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <property name="readOnly">
-           <bool>true</bool>
-          </property>
-          <property name="lineWidth">
-           <number>4</number>
-          </property>
-         </widget>
-        </item>
         <item row="0" column="0">
          <widget class="QLabel" name="label_3">
           <property name="maximumSize">
@@ -228,6 +119,50 @@
           <property name="text">
            <string>Elec. Battery</string>
           </property>
+         </widget>
+        </item>
+        <item row="5" column="0">
+         <widget class="QGroupBox" name="groupBox_2">
+          <property name="maximumSize">
+           <size>
+            <width>150</width>
+            <height>75</height>
+           </size>
+          </property>
+          <property name="title">
+           <string>Direction</string>
+          </property>
+          <layout class="QVBoxLayout" name="verticalLayout_3">
+           <item>
+            <widget class="QRadioButton" name="radioButton_forward">
+             <property name="maximumSize">
+              <size>
+               <width>150</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>Forward</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QRadioButton" name="radioButton_reverse">
+             <property name="maximumSize">
+              <size>
+               <width>150</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>Reverse</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
          </widget>
         </item>
         <item row="6" column="0">
@@ -342,6 +277,19 @@
           </item>
          </layout>
         </item>
+        <item row="2" column="1">
+         <widget class="QProgressBar" name="progressBar_rssi">
+          <property name="maximumSize">
+           <size>
+            <width>150</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="value">
+           <number>24</number>
+          </property>
+         </widget>
+        </item>
         <item row="4" column="1">
          <widget class="QGroupBox" name="groupBox">
           <property name="maximumSize">
@@ -420,28 +368,16 @@
           </property>
          </widget>
         </item>
-        <item row="5" column="0">
-         <widget class="QGroupBox" name="groupBox_2">
-          <property name="maximumSize">
-           <size>
-            <width>150</width>
-            <height>75</height>
-           </size>
-          </property>
+        <item row="3" column="0">
+         <widget class="QGroupBox" name="groupBox_4">
           <property name="title">
-           <string>Direction</string>
+           <string>Representation</string>
           </property>
-          <layout class="QVBoxLayout" name="verticalLayout_3">
+          <layout class="QVBoxLayout" name="verticalLayout">
            <item>
-            <widget class="QRadioButton" name="radioButton_forward">
-             <property name="maximumSize">
-              <size>
-               <width>150</width>
-               <height>16777215</height>
-              </size>
-             </property>
+            <widget class="QCheckBox" name="checkBox">
              <property name="text">
-              <string>Forward</string>
+              <string>Alert Info</string>
              </property>
              <property name="checked">
               <bool>true</bool>
@@ -449,7 +385,88 @@
             </widget>
            </item>
            <item>
-            <widget class="QRadioButton" name="radioButton_reverse">
+            <widget class="QCheckBox" name="checkBox_Curb">
+             <property name="text">
+              <string>Curb</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="checkBox_Defects">
+             <property name="text">
+              <string>Defects</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="checkBox_Gutter">
+             <property name="text">
+              <string>Gutter</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item row="4" column="0">
+         <widget class="QPushButton" name="emergencyButton">
+          <property name="maximumSize">
+           <size>
+            <width>150</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+          <property name="icon">
+           <iconset>
+            <normaloff>../../../../../../../../../../../.designer/icons/emer_stop.jpeg</normaloff>../../../../../../../../../../../.designer/icons/emer_stop.jpeg</iconset>
+          </property>
+          <property name="iconSize">
+           <size>
+            <width>100</width>
+            <height>100</height>
+           </size>
+          </property>
+         </widget>
+        </item>
+        <item row="2" column="0">
+         <widget class="QLabel" name="label_2">
+          <property name="maximumSize">
+           <size>
+            <width>150</width>
+            <height>16777215</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>RSSI (%)</string>
+          </property>
+         </widget>
+        </item>
+        <item row="5" column="1">
+         <widget class="QGroupBox" name="groupBox_3">
+          <property name="maximumSize">
+           <size>
+            <width>150</width>
+            <height>75</height>
+           </size>
+          </property>
+          <property name="title">
+           <string>Command speed</string>
+          </property>
+          <layout class="QVBoxLayout" name="verticalLayout_4">
+           <item>
+            <widget class="QRadioButton" name="radioButton_slow">
              <property name="maximumSize">
               <size>
                <width>150</width>
@@ -457,7 +474,23 @@
               </size>
              </property>
              <property name="text">
-              <string>Reverse</string>
+              <string>Slow</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QRadioButton" name="radioButton_normal">
+             <property name="maximumSize">
+              <size>
+               <width>150</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>Normal</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
              </property>
             </widget>
            </item>
@@ -465,40 +498,9 @@
          </widget>
         </item>
         <item row="3" column="1">
-         <widget class="QwtDial" name="Dial_speed">
-          <property name="maximumSize">
-           <size>
-            <width>150</width>
-            <height>16777215</height>
-           </size>
-          </property>
-          <property name="font">
-           <font>
-            <pointsize>7</pointsize>
-            <weight>75</weight>
-            <bold>true</bold>
-           </font>
-          </property>
-          <property name="readOnly">
-           <bool>true</bool>
-          </property>
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
-          <property name="lineWidth">
-           <number>7</number>
-          </property>
-          <property name="frameShadow">
-           <enum>QwtDial::Sunken</enum>
-          </property>
-          <property name="mode">
-           <enum>QwtDial::RotateScale</enum>
-          </property>
-          <property name="origin">
-           <double>135.000000000000000</double>
-          </property>
-          <property name="wrapping">
-           <bool>true</bool>
+         <widget class="QwtDial" name="Dial_speed" native="true">
+          <property name="lineWidth" stdset="0">
+           <number>4</number>
           </property>
          </widget>
         </item>
@@ -538,6 +540,8 @@
     </property>
     <addaction name="actionExploration"/>
     <addaction name="actionAlert"/>
+    <addaction name="actionServiceability"/>
+    <addaction name="actionInspection"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuView"/>
@@ -564,13 +568,21 @@
     <string>Mission</string>
    </property>
   </action>
+  <action name="actionServiceability">
+   <property name="text">
+    <string>Serviceability</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+D, Ctrl+S</string>
+   </property>
+  </action>
+  <action name="actionInspection">
+   <property name="text">
+    <string>Inspection</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
-  <customwidget>
-   <class>QwtCompass</class>
-   <extends>QwtDial</extends>
-   <header>qwt_compass.h</header>
-  </customwidget>
   <customwidget>
    <class>QwtDial</class>
    <extends>QWidget</extends>
