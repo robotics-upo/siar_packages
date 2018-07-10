@@ -326,6 +326,24 @@ public:
     
     //TODO: Camera info of the inspection camera?
     inspection_info = general_info;
+    if (lnh.getParam("height_inspection", aux)) 
+      inspection_info.height = aux;
+    if (lnh.getParam("width_inspection", aux))
+      inspection_info.width = aux;
+    if (lnh.getParam("PI", vec)) {
+      for (size_t i = 0;i < vec.size() && i < 9; i++) {
+        inspection_info.P[i] = vec[i];
+      }
+    }
+    if (lnh.getParam("RI", vec)) {
+      for (size_t i = 0;i < vec.size() && i < 9; i++) {
+        inspection_info.R[i] = vec[i];
+      }
+    }
+    std::string dist_model;
+    if (lnh.getParam("dist_model_I", dist_model)) {
+      inspection_info.distortion_model = dist_model;
+    }
     
     init();
   }
