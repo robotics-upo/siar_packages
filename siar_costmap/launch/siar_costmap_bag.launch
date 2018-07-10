@@ -7,7 +7,7 @@
   # Starting second into the bag file
   <arg name="start" default="0" />
   
-  <arg name="tilt_compensate" default="true"/>
+  <arg name="tilt_compensate" default="false"/>
   <arg name="consider_sign" default="true"/>
   <arg name="roi_x" default="5"/>
   <arg name="roi_y" default="5"/>
@@ -144,7 +144,7 @@
     <param name="tilt_compensate" value="$(arg tilt_compensate)"/>
     <param name="consider_sign" value="$(arg consider_sign)"/>
     <remap from="imu" to="/arduimu_v3/imu"/>
-    <param name="robot_height" value="2.0"/>
+    <param name="robot_height" value="0.7"/>
     <param name="min_radius" value="3.65"/>
     <param name="max_radius" value="1.2"/>
     <param name="inflate_negative" value="0"/>

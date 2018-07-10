@@ -63,6 +63,7 @@ public slots:
   void updateRSSIStatus(const rssi_get::Nvip_status &status);
   void updateTreeContent(const std::string &string);
   void setExploreView();
+  void setInspectionView();
   void setMissionView();
   void setServiceabilityView();
   
@@ -103,9 +104,9 @@ private:
   rviz::Display* point_cloud_1, *point_cloud_2, *point_cloud_3;
   rviz::Display* robot_model_display;
   rviz::Display* axes_display, *grid_display, *grid_display2;
-  rviz::Display* camera_display, *image_display;
+  rviz::Display* camera_display, *image_display, *image_display_2;
   rviz::Display* marker_1, *marker_2, *marker_3, *marker_alerts;
-  QMdiSubWindow *window_1, *window_2, *window_3, *window_4, *window_cam, *window_unused;
+  QMdiSubWindow *window_1, *window_2, *window_3, *window_4, *window_cam, *window_unused, *window_img_2;
   rviz::Display* marker_section, *point_cloud_defects, *p_c_curb, *p_c_gutter;
   
   
@@ -118,7 +119,7 @@ private:
   QMdiSubWindow * configureRVizDisplay(rviz::VisualizationManager*& manager, rviz::RenderPanel*& panel, 
                                        const std::string &frame, QMdiArea *parent);
   void configurePointCloud(rviz::Display *&pc_display, const std::string &topic, rviz::VisualizationManager *manager);
-  QMdiSubWindow *configureImageDisplay();
+  QMdiSubWindow *configureImageDisplay(const std::string& topic, const std::string &window_name);
   QMdiSubWindow * configureCameraDisplay();
   void configureGridDisplay(rviz::VisualizationManager *vis);
   void configureMap();

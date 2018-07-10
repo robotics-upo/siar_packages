@@ -112,7 +112,7 @@ AlertDB::~AlertDB()
 
 bool AlertDB::generateAlert(GenerateAlert::Request& req, GenerateAlert::Response& res)
 {
-  ROS_INFO("In generateAlert");
+//   ROS_INFO("In generateAlert");
   bool ret_val = false;
    
   geometry_msgs::Pose pose;

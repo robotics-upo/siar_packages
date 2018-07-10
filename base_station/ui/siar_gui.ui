@@ -541,6 +541,7 @@
     <addaction name="actionExploration"/>
     <addaction name="actionAlert"/>
     <addaction name="actionServiceability"/>
+    <addaction name="actionInspection"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuView"/>
@@ -573,6 +574,11 @@
    </property>
    <property name="shortcut">
     <string>Ctrl+D, Ctrl+S</string>
+   </property>
+  </action>
+  <action name="actionInspection">
+   <property name="text">
+    <string>Inspection</string>
    </property>
   </action>
  </widget>
