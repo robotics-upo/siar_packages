@@ -30,9 +30,9 @@ private:
   double joyRate, joyMinRate;
   std::string odomTopic, odomTopic_2, imageTopic, imageTopic_2, imageTopic_3, imageTopic_4;
   std::string depthTopic, depthTopic_2, depthTopic_3, depthTopic_4;
-  std::string camera_1, camera_2, camera_3, camera_4;
+  std::string camera_1, camera_2, camera_3, camera_4, inspection_camera_1, inspection_camera_2;
   std::string camTopic, camTopic_2, camTopic_3, camTopic_4, depthCamTopic, depthCamTopic_2, depthCamTopic_3, depthCamTopic_4;
-  std::string inspectionTopic_1, inspectionTopic_2, inspectionCam_1, inspectionCam_2;
+  std::string inspectionTopic_1, inspectionTopic_2, inspectionCam_1, inspectionCam_2, thermal_camera_topic, thermal_camera_info_topic;
   std::string allCamerasTopic, publishDepthTopic, joyTopic, rssi_topic, slowTopic;
   std::string point_topic, siar_status_topic, geo_tf_topic;
   std::string posTopic, widthTopic;
@@ -44,6 +44,7 @@ private:
   ros::Publisher depth_cam_pub, depth_cam_pub_2, depth_cam_pub_3, depth_cam_pub_4;
   ros::Publisher rssi_pub, siar_status_pub, point_pub;
   ros::Publisher inspection_pub_1, inspection_pub_2, inspection_cam_pub_1, inspection_cam_pub_2;
+  ros::Publisher thermal_pub, thermal_cam_pub;
   
   ros::Subscriber publish_depth_sub, all_cameras_sub, joy_sub, slow_sub;
   ros::Subscriber set_x_pos_sub, width_pos_sub;
@@ -84,6 +85,10 @@ public:
       camera_3 = "/front_left";
     if(!lnh.getParam("camera_4", camera_4))
       camera_4 = "/front_right";
+    if (!lnh.getParam("inspection_camera_1", inspection_camera_1))
+      inspection_camera_1 = "/inspection1_cam";
+    if (!lnh.getParam("inspection_camera_2", inspection_camera_2))
+      inspection_camera_2 = "/inspection2_cam";
     if (!lnh.getParam("base_frame_id", base_frame_id))
       base_frame_id = "/base_link";
     if (!lnh.getParam("odom_frame_id", odom_frame_id))  
@@ -110,8 +115,11 @@ public:
     depthTopic_3 = camera_3 + "/depth_registered/image_raw/compressedDepth";
     depthTopic_4 = camera_4 + "/depth_registered/image_raw/compressedDepth";
     geo_tf_topic = "/rgbd_odom/transform";
-    inspectionTopic_1 = "inspection_1/image_raw/compressed";
-    inspectionTopic_2 = "inspection_2/image_raw/compressed";
+    inspectionTopic_1 = inspection_camera_1 + "/image_raw/compressed";
+    inspectionTopic_2 = inspection_camera_2 + "/image_raw/compressed";
+    
+    if (!lnh.getParam("thermal_camera_topic", thermal_camera_topic))
+      thermal_camera_topic = "/flip_image";
           
     // Create publishers
     image_pub = nh.advertise<sensor_msgs::CompressedImage>(imageTopic, 1);
@@ -136,8 +144,8 @@ public:
     depthCamTopic_2 = camera_2 + "/depth_registered/camera_info";
     depthCamTopic_3 = camera_3 + "/depth_registered/camera_info";
     depthCamTopic_4 = camera_4 + "/depth_registered/camera_info";
-    inspectionCam_1 = "inspection_1/camera_info";
-    inspectionCam_2 = "inspection_2/camera_info";
+    inspectionCam_1 = inspection_camera_1 + "/camera_info";
+    inspectionCam_2 = inspection_camera_2 + "/camera_info";
     
     cam_pub = nh.advertise<sensor_msgs::CameraInfo>(camTopic, 1);
     cam_pub_2 = nh.advertise<sensor_msgs::CameraInfo>(camTopic_2, 1);
@@ -244,10 +252,6 @@ public:
       }
       
     }
-    
-    
-    
-    
     general_info.roi.do_rectify = false;
     general_info.roi.x_offset = 0;
     general_info.roi.y_offset = 0;
@@ -473,6 +477,18 @@ protected:
         msg_info.header = msg.header;
         msg_info.header.frame_id = msg.header.frame_id;
         inspection_cam_pub_2.publish(msg_info);
+      }
+      if (topic == thermal_camera_topic)
+      {
+	ROS_INFO("Deserializing and publishing topic %s", topic.c_str());
+        sensor_msgs::CompressedImage msg = deserialize<sensor_msgs::CompressedImage>(buffer.data(), buffer.size());
+        msg.header.stamp = ros::Time::now();
+        thermal_pub.publish(msg);
+	// TODO: camera info of the thermal camera
+//         sensor_msgs::CameraInfo msg_info = inspection_info;
+//         msg_info.header = msg.header;
+//         msg_info.header.frame_id = msg.header.frame_id;
+//         thermal_cam_pub.publish(msg_info);
       }
       if(topic == depthTopic) 
       {

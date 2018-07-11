@@ -37,21 +37,22 @@ private:
   std::string depthTopic, depthTopic_2, depthTopic_3, depthTopic_4;
   std::string allCamerasTopic, publishDepthTopic, joyTopic, rssi_topic, point_topic;
   std::string siar_status_topic, slowTopic, geo_tf_topic;
-  std::string camera_1, camera_2, camera_3, camera_4;
+  std::string camera_1, camera_2, camera_3, camera_4, inspection_camera1, inspection_camera2;
   std::string posTopic, widthTopic;
   int jpeg_quality, min_quality;
   bool quality_set, quality_set_2;
+  std::string thermal_camera_topic;
   
   // Subscriber rates
   Cycle odomCycle, imageCycle, imageCycle_2, imageCycle_3, imageCycle_4;
-  Cycle inspectionCycle_1, inspectionCycle_2;
+  Cycle inspectionCycle_1, inspectionCycle_2, thermalCycle;
   Cycle depthCycle, depthCycle_2, rssiCycle, depthCycle_3, depthCycle_4;
   Cycle siarStatusCycle, pointCycle;
   
   // Publishers and subscribers
   ros::Publisher publish_depth_pub, all_cameras_pub, joy_pub, slow_pub, elec_x_pos_pub, width_pos_pub;
   ros::Subscriber odom_sub, image_sub, image_sub_2, image_sub_3, image_sub_4;
-  ros::Subscriber inspection_sub_1, inspection_sub_2;
+  ros::Subscriber inspection_sub_1, inspection_sub_2, thermal_sub;
   ros::Subscriber depth_sub, depth_sub_2, rssi_sub, depth_sub_3, depth_sub_4, geo_tf_sub;
   ros::Subscriber  siar_status_sub, point_sub;
   ros::NodeHandle nh;
@@ -102,6 +103,12 @@ public:
       point_topic = "/rgbd_odom_node/point_cloud";
     if (!lnh.getParam("point_cloud_rate", point_rate))
       point_rate = 1.0;
+    if (!lnh.getParam("inspection_camera_1", inspection_camera1))
+      inspection_camera1 = "/inspection1_cam";
+    if (!lnh.getParam("inspection_camera_2", inspection_camera2))
+      inspection_camera2 = "/inspection2_cam";
+    if (!lnh.getParam("thermal_camera_topic", thermal_camera_topic))
+      thermal_camera_topic = "/flip_image/compressed";
        
     // Set the image topics 
     imageTopic = camera_1 + "/rgb/image_raw/compressed";
@@ -114,8 +121,8 @@ public:
     depthTopic_4 = camera_4 + "/depth_registered/image_raw/compressedDepth";
     geo_tf_topic = "/rgbd_odom/transform";
     
-    inspectionImageTopic1 = "inspection_1/compressed";
-    inspectionImageTopic2 = "inspection_2/compressed";
+    inspectionImageTopic1 = inspection_camera1 + "/image_raw/compressed";
+    inspectionImageTopic2 = inspection_camera2 + "/image_raw/compressed";
     
     allCamerasTopic = "/all_cameras";
     publishDepthTopic = "/publish_depth";
@@ -144,6 +151,8 @@ public:
     inspectionCycle_1.init(imageRate);
     inspection_sub_2 = nh.subscribe(inspectionImageTopic2, 1, &UDPServer::inspectionCallback_2, this);
     inspectionCycle_2.init(imageRate);
+    thermal_sub = nh.subscribe(thermal_camera_topic, 1, &UDPServer::thermalCallback, this);
+    thermalCycle.init(imageRate);
     depth_sub = nh.subscribe(depthTopic, 1, &UDPServer::depthCallback, this);
     depthCycle.init(depthRate);
     depth_sub_2 = nh.subscribe(depthTopic_2, 1, &UDPServer::depthCallback_2, this);
@@ -304,6 +313,14 @@ protected:
     }
     // Serialize msg and write over UDP
     serializeWrite<sensor_msgs::CompressedImage>(inspectionImageTopic2, *msg); 
+  }
+  
+  void thermalCallback(const sensor_msgs::CompressedImage::ConstPtr &msg) {
+    // Check if the cycle has elapsed
+    if (!thermalCycle.newCycle())
+      return;
+    
+    serializeWrite<sensor_msgs::CompressedImage>(thermal_camera_topic, *msg);
   }
   
   void depthCallback(const sensor_msgs::CompressedImage::ConstPtr& msg)

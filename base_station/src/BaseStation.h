@@ -104,9 +104,9 @@ private:
   rviz::Display* point_cloud_1, *point_cloud_2, *point_cloud_3;
   rviz::Display* robot_model_display;
   rviz::Display* axes_display, *grid_display, *grid_display2;
-  rviz::Display* camera_display, *image_display, *image_display_2;
+  rviz::Display* camera_display, *image_display, *image_display_2, *image_display_3;
   rviz::Display* marker_1, *marker_2, *marker_3, *marker_alerts;
-  QMdiSubWindow *window_1, *window_2, *window_3, *window_4, *window_cam, *window_unused, *window_img_2;
+  QMdiSubWindow *window_1, *window_2, *window_3, *window_4, *window_cam, *window_unused, *window_img_2, *window_img_3;
   rviz::Display* marker_section, *point_cloud_defects, *p_c_curb, *p_c_gutter;
   
   

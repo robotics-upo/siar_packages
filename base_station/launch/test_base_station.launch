@@ -26,6 +26,7 @@
   <arg name="hysteresis" default="10"/> <!--Hysteresis (iterations to raise an alarm)-->
   <arg name="min_serviceability_level" default="0.11"/> <!--Free space from base_link (in meters)-->
 
+  <arg name="serviceability" default="false"/>
   
   
   <param name="use_sim_time" value="true" />
@@ -126,7 +127,7 @@
 
 
 <!-- Point Cloud Processing node -->
-  <node name="test_analysis" pkg="siar_inspection" type="siar_map_analysis">
+  <node name="test_analysis" pkg="siar_inspection" type="siar_map_analysis" if="$(arg serviceability)">
     <remap from="points2" to="concatenatedCloud"/>
     <param name="min_thres_defects" value="$(arg min_thres_defects)"/>
     <param name="max_thres_defects" value="$(arg max_thres_defects)"/>

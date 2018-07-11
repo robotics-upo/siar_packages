@@ -77,8 +77,10 @@ QMainWindow(parent, flags), argc(argc), argv(argv), init_log_time(), node(NULL),
 //   window_1->resize(640, 480);
   window_1->setWindowTitle("PointClouds");
   
-  window_2 = configureImageDisplay("/inspection_1/image_raw", "Inpection1");
-  window_img_2 = configureImageDisplay("/inspection_2/image_raw", "Inpection2");
+  window_2 = configureImageDisplay("/inspection1_cam/image_raw", "Inpection1");
+  window_img_2 = configureImageDisplay("/inspection2_cam/image_raw", "Inpection2");
+  window_img_3 = configureImageDisplay("/flip_image", "Thermal");
+  
   // Create a Grid display. 
   grid_display = manager_->createDisplay( "rviz/Grid", "grid", true );
 //   ROS_ASSERT( grid_ != NULL );
@@ -121,7 +123,7 @@ QMainWindow(parent, flags), argc(argc), argv(argv), init_log_time(), node(NULL),
   p_c_curb->subProp("Color Transformer")->setValue("FlatColor");
   p_c_curb->subProp("Color")->setValue("#0000FF");
   p_c_gutter->subProp("Size (m)")->setValue(0.05);
-  window_cam->setWindowTitle("Serviceability Window");
+  window_cam->setWindowTitle("Front Camera");
   p_c_gutter->subProp("Color Transformer")->setValue("FlatColor");
   p_c_gutter->subProp("Color")->setValue("#777777");
   // End of RVIZ stuff
@@ -188,6 +190,7 @@ void BaseStation::setExploreView()
   window_4->showMinimized();
   window_cam->showNormal();
   window_img_2->showMinimized();
+  window_img_3->showMinimized();
   
   window_1->setMinimumWidth(size_.width()*0.2);
   window_1->resize(size_.width()*0.4, size_.height()*0.55);
@@ -213,40 +216,48 @@ void BaseStation::setExploreView()
 void BaseStation::setInspectionView() {
   QSize size_ = this->size();
   
-  window_1->showMinimized();
+  window_1->showNormal();
   window_2->showNormal();
   window_3->showMinimized();
   window_4->showMinimized();
   window_cam->showNormal();
   window_img_2->showNormal();
+  window_img_3->showNormal();
   
   window_2->setMinimumWidth(size_.width()*0.2);
-  window_2->resize(size_.width()*0.4, size_.height()*0.275);
+  window_2->resize(size_.width()*0.4, size_.height()*0.5);
   window_2->setMaximumWidth(size_.width()*2.1);
   window_2->setMaximumHeight(size_.height()*2.2);
   window_2->setMinimumHeight(size_.height()*0.2);
   
   window_img_2->setMinimumWidth(size_.width()*0.2);
-  window_img_2->resize(size_.width()*0.4, size_.height()*0.275);
+  window_img_2->resize(size_.width()*0.4, size_.height()*0.5);
   window_img_2->setMaximumWidth(size_.width()*2.1);
   window_img_2->setMaximumHeight(size_.height()*2.2);
   window_img_2->setMinimumHeight(size_.height()*0.2);
   
   window_cam->setMinimumWidth(size_.width()*0.1);
   window_cam->setMaximumWidth(size_.width()*2.0);
-  window_cam->resize(size_.width()*0.4, size_.height()*0.55);
+  window_cam->resize(size_.width()*0.4, size_.height()*0.5);
   window_cam->setMaximumHeight(size_.height()*2.2);
   window_cam->setMinimumHeight(size_.height()*0.1);
-  window_3->setMinimumWidth(size_.width()*0.2);
-  window_3->setMaximumWidth(size_.width()*3);
-  window_3->setMaximumHeight(size_.height()*1.2);
-  window_3->setMinimumHeight(size_.height()*0.1);
-  window_3->resize(size_.width()*0.8, size_.height()*0.4);
+  window_img_3->setMinimumWidth(size_.width()*0.1);
+  window_img_3->setMaximumWidth(size_.width()*2);
+  window_img_3->setMaximumHeight(size_.height()*2.2);
+  window_img_3->setMinimumHeight(size_.height()*0.01);
+  window_img_3->resize(size_.width()*0.2, size_.height()*0.5);
+  
+  window_1->setMinimumWidth(size_.width()*0.1);
+  window_1->resize(size_.width()*0.2, size_.height()*0.5);
+  window_1->setMaximumWidth(size_.width()*2.1);
+  window_1->setMaximumHeight(size_.height()*2.2);
+  window_1->setMinimumHeight(size_.height()*0.2);
   
   window_2->move(0,0);
-  window_img_2->move(0,size_.height()*0.275);
+  window_img_2->move(0,size_.height()*0.5);
   window_cam->move(size_.width()*0.4,0);
-  window_3->move(0, size_.height()*0.54);
+  window_img_3->move(size_.width()*0.4, size_.height()*0.5);
+  window_1->move(size_.width()*0.6, size_.height()*0.5);
   
 }
 
@@ -505,8 +516,8 @@ void BaseStation::updateSiarStatus(const siar_driver::SiarStatus& state)
   
   label_width->setText(QString::number(state.width));
   
-//   QwtDial &d = *Dial_speed;
-//   d.setValue(fabs(state.speed));
+  QwtDial &d = *Dial_speed;
+  d.setValue(fabs(state.speed));
   
   if (last_status.reverse != state.reverse) {
     // The mode has changed --> change the view automatically
