@@ -223,14 +223,19 @@ bool FloorDetector::getTransformFromTF()
 {
   ROS_INFO("Waiting for transform between: %s and %s", link_1.c_str(), link_2.c_str());
   tf::StampedTransform tf_;
-  while (!tfListener.waitForTransform(link_1, link_2, ros::Time(0), ros::Duration(1.0)) && ros::ok()) {
-      sleep(1);
-  }
+//   while (!tfListener.waitForTransform(link_1, link_2, ros::Time(0), ros::Duration(0.1)) && ros::ok()) {
+//       sleep(1);
+//   }
+  
+  bool got = false;
+  while (!got) {
     try {
       tfListener.lookupTransform(link_1, link_2, ros::Time(0), tf_);
+      got = true;
     } catch (std::exception &e) {
-      return false;
+//       return false;
     }
+  }
   
   ROS_INFO("Got transform");
   

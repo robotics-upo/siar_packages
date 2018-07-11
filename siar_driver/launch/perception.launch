@@ -6,7 +6,7 @@
   <arg name="tf" default="true"/>
   <arg name="infrared" default="true"/>
   <arg name="rgbd_odom" default="false"/>
-  <arg name="gas_sensor" default="false"/>
+  <arg name="gas_sensor" default="true"/>
 <!--   <arg name="data_skip" default="0"/> -->
 
   
@@ -25,7 +25,7 @@
   
   <include file="$(find siar_driver)/launch/bag.launch" if="$(arg bag)"/>
   
-  <node name="gas_sensor" type="libelium_waspmote_node.py" pkg="libelium_waspmote_gas_node" if="$(arg gas_sensor)"/>
+  <node name="gas_sensor" type="libelium_waspmote_node.py" pkg="libelium_waspmote_gas_node" if="$(arg gas_sensor)" />
   
   <node name="rgbd_odom_node" type="rgbd_odom_node" pkg="rgbd_odom" if="$(arg rgbd_odom)">
     <param name="camera_topic" value="/front" />
