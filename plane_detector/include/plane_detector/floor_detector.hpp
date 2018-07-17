@@ -179,36 +179,48 @@ void FloorDetector::detectFloor(const sensor_msgs::Image &img)
     sensor_msgs::PointCloud2Iterator<uint8_t> iter_g(pc, "g");
     sensor_msgs::PointCloud2Iterator<uint8_t> iter_b(pc, "b");
     
-    for (unsigned int i = 0; i < img.height * img.width; i++) {
+    int n_points = img.height * img.width;
+    if (_downsample)
+      n_points /= 4;
+    
+    for (unsigned int i = 0; i < n_points; i++) {
   //     std::cout  << i << std::endl;
-      Eigen::Vector3d p = get3DPoint(i);
-  //     std::cout  << "After point" << std::endl;
-      for (unsigned int j = 0; j < floor_planes.size(); j++) {
-        if ( _detected_planes.at(floor_planes.at(j)).distance(p) < floor_tolerance ) {
-          // Publish point if: TODO: check wether its a floor plane or its an unidentified plane
-          size++;
-          
-        }
+      try {
+	Eigen::Vector3d p = get3DPoint(i);
+    //     std::cout  << "After point" << std::endl;
+	for (unsigned int j = 0; j < floor_planes.size(); j++) {
+	  if ( _detected_planes.at(floor_planes.at(j)).distance(p) < floor_tolerance ) {
+	    // Publish point if: TODO: check wether its a floor plane or its an unidentified plane
+	    size++;
+	    
+	  }
+	}
+      }  catch (UnknownDepthException &e) {
+	std::cerr << "Unknown Depth!!\n";
       }
     }
     
     pcd_mod->resize(size);
     
-    for (unsigned int i = 0; i < img.height * img.width; i++) {
-      Eigen::Vector3d p = get3DPoint(i);
-      for (unsigned int j = 0; j < floor_planes.size(); j++) {
-        if ( _detected_planes.at(floor_planes.at(j)).distance(p) < floor_tolerance ) {
-          // Publish point if: TODO: check wether its a floor plane or its an unidentified plane
-          *iter_x = p(0);
-          *iter_y = p(1);
-          *iter_z = p(2);
-          int c = status_vec.at(i)%color.size();
-          *iter_r = color[c](0);
-          *iter_g = color[c](1);
-          *iter_b = color[c](2);        
-          ++iter_x;++iter_y;++iter_z;
-          ++iter_r;++iter_g;++iter_b;
-        }
+    for (unsigned int i = 0; i < n_points; i++) {
+      try {
+	Eigen::Vector3d p = get3DPoint(i);
+	for (unsigned int j = 0; j < floor_planes.size(); j++) {
+	  if ( _detected_planes.at(floor_planes.at(j)).distance(p) < floor_tolerance ) {
+	    // Publish point if: TODO: check wether its a floor plane or its an unidentified plane
+	    *iter_x = p(0);
+	    *iter_y = p(1);
+	    *iter_z = p(2);
+	    int c = status_vec.at(i)%color.size();
+	    *iter_r = color[c](0);
+	    *iter_g = color[c](1);
+	    *iter_b = color[c](2);        
+	    ++iter_x;++iter_y;++iter_z;
+	    ++iter_r;++iter_g;++iter_b;
+	  }
+	}
+      } catch (UnknownDepthException &e) {
+	std::cerr << "Unknown Depth!!\n";
       }
     }
     if (publish_cloud) {

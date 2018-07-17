@@ -1,0 +1,293 @@
+{
+  "keys": {},
+  "groups": {
+    "pluginmanager": {
+      "keys": {
+        "running-plugins": {
+          "type": "repr",
+          "repr": "{u'rqt_plot/Plot': [1], u'rqt_image_view/ImageView': [1]}"
+        }
+      },
+      "groups": {
+        "plugin__rqt_msg__Messages__1": {
+          "keys": {},
+          "groups": {
+            "dock_widget__messages.ui": {
+              "keys": {
+                "dockable": {
+                  "type": "repr",
+                  "repr": "u'true'"
+                },
+                "parent": {
+                  "type": "repr",
+                  "repr": "None"
+                },
+                "dock_widget_title": {
+                  "type": "repr",
+                  "repr": "u'Message Type Browser'"
+                }
+              },
+              "groups": {}
+            }
+          }
+        },
+        "plugin__rqt_image_view__ImageView__1": {
+          "keys": {},
+          "groups": {
+            "dock_widget__ImageViewWidget": {
+              "keys": {
+                "dockable": {
+                  "type": "repr",
+                  "repr": "True"
+                },
+                "parent": {
+                  "type": "repr",
+                  "repr": "None"
+                },
+                "dock_widget_title": {
+                  "type": "repr",
+                  "repr": "u'Image View'"
+                }
+              },
+              "groups": {}
+            },
+            "plugin": {
+              "keys": {
+                "max_range": {
+                  "type": "repr",
+                  "repr": "10.0"
+                },
+                "mouse_pub_topic": {
+                  "type": "repr",
+                  "repr": "u'/flip_image/compressed_mouse_left'"
+                },
+                "num_gridlines": {
+                  "type": "repr",
+                  "repr": "0"
+                },
+                "toolbar_hidden": {
+                  "type": "repr",
+                  "repr": "False"
+                },
+                "zoom1": {
+                  "type": "repr",
+                  "repr": "False"
+                },
+                "dynamic_range": {
+                  "type": "repr",
+                  "repr": "False"
+                },
+                "topic": {
+                  "type": "repr",
+                  "repr": "u'/flip_image/compressed'"
+                },
+                "publish_click_location": {
+                  "type": "repr",
+                  "repr": "False"
+                }
+              },
+              "groups": {}
+            }
+          }
+        },
+        "plugin__rqt_plot__Plot__1": {
+          "keys": {},
+          "groups": {
+            "dock_widget__DataPlotWidget": {
+              "keys": {
+                "dockable": {
+                  "type": "repr",
+                  "repr": "True"
+                },
+                "parent": {
+                  "type": "repr",
+                  "repr": "None"
+                },
+                "dock_widget_title": {
+                  "type": "repr",
+                  "repr": "u'MatPlot'"
+                }
+              },
+              "groups": {}
+            },
+            "plugin": {
+              "keys": {
+                "autoscroll": {
+                  "type": "repr",
+                  "repr": "True"
+                },
+                "plot_type": {
+                  "type": "repr",
+                  "repr": "1"
+                },
+                "topics": {
+                  "type": "repr",
+                  "repr": "u'/gas_info/O2_conc'"
+                },
+                "y_limits": {
+                  "type": "repr",
+                  "repr": "[-14.779122981190326, 55.566797272368554]"
+                },
+                "x_limits": {
+                  "type": "repr",
+                  "repr": "[703.6695000116458, 704.1331210136414]"
+                }
+              },
+              "groups": {}
+            }
+          }
+        },
+        "plugin__rqt_bag__Bag__1": {
+          "keys": {},
+          "groups": {
+            "dock_widget__BagWidget": {
+              "keys": {
+                "dockable": {
+                  "type": "repr",
+                  "repr": "u'true'"
+                },
+                "parent": {
+                  "type": "repr",
+                  "repr": "None"
+                },
+                "dock_widget_title": {
+                  "type": "repr",
+                  "repr": "u'Bag'"
+                }
+              },
+              "groups": {}
+            }
+          }
+        },
+        "plugin__rqt_graph__RosGraph__1": {
+          "keys": {},
+          "groups": {
+            "dock_widget__RosGraphUi": {
+              "keys": {
+                "dockable": {
+                  "type": "repr",
+                  "repr": "u'true'"
+                },
+                "parent": {
+                  "type": "repr",
+                  "repr": "None"
+                },
+                "dock_widget_title": {
+                  "type": "repr",
+                  "repr": "u'Node Graph'"
+                }
+              },
+              "groups": {}
+            },
+            "plugin": {
+              "keys": {
+                "graph_type_combo_box_index": {
+                  "type": "repr",
+                  "repr": "u'0'"
+                },
+                "topic_filter_line_edit_text": {
+                  "type": "repr",
+                  "repr": "u'/'"
+                },
+                "filter_line_edit_text": {
+                  "type": "repr",
+                  "repr": "u'/'"
+                },
+                "highlight_connections_check_box_state": {
+                  "type": "repr",
+                  "repr": "u'true'"
+                },
+                "unreachable_check_box_state": {
+                  "type": "repr",
+                  "repr": "u'true'"
+                },
+                "actionlib_check_box_state": {
+                  "type": "repr",
+                  "repr": "u'true'"
+                },
+                "quiet_check_box_state": {
+                  "type": "repr",
+                  "repr": "u'true'"
+                },
+                "dead_sinks_check_box_state": {
+                  "type": "repr",
+                  "repr": "u'true'"
+                },
+                "leaf_topics_check_box_state": {
+                  "type": "repr",
+                  "repr": "u'true'"
+                },
+                "namespace_cluster_check_box_state": {
+                  "type": "repr",
+                  "repr": "u'true'"
+                },
+                "auto_fit_graph_check_box_state": {
+                  "type": "repr",
+                  "repr": "u'true'"
+                }
+              },
+              "groups": {}
+            }
+          }
+        },
+        "plugin__rqt_topic__TopicPlugin__1": {
+          "keys": {},
+          "groups": {
+            "plugin": {
+              "keys": {
+                "tree_widget_header_state": {
+                  "type": "repr(QByteArray.hex)",
+                  "repr(QByteArray.hex)": "QtCore.QByteArray('000000ff0000000000000001000000000000000001000000000000000000000000000000000000071e000000050101000100000000000000000500000064ffffffff0000008100000003000000050000030400000001000000030000012d00000001000000030000007200000001000000030000003d00000001000000030000023e0000000100000003000003e800')",
+                  "pretty-print": "                              d               -     r     =     >      "
+                }
+              },
+              "groups": {}
+            },
+            "dock_widget__TopicWidget": {
+              "keys": {
+                "dockable": {
+                  "type": "repr",
+                  "repr": "u'true'"
+                },
+                "parent": {
+                  "type": "repr",
+                  "repr": "None"
+                },
+                "dock_widget_title": {
+                  "type": "repr",
+                  "repr": "u'Topic Monitor'"
+                }
+              },
+              "groups": {}
+            }
+          }
+        }
+      }
+    },
+    "mainwindow": {
+      "keys": {
+        "geometry": {
+          "type": "repr(QByteArray.hex)",
+          "repr(QByteArray.hex)": "QtCore.QByteArray('01d9d0cb0002000000000041000000180000077f0000043700000041000000180000077f0000043700000000000000000780')",
+          "pretty-print": "     A     7 A     7     "
+        },
+        "state": {
+          "type": "repr(QByteArray.hex)",
+          "repr(QByteArray.hex)": "QtCore.QByteArray('000000ff00000000fd00000001000000030000073f0000040afc0100000006fb00000044007200710074005f00670072006100700068005f005f0052006f007300470072006100700068005f005f0031005f005f0052006f007300470072006100700068005500690100000000000004d00000000000000000fb00000042007200710074005f006d00730067005f005f004d0065007300730061006700650073005f005f0031005f005f006d0065007300730061006700650073002e0075006901000004d6000002690000000000000000fb0000005a007200710074005f0069006d006100670065005f0076006900650077005f005f0049006d0061006700650056006900650077005f005f0031005f005f0049006d006100670065005600690065007700570069006400670065007401000000000000039d000000c700fffffffb00000034007200710074005f006200610067005f005f004200610067005f005f0031005f005f0042006100670057006900640067006500740100000000000004bc0000000000000000fb00000042007200710074005f0070006c006f0074005f005f0050006c006f0074005f005f0031005f005f00440061007400610050006c006f007400570069006400670065007401000003a30000039c0000017800fffffffb0000004c007200710074005f0074006f007000690063005f005f0054006f0070006900630050006c007500670069006e005f005f0031005f005f0054006f00700069006300570069006400670065007401000003a30000039c00000000000000000000073f0000000000000004000000040000000800000008fc00000001000000030000000100000036004d0069006e0069006d0069007a006500640044006f0063006b00570069006400670065007400730054006f006f006c0062006100720000000000ffffffff0000000000000000')",
+          "pretty-print": "                 Drqt_graph__RosGraph__1__RosGraphUi          Brqt_msg__Messages__1__messages.ui          Zrqt_image_view__ImageView__1__ImageViewWidget          4rqt_bag__Bag__1__BagWidget          Brqt_plot__Plot__1__DataPlotWidget          Lrqt_topic__TopicPlugin__1__TopicWidget                            6MinimizedDockWidgetsToolbar        "
+        }
+      },
+      "groups": {
+        "toolbar_areas": {
+          "keys": {
+            "MinimizedDockWidgetsToolbar": {
+              "type": "repr",
+              "repr": "8"
+            }
+          },
+          "groups": {}
+        }
+      }
+    }
+  }
+}

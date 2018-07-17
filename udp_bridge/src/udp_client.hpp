@@ -135,6 +135,7 @@ public:
     point_pub = nh.advertise<sensor_msgs::PointCloud2>(point_topic, 1);
     inspection_pub_1 = nh.advertise<sensor_msgs::CompressedImage>(inspectionTopic_1, 1);
     inspection_pub_2 = nh.advertise<sensor_msgs::CompressedImage>(inspectionTopic_2, 1);
+    thermal_pub = nh.advertise<sensor_msgs::CompressedImage>(thermal_camera_topic, 1);
     
     camTopic = camera_1 + "/rgb/camera_info";
     camTopic_2 = camera_2 + "/rgb/camera_info";
@@ -161,6 +162,8 @@ public:
     
     inspection_cam_pub_1 = nh.advertise<sensor_msgs::CameraInfo>(inspectionCam_1, 1);
     inspection_cam_pub_2 = nh.advertise<sensor_msgs::CameraInfo>(inspectionCam_2, 1);
+    
+    thermal_cam_pub = nh.advertise<sensor_msgs::CameraInfo>(thermal_camera_info_topic, 1);
     
     publishDepthTopic = "/publish_depth";
     allCamerasTopic = "/all_cameras";
@@ -485,10 +488,10 @@ protected:
         msg.header.stamp = ros::Time::now();
         thermal_pub.publish(msg);
 	// TODO: camera info of the thermal camera
-//         sensor_msgs::CameraInfo msg_info = inspection_info;
-//         msg_info.header = msg.header;
-//         msg_info.header.frame_id = msg.header.frame_id;
-//         thermal_cam_pub.publish(msg_info);
+        sensor_msgs::CameraInfo msg_info = inspection_info;
+        msg_info.header = msg.header;
+        msg_info.header.frame_id = msg.header.frame_id;
+        thermal_cam_pub.publish(msg_info);
       }
       if(topic == depthTopic) 
       {

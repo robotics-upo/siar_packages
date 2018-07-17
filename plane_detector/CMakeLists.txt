@@ -33,7 +33,7 @@ find_package(Boost REQUIRED)
 
 
 SET(CMAKE_CXX_FLAGS "-std=c++11")
-set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_BUILD_TYPE Debug)
 
 #Dynamic reconfigure stuff
 generate_dynamic_reconfigure_options(cfg/Detector.cfg)
