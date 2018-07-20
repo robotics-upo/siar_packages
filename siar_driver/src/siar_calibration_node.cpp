@@ -57,6 +57,8 @@ int panicButton;
 int startButton;
 int backButton;
 
+void width_test(SiarManagerWidthAdjustment *siar);
+
 void joyReceived(const sensor_msgs::Joy::ConstPtr& joy)
 {
   // First of all, panic mode: if pressed --> the panic mode is activated (TODO: deactivate panic)
@@ -87,11 +89,12 @@ int main(int argc, char** argv)
   
   // -------------- End of ROS stuff -------------------
   
-  std::string siar_port_1("/dev/serial/by-id/usb-FTDI_MM232R_USB_MODULE_FTHE3VLD-if00-port0");
-  std::string joy_port("/dev/serial/by-id/usb-FTDI_MM232R_USB_MODULE_board2-if00-port0");
+  std::string siar_port_1("/dev/serial/by-id/usb-FTDI_MM232R_USB_MODULE_board2-if00-port0");
+  std::string joy_port("/dev/serial/by-id/usb-FTDI_MM232R_USB_MODULE_FTGT8JO-if00-port0");
   std::string battery_port;
   
-  pn.param<std::string>("battery_device", battery_port, "/dev/serial/by-id/usb-FTDI_MM232R_USB_MODULE_FTGT8JO-if00-port0");
+  pn.param<std::string>("battery_device", battery_port, "/dev/serial/by-id/usb-FTDI_MM232R_USB_MODULE_board1-if00-port0");
+ 
   SiarConfig siar_config;
   siar_driver::SiarStatus st;
   
@@ -127,6 +130,7 @@ int main(int argc, char** argv)
   int16_t command_right = command_vel;
   int16_t command_left = -command_vel;
   bool twist = false;
+  bool width = false;
  
   int n_tests = 1;
   // Make the different variants of the test
@@ -148,8 +152,9 @@ int main(int argc, char** argv)
     ROS_INFO("Performing double twist test.");
     command_left *= -1;
     n_tests = 2;
-  } else {
-    ROS_INFO("Performing forward test.");
+  } else if (argc > 1 && strcmp(argv[1], "width") == 0) {
+    ROS_INFO("Performing width test.");
+    width = true;
   }
   
   // The second parameter is the total time, if present
@@ -158,7 +163,7 @@ int main(int argc, char** argv)
   }
   
   int cont = 0;
-  if (!twist) {
+  if (!twist && !width) {
     while (cont < n_tests && !cancel && n.ok()) {
       // Wait confirmation
       start = false;
@@ -209,7 +214,7 @@ int main(int argc, char** argv)
       
       cont++;
     }
-  } else {
+  } else if (!width) {
     while (cont < n_tests && !cancel && n.ok()) {
       // Wait confirmation
       start = false;
@@ -260,6 +265,9 @@ int main(int argc, char** argv)
       
       cont++;
     }
+  } else {
+    width_test(dynamic_cast<SiarManagerWidthAdjustment *>(siar));
+    
   }
 
   // Free memory
@@ -267,3 +275,20 @@ int main(int argc, char** argv)
   
   return 0;
 }
+
+void width_test(SiarManagerWidthAdjustment* siar)
+{
+  int new_width;
+  cout << "Enter new width: ";
+  cin >> new_width;
+  
+  while (new_width >= 0) {
+    cout << "Setting new_width: " << new_width << std::endl;
+    
+    siar->setLinearPosition(new_width);
+    cout << "Enter new width: ";
+    cin >> new_width;
+  }
+}
+
+

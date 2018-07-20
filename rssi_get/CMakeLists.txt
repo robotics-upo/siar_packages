@@ -8,7 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
-  message_generation
+  message_generation 
 )
 
 ## Generate messages in the 'msg' folder

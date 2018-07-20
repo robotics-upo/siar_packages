@@ -14,13 +14,13 @@
   <arg name="two_boards" default="false"/>
   <arg name="perception" default="true"/>
   <arg name="bag" default="true"/>
-  <arg name="publish_tf" default="false"/>
-  <arg name="obstacle_height" default="0.065"/>
+  <arg name="publish_tf" default="true"/>
+  <arg name="obstacle_height" default="0.075"/>
   <arg name="resolution" default ="0.025"/>
   <arg name="localize" default="false"/>
   
   <!-- Bring up the raposa node and the imu if desired -->
-  <node name="siar_node" pkg="siar_driver" type="siar_node" output="screen">
+  <node name="siar_node" pkg="siar_driver" type="siar_node" >
     <param name="siar_device_1" value="$(arg siar_device_1)"/>
     <param name="siar_device_2" value="$(arg siar_device_2)"/>
     <param name="battery_device" value="$(arg battery_device)"/>
@@ -47,17 +47,19 @@
   <node name="joy_node" pkg="joy" type="joy_node" if="$(arg joystick)" />
   
   <!-- Automatic control -->
-   <node name="siar_controller" pkg="siar_controller" type="siar_controller_node">
+   <include file="$(find siar_driver)/launch/siar_controller_driver.launch"/>
+<!--   <node name="siar_controller" pkg="siar_controller" type="siar_controller_node">
       <remap from="/cmd_vel_in" to="/user_cmd_vel"/>
       <remap from="/cmd_vel_out" to="/cmd_vel"/>
       <remap from="/altitude_map" to="/costmap_node/costmap"/>
       
       <rosparam file="$(find siar_controller)/cfg/siar_controller_fast.yaml" command="load"  />  
       <param name="velocityset_filename" value="$(find siar_controller)/cfg/velocity_set_fast_smooth"/>
-    </node>
+    </node> -->
   <include file="$(find siar_costmap)/launch/siar_costmap.launch">
     <arg name="obstacle_height" value="$(arg obstacle_height)"/>
     <arg name="resolution" value="$(arg resolution)"/>
+    <arg name="exponential_decay" value="0.15"/>
 <!--  <arg name="robot_height" value="0.50"/> -->
     
     <arg name="camera_1" value="/front_left"/>
@@ -70,7 +72,7 @@
     <arg name="roi_w" value="300"/>
     <arg name="roi_y" value="5"/>
     <arg name="roi_h" value="230"/>
-    <param name="min_radius" value="0.64"/>
+    <param name="min_radius" value="1.64"/>
     <param name="max_radius" value="1.2"/>
   </include>
   

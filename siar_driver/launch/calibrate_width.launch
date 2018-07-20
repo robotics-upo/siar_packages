@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+  
+  <!-- Bring up the raposa node and the imu if desired -->
+  <node name="siar_cal" pkg="siar_driver" type="siar_calibration_node" output="screen" args="width">
+    <param name="lin_mot_file" value="$(find siar_driver)/data/lin_pos"/>
+    <param name="width_file" value="$(find siar_driver)/data/width"/>
+    <param name="elec_x_file" value="$(find siar_driver)/data/center_x"/>
+  </node>
+  </launch>
