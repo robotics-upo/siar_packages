@@ -6,6 +6,8 @@
   <arg name="bag_file" default="/datos/siar_2018-06-27-10-31-55.bag"/>
   <arg name="play_bag" default="true"/>
   
+  <arg name="camera" default="/front"/>
+  
   <arg name="start" default="0"/>
   <arg name="rate" default="1"/>
   <arg name="nav_pitch" default="0.3"/>
@@ -44,25 +46,25 @@
     <param name="cloud_yaw" value="0"/>
     
     # Use simulation time fro TFs
-    <remap from="/front_web/rgb/camera_info" to="/front/rgb/camera_info"/>
-    <remap from="/front_web/rgb/image_raw/compressed" to="/front/rgb/image_raw/compressed"/>
-    <remap from="/front_left_web/rgb/camera_info" to="/front_left/rgb/camera_info"/>
-    <remap from="/front_left_web/rgb/image_raw" to="/front_left/rgb/image_raw"/>
-    <remap from="/front_right_web/rgb/camera_info" to="/front_right/rgb/camera_info"/>
-    <remap from="/front_right_web/rgb/image_raw" to="/front_right/rgb/image_raw"/>
+    <remap from="/front_web/rgb/camera_info" to="$(arg camera)/rgb/camera_info"/>
+    <remap from="/front_web/rgb/image_raw/compressed" to="$(arg camera)/rgb/image_raw/compressed"/>
+    <remap from="/front_left_web/rgb/camera_info" to="$(arg camera)_left/rgb/camera_info"/>
+    <remap from="/front_left_web/rgb/image_raw" to="$(arg camera)_left/rgb/image_raw"/>
+    <remap from="/front_right_web/rgb/camera_info" to="$(arg camera)_right/rgb/camera_info"/>
+    <remap from="/front_right_web/rgb/image_raw" to="$(arg camera)_right/rgb/image_raw"/>
   </node>
   
   <include file="$(find siar_model)/launch/siar_model_viz.launch"/>
   
   <node name="uncompresser_front_rgb" pkg="image_transport" type="republish"
-        args="compressed in:=/front/rgb/image_raw raw out:=/front/rgb/image_raw"/>
+        args="compressed in:=$(arg camera)/rgb/image_raw raw out:=$(arg camera)/rgb/image_raw"/>
    <node name="uncompresser_front" pkg="image_transport" type="republish"
-        args="compressedDepth in:=/front/depth_registered/image_raw raw out:=/front/depth_registered/image_raw"/>
+        args="compressedDepth in:=$(arg camera)/depth_registered/image_raw raw out:=$(arg camera)/depth_registered/image_raw"/>
    
    
   <node pkg="depth2cloud" type="depth2cloud_node" name="front_depth2cloud_node" output="screen" >
-    <remap from="depth" to="/front/depth_registered/image_raw"/>              # Topic for the camera depth
-    <remap from="info" to="/front/depth_registered/camera_info"/>   # Topic for the camera info
+    <remap from="depth" to="$(arg camera)/depth_registered/image_raw"/>              # Topic for the camera depth
+    <remap from="info" to="$(arg camera)/depth_registered/camera_info"/>   # Topic for the camera info
     <remap from="cloud" to="/front/points"/>                # Topic name for output point cloud
     <param name="range_min" value = "0.5"/>                             # Min range in meters for point cloud generation
     <param name="range_max" value = "6.0"/>                             # Max range in meters for point cloud generation
@@ -74,13 +76,13 @@
   </node>
   
   <node name="uncompresser_front_left" pkg="image_transport" type="republish"
-        args="compressedDepth in:=/front_left/depth_registered/image_raw raw out:=/front_left/depth_registered/image_raw"/>
+        args="compressedDepth in:=$(arg camera)_left/depth_registered/image_raw raw out:=$(arg camera)_left/depth_registered/image_raw"/>
    <node name="uncompresser_front_left_rgb" pkg="image_transport" type="republish"
-        args="compressed in:=/front_left/rgb/image_raw raw out:=/front_left/rgb/image_raw"/>
+        args="compressed in:=$(arg camera)_left/rgb/image_raw raw out:=$(arg camera)_left/rgb/image_raw"/>
    
   <node pkg="depth2cloud" type="depth2cloud_node" name="front_left_depth2cloud_node" output="screen" >
-    <remap from="depth" to="/front_left/depth_registered/image_raw"/>              # Topic for the camera depth
-    <remap from="info" to="/front_left/depth_registered/camera_info"/>   # Topic for the camera info
+    <remap from="depth" to="$(arg camera)_left/depth_registered/image_raw"/>              # Topic for the camera depth
+    <remap from="info" to="$(arg camera)_left/depth_registered/camera_info"/>   # Topic for the camera info
     <remap from="cloud" to="/front_left/points"/>                # Topic name for output point cloud
     <param name="range_min" value = "0.5"/>                             # Min range in meters for point cloud generation
     <param name="range_max" value = "6.0"/>                             # Max range in meters for point cloud generation
@@ -92,13 +94,13 @@
   </node>
   
   <node name="uncompresser_front_right" pkg="image_transport" type="republish"
-        args="compressedDepth in:=/front_right/depth_registered/image_raw raw out:=/front_right/depth_registered/image_raw"/>
+        args="compressedDepth in:=$(arg camera)_right/depth_registered/image_raw raw out:=$(arg camera)_right/depth_registered/image_raw"/>
    <node name="uncompresser_front_right_rgb" pkg="image_transport" type="republish"
-        args="compressed in:=/front_right/rgb/image_raw raw out:=/front_right/rgb/image_raw"/>
+        args="compressed in:=$(arg camera)_right/rgb/image_raw raw out:=$(arg camera)_right/rgb/image_raw"/>
    
   <node pkg="depth2cloud" type="depth2cloud_node" name="front_right_depth2cloud_node" output="screen" >
-    <remap from="depth" to="/front_right/depth_registered/image_raw"/>              # Topic for the camera depth
-    <remap from="info" to="/front_right/depth_registered/camera_info"/>   # Topic for the camera info
+    <remap from="depth" to="$(arg camera)_right/depth_registered/image_raw"/>              # Topic for the camera depth
+    <remap from="info" to="$(arg camera)_right/depth_registered/camera_info"/>   # Topic for the camera info
     <remap from="cloud" to="/front_right/points"/>                # Topic name for output point cloud
     <param name="range_min" value = "0.5"/>                             # Min range in meters for point cloud generation
     <param name="range_max" value = "6.0"/>                             # Max range in meters for point cloud generation
@@ -110,7 +112,7 @@
   </node>
   
   <!-- Point Cloud Processing node -->
-<node name="concatenate" pkg="siar_inspection" type="siar_concat_clouds" output="screen">
+<node name="concatenate" pkg="siar_inspection" type="siar_concat_clouds" output="screen" if ="$(arg serviceability)">
   
 </node>
 
