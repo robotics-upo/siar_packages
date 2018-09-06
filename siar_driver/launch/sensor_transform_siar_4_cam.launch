@@ -1,7 +1,0 @@
-<?xml version="1.0" ?>
-<launch>
-
-<node name="tf_sandwich" pkg="tf" type="static_transform_publisher" args="0.03 0 0.58 0 0 0 /base_link /sandwich_center 10"/>
-<include file="$(find openni2_multicamera)/launch/frames_5_cam_double_low.launch"/>
-
-</launch>

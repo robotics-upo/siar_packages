@@ -1,8 +1,0 @@
-<?xml version="1.0" ?>
-<launch>
-
-<node name="tf_front_c" pkg="tf" type="static_transform_publisher" args="0.14 0 0.5 0 0 0 /base_link /front_link 10"/>
-<node name="tf_back_c" pkg="tf" type="static_transform_publisher" args="0.114658  0.008895 -0.142081  0.0149824   0.999806 0.00714159 -0.0105876  /front_depth_optical_frame /back_depth_optical_frame 10"/>
-
-
-</launch>

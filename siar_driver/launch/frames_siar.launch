@@ -1,7 +1,0 @@
-<?xml version="1.0" ?>
-<launch>
-
-  <include file="$(find siar_driver)/launch/frames_7_cam_new_platform.launch"/>
-  <include file="$(find siar_driver)/launch/electronics_transform_static.launch"/>
-
-</launch>
