@@ -58,6 +58,8 @@
 //! @class SiarManagerWidthAdjustment                                                          */
 //! @brief This manages the Siar controller. Includes velocity and arm commands
 
+// TODO: Refactor without any kind of ROS stuff
+
 class SiarManagerWidthAdjustment:public SiarManager
 {
   public:

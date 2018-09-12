@@ -61,8 +61,9 @@
 #define BACK_BUTTON           8
 #define REVERSE_BUTTON        0
 #define MED_WIDTH_BUTTON      1
+#define ARM_MODE_BUTTON	      4
 // New buttons ARM and width
-#define ACCUM_COSTMAP_BUTTON  4
+#define ACCUM_COSTMAP_BUTTON  11
 #define WIDTH_AXIS            4
 #define WIDTH_AXIS_2          5
 #define WHEEL_AXIS            2
@@ -102,6 +103,7 @@ int maxVelocityButton;
 int front_light_button, rear_light_button;
 int slowButton;
 int auto_button;
+int arm_mode_button;
 
 int accum_costmapButton;
 
@@ -130,12 +132,15 @@ bool last_slow = false;
 bool publishSlow = false;
 bool accum_costmap = false;
 bool ant_auto_button = false;
+bool ant_arm_button = false;
 int auto_mode = 0;
 int max_auto_mode;
 bool front_light = false;
 bool rear_light = false;
 bool last_front_button = false;
 bool last_rear_button = false;
+
+bool arm_mode = false;
 
 
 ros::Time last_joy_time, last_remote_joy_time;
@@ -150,132 +155,151 @@ ros::Publisher accum_costmap_pub;
 bool setAutomaticMode(int new_mode);
 void publishLight();
 
+void interpretArm(const sensor_msgs::Joy::ConstPtr& joy);
+
 void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
-  startPressed = joy->buttons[startButton] == 1;
-  panic = panic | (joy->buttons[panicButton] == 1);
-  backPressed = joy->buttons[backButton] == 1;
+  if (arm_mode) {
+    interpretArm(joy);
+  } else {
   
-  
-  if (!ant_auto_button && joy->buttons[auto_button] == 1) {
-    // Request for mode change
-    if (auto_mode > 0) 
-      auto_mode = 0;
-    else
-      auto_mode = 1;
-    setAutomaticMode(auto_mode);
-  }
-  ant_auto_button = joy->buttons[auto_button] == 1;
-  
-  if (!ant_reverse_but && joy->buttons[reverseButton] == 1) {
-    backwards = !backwards;
-    std_msgs::Bool msg;
-    msg.data = backwards;
-    reverse_pub.publish(msg);
-  }
-  if (panic)
-  {
-    currentLinearVelocity = 0.0;
-    currentAngularVelocity = 0.0;
+    startPressed = joy->buttons[startButton] == 1;
+    panic = panic | (joy->buttons[panicButton] == 1);
+    backPressed = joy->buttons[backButton] == 1;
     
-    // TODO: Extend panic to width and arm!!!
-  } 
-  else
-  {
-    // If the max velocity button is not pressed --> velocity commands are attenuated
-    double multiplier = (joy->buttons[maxVelocityButton] == 0)?0.5:1.0;
-    if (slow_mode) {
-      multiplier *= slow_multiplier;
+    
+    if (!ant_auto_button && joy->buttons[auto_button] == 1) {
+      // Request for mode change
+      if (auto_mode > 0) 
+	auto_mode = 0;
+      else
+	auto_mode = 1;
+      setAutomaticMode(auto_mode);
     }
+    ant_auto_button = joy->buttons[auto_button] == 1;
     
-    // A positive angular velocity will rotate the reference frame to the left
-    // While a positive axes value means that the stick is to the right --> change sign
-    currentAngularVelocity =-maxAngularVelocity * multiplier * joy->axes[angularVelocityAxis];
-    currentLinearVelocity = maxLinearVelocity * multiplier * joy->axes[linearVelocityAxis];
-    currentLinearVelocity *= backwards?-1.0:1.0; // Only the linear velocity should change when going backwards
-    
-    if (joy->buttons[slowButton] && !last_slow) {
-      slow_mode = !slow_mode;
-      publishSlow = true;
-      
-    }
-    last_slow = joy->buttons[slowButton] == 1;
-    
-    // Arm Button
-    int curr_cost_but = joy->buttons[accum_costmapButton];
-    if (curr_cost_but && curr_cost_but != ant_costmap_button) {
-      accum_costmap = !accum_costmap;
+    if (!ant_reverse_but && joy->buttons[reverseButton] == 1) {
+      backwards = !backwards;
       std_msgs::Bool msg;
-      msg.data = accum_costmap;
-      accum_costmap_pub.publish(msg);
+      msg.data = backwards;
+      reverse_pub.publish(msg);
     }
-    ant_costmap_button = curr_cost_but;
-    
-    // Width position
-    double width_pos = joy->axes[width_pos_axis]; 
-    double width_pos_2 = joy->axes[width_pos_axis_2];
-//     ROS_INFO("Width pos = %f\tWidth pos 2 = %f\tnorm_sq = %f", width_pos, width_pos_2,norm_sq);
-    if (width_pos > 0.95 && fabs(width_pos_2) < 0.05) { // Maximum width
-      std_msgs::Float32 msg;
-      msg.data = 0.0;
-      width_pos_pub.publish(msg);
-    } else if ( width_pos > 0.95 && fabs(width_pos_2) > 0.95) {
-      std_msgs::Float32 msg;
-      msg.data = 0.75;
-      if (width_pos_2 < 0) {
-        msg.data *= -1.0;
-      }
-      width_pos_pub.publish(msg);
-    } else if (fabs(width_pos_2) > 0.95) {
-      std_msgs::Float32 msg;
-      msg.data = width_pos_2;
-      width_pos_pub.publish(msg);
-    } else if (joy->buttons[med_width_button] == 1 && last_med_width_button == 0) {
-      std_msgs::Float32 msg;
-      msg.data = 0.75; // TODO: configure it!
-      if (!backwards)
-        msg.data *= -1.0;
-      width_pos_pub.publish(msg);
-    }
-    last_med_width_button = joy->buttons[med_width_button];
-    
-    double wheel_pos = joy->axes[wheel_pos_axis];
-    double wheel_pos_2 = joy->axes[wheel_pos_axis_2];
-    if (fabs(wheel_pos) > 0.95) {
-      if (auto_mode > 0) {
-        if (currentLinearVelocity < 0.0)
-          wheel_pos *= -1.0; 
-        auto_mode = (wheel_pos > 0 )?3:2;
-      }
-      setAutomaticMode(auto_mode);
-    } else if (wheel_pos_2 > 0.95) {
-      if (auto_mode > 0) {
-        auto_mode = 4;
-      }
-      setAutomaticMode(auto_mode);
-    } else {
-      // Return to normal operation mode
-      if (auto_mode > 0) {
-        auto_mode = 1;
-      }
-      setAutomaticMode(auto_mode);
-    }
-    
-    // Light buttons
-    if (joy->buttons[front_light_button] == 1 && !last_front_button) {
-      front_light = !front_light;
-      publishLight();
+    if (panic)
+    {
+      currentLinearVelocity = 0.0;
+      currentAngularVelocity = 0.0;
       
-    }
-    last_front_button = joy->buttons[front_light_button];
-    
-    if (joy->buttons[rear_light_button] == 1 && !last_rear_button) {
-      rear_light = !rear_light;
-      publishLight();
+      // TODO: Extend panic to width and arm!!!
+    } 
+    else
+    {
+      // If the max velocity button is not pressed --> velocity commands are attenuated
+      double multiplier = (joy->buttons[maxVelocityButton] == 0)?0.5:1.0;
+      if (slow_mode) {
+	multiplier *= slow_multiplier;
+      }
       
+      // A positive angular velocity will rotate the reference frame to the left
+      // While a positive axes value means that the stick is to the right --> change sign
+      currentAngularVelocity =-maxAngularVelocity * multiplier * joy->axes[angularVelocityAxis];
+      currentLinearVelocity = maxLinearVelocity * multiplier * joy->axes[linearVelocityAxis];
+      currentLinearVelocity *= backwards?-1.0:1.0; // Only the linear velocity should change when going backwards
+      
+      if (joy->buttons[slowButton] && !last_slow) {
+	slow_mode = !slow_mode;
+	publishSlow = true;
+	
+      }
+      last_slow = joy->buttons[slowButton] == 1;
+      
+      // Arm Button
+      int curr_cost_but = joy->buttons[accum_costmapButton];
+      if (curr_cost_but && curr_cost_but != ant_costmap_button) {
+	accum_costmap = !accum_costmap;
+	std_msgs::Bool msg;
+	msg.data = accum_costmap;
+	accum_costmap_pub.publish(msg);
+      }
+      ant_costmap_button = curr_cost_but;
+      
+      // Width position
+      double width_pos = joy->axes[width_pos_axis]; 
+      double width_pos_2 = joy->axes[width_pos_axis_2];
+  //     ROS_INFO("Width pos = %f\tWidth pos 2 = %f\tnorm_sq = %f", width_pos, width_pos_2,norm_sq);
+      if (width_pos > 0.95 && fabs(width_pos_2) < 0.05) { // Maximum width
+	std_msgs::Float32 msg;
+	msg.data = 0.0;
+	width_pos_pub.publish(msg);
+      } else if ( width_pos > 0.95 && fabs(width_pos_2) > 0.95) {
+	std_msgs::Float32 msg;
+	msg.data = 0.75;
+	if (width_pos_2 < 0) {
+	  msg.data *= -1.0;
+	}
+	width_pos_pub.publish(msg);
+      } else if (fabs(width_pos_2) > 0.95) {
+	std_msgs::Float32 msg;
+	msg.data = width_pos_2;
+	width_pos_pub.publish(msg);
+      } else if (joy->buttons[med_width_button] == 1 && last_med_width_button == 0) {
+	std_msgs::Float32 msg;
+	msg.data = 0.75; // TODO: configure it!
+	if (!backwards)
+	  msg.data *= -1.0;
+	width_pos_pub.publish(msg);
+      }
+      last_med_width_button = joy->buttons[med_width_button];
+      
+      double wheel_pos = joy->axes[wheel_pos_axis];
+      double wheel_pos_2 = joy->axes[wheel_pos_axis_2];
+      if (fabs(wheel_pos) > 0.95) {
+	if (auto_mode > 0) {
+	  if (currentLinearVelocity < 0.0)
+	    wheel_pos *= -1.0; 
+	  auto_mode = (wheel_pos > 0 )?3:2;
+	}
+	setAutomaticMode(auto_mode);
+      } else if (wheel_pos_2 > 0.95) {
+	if (auto_mode > 0) {
+	  auto_mode = 4;
+	}
+	setAutomaticMode(auto_mode);
+      } else {
+	// Return to normal operation mode
+	if (auto_mode > 0) {
+	  auto_mode = 1;
+	}
+	setAutomaticMode(auto_mode);
+      }
+      
+      // Light buttons
+      if (joy->buttons[front_light_button] == 1 && !last_front_button) {
+	front_light = !front_light;
+	publishLight();
+	
+      }
+      last_front_button = joy->buttons[front_light_button];
+      
+      if (joy->buttons[rear_light_button] == 1 && !last_rear_button) {
+	rear_light = !rear_light;
+	publishLight();
+	
+      }
+      last_rear_button = joy->buttons[rear_light_button];
     }
-    last_rear_button = joy->buttons[rear_light_button];
   }
+  if (!ant_arm_button && joy->buttons[arm_mode_button] == 1) {
+    arm_mode = !arm_mode;
+  }
+   
 }
+
+void interpretArm(const sensor_msgs::Joy::ConstPtr& joy)
+{
+  // TODO: Complete this --> in principle it would just make one of the axis of the joystick to the pan&tilt.
+  // maybe then we can add a target point and move it arround
+  
+}
+
 
 void remoteJoyReceived(const sensor_msgs::Joy::ConstPtr& joy) {
   if ( (ros::Time::now() - last_joy_time).toSec() > JOY_PRIORITY_TIME) {
@@ -349,6 +373,7 @@ int main(int argc, char** argv)
   pn.param<int>("accum_costmap_button", accum_costmapButton, ACCUM_COSTMAP_BUTTON);
   pn.param<int>("front_light_button", front_light_button, FRONT_LIGHT_BUTTON);
   pn.param<int>("rear_light_button", rear_light_button, REAR_LIGHT_BUTTON);
+  pn.param<int>("arm_mode_button", arm_mode_button, ARM_MODE_BUTTON);
   
   
   pn.param<double>("max_linear_velocity",maxLinearVelocity,MAX_LINEAR_VELOCITY);
