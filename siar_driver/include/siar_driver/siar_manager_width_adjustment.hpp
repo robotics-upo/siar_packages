@@ -34,7 +34,7 @@
 
 // Activate this to show some debug information
 #ifndef _SIAR_MANAGER_DEBUG_
-// #define _SIAR_MANAGER_DEBUG_
+#define _SIAR_MANAGER_DEBUG_
 #endif
 
 #include <iostream>
@@ -250,6 +250,8 @@ class SiarManagerWidthAdjustment:public SiarManager
     }
   }
   
+  inline void setReverseRight(bool new_val) {reverse_right = new_val;}
+  
   protected:
   // Serial Communciations stuff
   SiarSerial siar_serial_1; // 1 board, six motors 
@@ -257,6 +259,9 @@ class SiarManagerWidthAdjustment:public SiarManager
   SerialInterface joy_serial; 
   ros::Time last_cmd;
   unsigned char command[___MAX_BUFFER_SIAR___], buffer[___MAX_BUFFER_SIAR___];
+  
+  // Options
+  bool reverse_right;
   
   // Status flags
   bool first_odometry;
@@ -315,7 +320,7 @@ inline SiarManagerWidthAdjustment::SiarManagerWidthAdjustment(const std::string&
 							    const SiarConfig &config) :
 siar_serial_1(device_1), joy_serial(device_2, false), battery_serial(device_battery), 
 first_odometry(true), controlled(false), has_joystick(true), bat_cont(0), bat_skip(10), arm_cont(0), arm_skip(23), width_inter(NULL), x_inter(NULL),
-width_to_lin_pos(NULL), x_elec_to_lin_pos(NULL)
+width_to_lin_pos(NULL), x_elec_to_lin_pos(NULL), reverse_right(false)
 {
   state.is_stopped = true;
   state.slow = false;
@@ -506,7 +511,7 @@ inline bool SiarManagerWidthAdjustment::update()
   bat_cont++;
   if (bat_cont >= bat_skip)
   {
-    ROS_INFO("Actualizing battery and arm");
+//     ROS_INFO("Actualizing battery and arm");
     arm_cont++;
     // Actualize battery and power supply data
     if (!actualizeBatteryStatus()) {
@@ -521,7 +526,7 @@ inline bool SiarManagerWidthAdjustment::update()
   // Update arm status
   arm_cont++;
   if (arm_cont >=arm_skip) {
-    ROS_INFO("Actualizing arm");
+//     ROS_INFO("Actualizing arm");
     if (!getHerculexPosition()) {
 //       ROS_ERROR("Could not retrieve the herculex position");
     }
@@ -589,7 +594,8 @@ inline bool SiarManagerWidthAdjustment::setRawVelocity(int16_t left, int16_t rig
     right /= 3;
   }
   
-  right *= -1; // The right motors are reversed
+  if (reverse_right)
+    right *= -1; // The right motors are reversed
   
   // get the right command
   command[0] = _config.set_vel;
@@ -632,6 +638,12 @@ bool SiarManagerWidthAdjustment::setMotorVelocity(int motor, int16_t vel)
   ret_val = siar_serial_1.write(command, 13);
   ret_val = siar_serial_1.getResponse(buffer, 4);
   
+#ifdef _SIAR_MANAGER_DEBUG_
+  if(!ret_val) {
+    ROS_INFO("Issues when commanding speeds");
+  }
+#endif
+  
   return ret_val;
 }
 
@@ -664,7 +676,7 @@ inline bool SiarManagerWidthAdjustment::setVelocity(double linear, double angula
 //    v_right = linear * (linear > 0.0)? _config.v_m_s_to_v_raw : _config.v_m_s_to_v_raw_b - angular * (angular > 0.0)?_config.ang_vel_to_raw_l:_config.ang_vel_to_raw_r;
   
   #ifdef _SIAR_MANAGER_DEBUG_
-  if (linear > 0.01 || angular > 0.01) {
+  if (fabs(linear) > 0.01 || fabs(angular) > 0.01) {
     std::cout << "SiarManagerWidthAdjustment::setVelocity --> v = " << linear << "\t w = " << angular << "\t ";
     std::cout << "\t l_speed = " << left_speed << "\t r_speed = " << right_speed << "\t ";
     std::cout << "\t l_int = " << v_left << "\t r_int = " << v_right << std::endl;
