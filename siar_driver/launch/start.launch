@@ -11,7 +11,7 @@
   <arg name="battery_device" default="/dev/serial/by-id/usb-FTDI_MM232R_USB_MODULE_FTE48BAK-if00-port0"/>
   <arg name="perception" default="true"/>
   <arg name="publish_tf" default="false"/>
-  <arg name="reverse_right" default="true"/>
+  <arg name="reverse_right" default="false"/>
   <arg name="debug" default="false"/>
   
   <!-- Bring up the raposa node and the imu if desired -->

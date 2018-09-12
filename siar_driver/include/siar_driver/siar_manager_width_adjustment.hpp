@@ -415,6 +415,10 @@ width_to_lin_pos(NULL), x_elec_to_lin_pos(NULL), reverse_right(false)
   
   // Get FW version
   getFWVersions();
+  
+  for (int i = 0; i < 5; i++) {
+    setHerculexClearStatus(i);
+  }
 }
 
 void SiarManagerWidthAdjustment::slowReceived(const std_msgs::Bool& cmd_vel)
