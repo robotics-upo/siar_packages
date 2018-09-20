@@ -9,21 +9,19 @@
 #include <vector>
 #include <boost/concept_check.hpp>
 
-#define L1 0.0475
-#define L2 0.215
-#define L3 0.155
-#define L4 0.080
-#include "siar_functions.hpp"
+#define ARM_JOINTS 5
 
+typedef boost::array<double, ARM_JOINTS> angle_type;
+typedef boost::array<int16_t, ARM_JOINTS> raw_type;
 
-class SiarArm{
-
+class SiarArm {
   public:
-    
     // Linear interpolators data
   int n_motors;
   std::vector<functions::LinearInterpolator *> pos_mot_interpol_, mot_pos_interpol_;
   std::vector<double> length;
+  
+  SiarArm() {}
   
   SiarArm(const std::string &mot_arm_file, const std::string &pos_arm_file) {
     load_data(mot_arm_file, pos_arm_file);
@@ -31,13 +29,14 @@ class SiarArm{
   
   bool load_data(const std::string &mot_arm_file, const std::string &pos_arm_file) {
     n_motors = 5;
+    
     for (int i = 0; i < n_motors; i++) {
       std::ostringstream mot_arm, pos_arm;
       mot_arm << mot_arm_file << i;
       pos_arm << pos_arm_file << i;
       pos_mot_interpol_.push_back(new functions::LinearInterpolator(mot_arm.str(), pos_arm.str()));
     }
-    length.push_back(0.035); // TODO: read it from file?
+    length.push_back(0.035);
     length.push_back(0.186);
     length.push_back(0.140);
     length.push_back(0.0651);
@@ -46,15 +45,15 @@ class SiarArm{
   }
   
   ~SiarArm() {
-    for(int i = 0; i < pos_mot_interpol_; i++) {
+    for(int i = 0; i < pos_mot_interpol_.size(); i++) {
       delete pos_mot_interpol_[i];
     }
-    for(int i = 0; i < mot_pos_interpol_; i++) {
+    for(int i = 0; i < mot_pos_interpol_.size(); i++) {
       delete mot_pos_interpol_[i];
     }
   }
     
-  bool inverseKinematics(double x, double y, double z, std::vector <double> &result)
+  bool inverseKinematics(double x, double y, double z, angle_type &result, bool erase_remaining = true)
   {
     bool coordenadas_correctas = true;
 
@@ -69,33 +68,34 @@ class SiarArm{
 // donde L1 = 35.06; L2 = 186; L3 =140.05
 
 // a1,2,3 son los ángulos de la primera, segunda y tercera articulación.
-
-    
     result[0] = atan2(z, x);
     result[2] = acos(z*z+ x*x + pow(y-length[0],2.0) - length[2]*length[2] - length[3]*length[3]);
-    double d = sqrt(length[1]*length[1] + length[2]*length[2] - 2.0 * length[1] * length[2] * cos(result[2]);
-    result[1] = acos((y - length[0])/d;
-    //ROS_INFO("x: %f; y: %f;z: %f",x,y,z);
-    //ROS_INFO("q1: %f, q2: %f, q3: %f, q4: %f, q5:%f",q1,q2,q3,q4,q5);
+    double d = sqrt(length[1]*length[1] + length[2]*length[2] - 2.0 * length[1] * length[2] * cos(result[2]));
+    result[1] = acos((y - length[0])/d);
+    
+    if (erase_remaining) {
+      result[3] = 0; // TODO: Check limits
+      result[4] = 0; 
+    }
+    
+    return checkJointLimits(result);
   }
   
-  void rad2motor(const std::vector<double> &angles, std::vector<int> &commands) {
-    commands.resize(n_motors);
+  void rad2motor(const angle_type &angles, raw_type &commands) {
     for (int i = 0; i < n_motors; i++) {
       functions::LinearInterpolator &interpol = *pos_mot_interpol_[i];
-      commands[i] = interpol(angles[i]);
+      commands[i] = interpol.interpolate(angles[i]);
     }
   }
 
-  void motor2rad(const std::vector<int> &commands, std::vector<double> &angles) {
-    angles.resize(n_motors);
+  void motor2rad(const raw_type &commands, angle_type &angles) {
     for (int i = 0; i < n_motors; i++) {
       functions::LinearInterpolator &interpol = *mot_pos_interpol_[i];
-      angles[i] = interpol(commands[i]);
+      angles[i] = interpol.interpolate(commands[i]);
     }
   }
   
-  void forwardKinematics(const std::vector  <int> &joint_values, double &x, double &y, double &z)
+  void forwardKinematics(const raw_type &joint_values, double &x, double &y, double &z)
   {
     
 //       X = cos(a1) *(L2*sin(a2)+L3*sin(a2+a3))
@@ -103,11 +103,14 @@ class SiarArm{
 // Z = -1 * sin(a1) *(L2*sin(a2)+L3*sin(a2+a3))
 // Donde Y es positiva desde la base en dirección a la primera articulación, X es ortogonal  a Y en el plano proyectado por el dibujo y Z va desde el plano hacia dentro.
 
-    std::vector<double> angles;
+    angle_type angles;
     motor2rad(joint_values, angles);
-    double a1 = joint_values[0];
-    double a2 = joint_values[1];
-    double a3 = joint_values[2];
+    forwardKinematics(angles, x, y ,z);
+  }
+  void forwardKinematics(const angle_type &angles, double &x, double &y, double &z) {
+    double a1 = angles[0];
+    double a2 = angles[1];
+    double a3 = angles[2];
     double L1 = length[0];
     double L2 = length[1];
     double L3 = length[2];
@@ -116,47 +119,71 @@ class SiarArm{
     z = -sin(a1) * (L2*sin(a2) + L3*sin(a2 + a3));
   }
 
-  std::vector<std::vector<int> > straightInterpol(double x, double y, double z, uint8_t n_points, const std::vector<int> &curr_pos)
+  std::vector<raw_type> straightInterpol(double x, double y, double z, uint8_t n_points, const raw_type &curr_pos)
   {
-    doble a_x, a_y, a_z;
+    bool error = false;
+    double a_x, a_y, a_z;
     forwardKinematics(curr_pos, a_x, a_y, a_z);
-    doble i_x, i_y, i_z;  
+    double i_x, i_y, i_z;  
     i_x = (x - a_x)/(n_points+1);	  
     i_y = (y - a_y)/(n_points+1);
     i_z = (z - a_z)/(n_points+1);
     
-    std::vector<std::vector<int> > ret;
+    std::vector<raw_type > ret;
     
-    std::vector<double> angles;
-    std::vector<int> commands;
-    for( int i = 0; i < n_points+1; i++)	
+    angle_type angles;
+    raw_type commands;
+    for( int i = 0; i < n_points + 1 && !error; i++)	
     {	
       a_x += i_x;
       a_y += i_y;
       a_z += i_z;
       		      
-      inverseKinematics(a_x, a_y, a_z, angles);
-      rad2motor(angles, commands);
-      ret.push_back(commands);
+      if (inverseKinematics(a_x, a_y, a_z, angles)) {
+	rad2motor(angles, commands);
+	ret.push_back(commands);
+      } else {
+	ret.clear();
+	error = true;
+      }
     }
-
+    return ret;
   }
   
-  bool checkJointLimits(const boost::array<int16_t, 5> joint_values)
+  bool checkJointLimits( const angle_type &angles) {
+    raw_type commands;
+    rad2motor(angles, commands);
+    return checkJointLimits(commands);
+  }
+  
+  bool checkJointLimits(const raw_type &joint_values)
   {
     bool ret_val = true;
     
     for (int i = 0; i < n_motors && ret_val; i++) {
       double max, min;
       functions::LinearInterpolator &curr_inter = *mot_pos_interpol_[i];
-      min = curr_inter.upper_bound(0);
-      max = curr_inter.lower_bound(2000); // Usually the commands are in the [0, 2000] range
+      min = curr_inter.upper_bound(0)->first;
+      max = curr_inter.lower_bound(2000)->first; // Usually the commands are in the [0, 2000] range
        
       ret_val &= joint_values[i] > min && joint_values[i] < max;
       
     }
     
     return ret_val;
+  }
+  
+  void correctJointLimits(raw_type &joint_values)
+  {
+    for (int i = 0; i < n_motors; i++) {
+      int16_t max, min;
+      functions::LinearInterpolator &curr_inter = *mot_pos_interpol_[i];
+      min = curr_inter.upper_bound(0)->first;
+      max = curr_inter.lower_bound(2000)->first; // Usually the commands are in the [0, 2000] range
+       
+      joint_values[i] = functions::saturate(joint_values[i], min, max); 
+      
+    }
   }
 
   bool checkTemperatureAndStatus(const boost::array<uint8_t,5> &herculex_temperature, const boost::array<uint8_t,5> &herculex_status) {
@@ -177,5 +204,9 @@ class SiarArm{
     return ret_val;  
   }
   
+  
+  
 };
+
 #endif /* _SIAR_ARM_H_ */
+

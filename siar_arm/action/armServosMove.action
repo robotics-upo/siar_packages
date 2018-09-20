@@ -1,0 +1,12 @@
+# Define the goal
+string mov_name
+bool reverse
+---
+# Define the result
+int16[5] position_servos_final
+bool executed
+---
+# Define a feedback message
+int8 n_movs
+int8 curr_mov
+

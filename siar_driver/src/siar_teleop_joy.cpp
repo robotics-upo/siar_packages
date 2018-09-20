@@ -71,7 +71,7 @@
 // --END NEW BUTTONS ---
 
 #define MAX_LINEAR_VELOCITY   1.0
-#define MAX_ANGULAR_VELOCITY  1.5707963
+#define MAX_ANGULAR_VELOCITY  1
 
 #define MIN_VEL_VARIATION     0.001
 #define SLOW_MULTIPLIER       0.8
@@ -107,8 +107,13 @@ int arm_mode_button;
 
 int accum_costmapButton;
 
+int arm_pan_tilt_button;
+int arm_nav_forwards_button;
+int arm_nav_backwards_button;
+
 // Arm and width buttons and axes
 int width_pos_axis, width_pos_axis_2, wheel_pos_axis, wheel_pos_axis_2;
+int arm_axis_pan, arm_axis_tilt;
 int med_width_button, last_med_width_button;
 uint8_t arm_torque = 0; // Current state of arm_torque
 int ant_costmap_button = 0;
@@ -152,20 +157,25 @@ ros::Publisher width_pos_pub;
 ros::Publisher light_cmd_pub;
 ros::Publisher accum_costmap_pub;
 
+// New publishers for arm stuff
+ros::Publisher arm_pan_pub, arm_tilt_pub;
+
 bool setAutomaticMode(int new_mode);
 void publishLight();
 
 void interpretArm(const sensor_msgs::Joy::ConstPtr& joy);
 
 void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
+  if (!ant_arm_button && joy->buttons[arm_mode_button] == 1) {
+    arm_mode = !arm_mode;
+  }
+  ant_arm_button = joy->buttons[arm_mode_button] == 1;
   if (arm_mode) {
     interpretArm(joy);
   } else {
-  
     startPressed = joy->buttons[startButton] == 1;
     panic = panic | (joy->buttons[panicButton] == 1);
     backPressed = joy->buttons[backButton] == 1;
-    
     
     if (!ant_auto_button && joy->buttons[auto_button] == 1) {
       // Request for mode change
@@ -187,8 +197,6 @@ void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
     {
       currentLinearVelocity = 0.0;
       currentAngularVelocity = 0.0;
-      
-      // TODO: Extend panic to width and arm!!!
     } 
     else
     {
@@ -211,7 +219,7 @@ void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
       }
       last_slow = joy->buttons[slowButton] == 1;
       
-      // Arm Button
+      // Costmap Button
       int curr_cost_but = joy->buttons[accum_costmapButton];
       if (curr_cost_but && curr_cost_but != ant_costmap_button) {
 	accum_costmap = !accum_costmap;
@@ -287,17 +295,20 @@ void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
       last_rear_button = joy->buttons[rear_light_button];
     }
   }
-  if (!ant_arm_button && joy->buttons[arm_mode_button] == 1) {
-    arm_mode = !arm_mode;
-  }
-   
 }
 
 void interpretArm(const sensor_msgs::Joy::ConstPtr& joy)
 {
   // TODO: Complete this --> in principle it would just make one of the axis of the joystick to the pan&tilt.
   // maybe then we can add a target point and move it arround
-  
+  if (!panic) {
+    std_msgs::Float32 msg;
+
+    msg.data = joy->axes[arm_axis_pan];
+    arm_pan_pub.publish(msg);
+    msg.data = joy->axes[arm_axis_tilt];
+    arm_tilt_pub.publish(msg);
+  }
 }
 
 
@@ -361,6 +372,9 @@ int main(int argc, char** argv)
   pn.param<int>("linear_velocity_axis",linearVelocityAxis,LINEAR_VELOCITY_AXIS);
   pn.param<int>("angular_velocity_axis",angularVelocityAxis,ANGULAR_VELOCITY_AXIS);
   
+  pn.param<int>("arm_pan_axis", arm_axis_pan, angularVelocityAxis);
+  pn.param<int>("arm_tilt_axis", arm_axis_tilt, linearVelocityAxis);
+  
   pn.param<int>("auto_button", auto_button, AUTO_BUTTON);
   pn.param<int>("slow_button", slowButton, SLOW_BUTTON);
   pn.param<int>("turbo_button", maxVelocityButton, MAX_VELOCITY_BUTTON);
@@ -375,6 +389,9 @@ int main(int argc, char** argv)
   pn.param<int>("rear_light_button", rear_light_button, REAR_LIGHT_BUTTON);
   pn.param<int>("arm_mode_button", arm_mode_button, ARM_MODE_BUTTON);
   
+  pn.param<int>("arm_pan_tilt_button", arm_pan_tilt_button, auto_button);
+  pn.param<int>("arm_nav_forwards_button", arm_nav_forwards_button, slowButton);
+  pn.param<int>("arm_nav_backwards_button", arm_nav_backwards_button, accum_costmapButton);
   
   pn.param<double>("max_linear_velocity",maxLinearVelocity,MAX_LINEAR_VELOCITY);
   pn.param<double>("max_angular_velocity",maxAngularVelocity,MAX_ANGULAR_VELOCITY);
@@ -394,6 +411,9 @@ int main(int argc, char** argv)
   reverse_pub = n.advertise<std_msgs::Bool>("/reverse", 1);
   slow_pub = n.advertise<std_msgs::Bool>("/slow_motion", 1);
   mode_pub = n.advertise<std_msgs::Int8>("/operation_mode", 1 );
+  
+  arm_pan_pub = n.advertise<std_msgs::Float32>("/arm_pan", 1); // Publishers for sending velocity commands to pan&tilt
+  arm_tilt_pub = n.advertise<std_msgs::Float32>("/arm_tilt", 1);
   
   // Width, costmap, light
   width_pos_pub = n.advertise<std_msgs::Float32>("width_pos", 1);
@@ -462,7 +482,9 @@ int main(int argc, char** argv)
     // Before exiting --> stop Siar
     sendCmdVel(0.0, 0.0, vel_pub);
     
-    system ("rosnode kill /rosbag_raposa");
+    int ret_val;
+    
+    ret_val = system ("rosnode kill /rosbag_raposa");
     
     int cont = 0;
     while (backPressed && cont < 5) {
@@ -474,15 +496,15 @@ int main(int argc, char** argv)
     
     if (cont >= 5) {
       ROS_INFO("Killing all ros nodes and shutting down.");
-      system("rosnode kill -a");
-      system("shutdown now");
+      ret_val = system("rosnode kill -a");
+      ret_val = system("shutdown now");
     } else {
       
       pid_t pid = fork();
       
       if (pid == 0) {
         //Client
-        system("roslaunch siar_driver bag.launch");
+        ret_val = system("roslaunch siar_driver bag.launch");
         return 0;
       }
       backPressed = false;
