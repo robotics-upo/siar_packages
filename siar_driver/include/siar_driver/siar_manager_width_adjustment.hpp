@@ -152,7 +152,7 @@ class SiarManagerWidthAdjustment:public SiarManager
   //! @param on --> 0 = OFF; 1 = ON
   //! @retval true OK
   //! @retval false Errors found 
-  bool setLights(bool front_light, bool rear_light);
+  bool setLights(bool front_light, bool rear_light, bool middle_light);
   
   //! @brief Sets the direction of each PIN
   //! @param new_val =[XXFEDCBA]          
@@ -1167,12 +1167,12 @@ bool SiarManagerWidthAdjustment::getFWVersions()
 }
 
 //-------------------------- Herculex and battery monitor commm ---------
-bool SiarManagerWidthAdjustment::setLights(bool front_light, bool rear_light)
+bool SiarManagerWidthAdjustment::setLights(bool front_light, bool rear_light, bool middle_light)
 {
   bool ret_val = true;
   const int tam = 4;
   command[0] = _config.set_lights;
-  command[1] = (front_light?1:0) + (rear_light?2:0);
+  command[1] = (front_light?1:0) + (rear_light?2:0) + (middle_light?4:0);
   
   state.front_light = front_light?1:0;
   state.rear_light = rear_light?1:0;

@@ -71,7 +71,7 @@ void commandArmReceived(const siar_driver::SiarArmCommand::ConstPtr& arm_cmd) {
 
 
 void commandLightReceived(const siar_driver::SiarLightCommand::ConstPtr& light_cmd) {
-  siar->setLights(light_cmd->front, light_cmd->rear);
+  siar->setLights(light_cmd->front, light_cmd->rear, light_cmd->middle);
   
 }
 
