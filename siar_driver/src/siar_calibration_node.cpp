@@ -93,6 +93,7 @@ int main(int argc, char** argv)
   std::string joy_port("/dev/serial/by-id/usb-FTDI_MM232R_USB_MODULE_FTGT8JO-if00-port0");
   std::string battery_port;
   
+  pn.param<std::string>("siar_device", siar_port_1, "/dev/serial/by-id/usb-FTDI_MM232R_USB_MODULE_board1-if00-port0");
   pn.param<std::string>("battery_device", battery_port, "/dev/serial/by-id/usb-FTDI_MM232R_USB_MODULE_board1-if00-port0");
  
   SiarConfig siar_config;

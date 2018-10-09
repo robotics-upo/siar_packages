@@ -123,11 +123,13 @@ int main(int argc, char** argv)
     ros::NodeHandle pn("~");
     
     std::string siar_port_1, siar_port_2, joy_port, battery_port;
+    bool reverse_right;
 
     // Note: Please check the devices of the SIAR and set the params accordingly
     pn.param<std::string>("siar_device_1", siar_port_1, "/dev/serial/by-id/usb-FTDI_MM232R_USB_MODULE_board2-if00-port0");
     pn.param<std::string>("battery_device", battery_port, "/dev/serial/by-id/usb-FTDI_MM232R_USB_MODULE_FTGT8JO-if00-port0");
     pn.param<std::string>("joy_device", joy_port, "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A602XIGF-if00-port0");
+    pn.param<bool>("reverse_right", reverse_right, false);
 
     std::string base_frame_id;
     std::string base_ticks_id;
@@ -146,7 +148,7 @@ int main(int argc, char** argv)
     ROS_INFO("Freq = %f", freq);
     pn.param<double>("freq_imu",freq_imu,FREQ_IMU);
     
-    bool publish_tf; // TODO: necessary to publish the arm tf?, publish_arm_tf;
+    bool publish_tf; // TODO: publish_arm_tf;
     pn.param<bool>("publish_tf", publish_tf, false);
 //     pn.param<bool>("publish_arm_tf", publish_arm_tf, true);
     
@@ -160,8 +162,6 @@ int main(int argc, char** argv)
     ros::Subscriber elec_x_sub = n.subscribe<std_msgs::Float32>("/set_x_pos", 1, elec_x_received); 
     ros::Subscriber width_pos_sub = n.subscribe<std_msgs::Float32>("/width_pos", 1, widthNormReceived);
     ros::Subscriber cmd_light_sub = n.subscribe<SiarLightCommand>("/light_cmd", 1, commandLightReceived);
-    
-    // TODO --> Turn on/off lights ....
     
     ros::Time current_time,last_time; 
     last_time = ros::Time::now();
@@ -185,6 +185,7 @@ int main(int argc, char** argv)
     }
     
     siar->setVelocity(0.0 ,0.0);
+    siar->setReverseRight(reverse_right);
     cmd_vel_time = ros::Time::now() - ros::Duration(vel_timeout);
 
     // Save the proper fields
