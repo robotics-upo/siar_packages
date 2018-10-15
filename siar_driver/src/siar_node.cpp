@@ -71,7 +71,7 @@ void commandArmReceived(const siar_driver::SiarArmCommand::ConstPtr& arm_cmd) {
 
 
 void commandLightReceived(const siar_driver::SiarLightCommand::ConstPtr& light_cmd) {
-  siar->setLights(light_cmd->front, light_cmd->rear);
+  siar->setLights(light_cmd->front, light_cmd->rear, light_cmd->middle);
   
 }
 
@@ -99,6 +99,8 @@ void armTorqueReceived(const std_msgs::UInt8::ConstPtr &val) {
     }
   }
 }
+
+
 
 // TODO: go from [-1, 1] to the useful values in the electronics (better in siar_config?) TODO: Check it. Carlos suggested not to touch the width vel (the subscriber has been commented)
 void elec_x_received(const std_msgs::Float32::ConstPtr &elec_x) {

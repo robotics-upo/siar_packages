@@ -50,6 +50,8 @@ void herculexPosCb(const siar_driver::SiarStatus::ConstPtr& msg) {
   pos_received = true;
 }
 
+using namespace std;
+
 int main(int argc, char** argv)
 {
   ros::init(argc, argv, "SiarTeleopJoy");
@@ -77,6 +79,8 @@ int main(int argc, char** argv)
   std::vector<int16_t> v;
   v.resize(6);
   v[5] = wait_time;
+  
+  cout << "Please press the START button for capturing a step\n";
   
   int cont = 0;
   

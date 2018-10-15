@@ -40,6 +40,7 @@ SiarPowerSupply power_supply
 
 bool front_light
 bool rear_light
+bool middle_light
 
 #arm related
 int16[5] herculex_position
