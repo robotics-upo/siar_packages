@@ -2,14 +2,13 @@
 <launch>
   
   <arg name="joystick" default="true"/>
-  <arg name="comms" default="true"/>
+  <arg name="comms" default="false"/>
   <arg name="use_imu" default="true"/>
   <arg name="imu_device" default="/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A603UZCU-if00-port0"/>
   <arg name="imu_topic" default="/arduimu_v3/imu"/>
   <arg name="yaw_mixer" default="Bias"/>
   <arg name="siar_device_1" default="/dev/serial/by-id/usb-FTDI_MM232R_USB_MODULE_FTE48B69-if00-port0"/>
   <arg name="battery_device" default="/dev/serial/by-id/usb-FTDI_MM232R_USB_MODULE_FTE48BAK-if00-port0"/>
-  <arg name="perception" default="true"/>
   <arg name="publish_tf" default="false"/>
   <arg name="reverse_right" default="false"/>
   <arg name="debug" default="false"/>
