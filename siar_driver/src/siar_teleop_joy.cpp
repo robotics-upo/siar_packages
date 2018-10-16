@@ -132,7 +132,6 @@ bool ant_reverse_but = false;
 bool slow_mode = false;
 bool last_slow = false;
 bool publishSlow = false;
-bool accum_costmap = false;
 bool ant_auto_button = false;
 bool ant_arm_button = false;
 int auto_mode = 0;
@@ -401,7 +400,6 @@ int main(int argc, char** argv)
   
   // Width, costmap, light
   width_pos_pub = n.advertise<std_msgs::Float32>("width_pos", 1);
-  accum_costmap_pub = n.advertise<std_msgs::Bool>("/costmap_node/odom_integrate", 1);
   light_cmd_pub = n.advertise<siar_driver::SiarLightCommand>("light_cmd", 1);
   
   // ---------END WIDTH ARM ---
