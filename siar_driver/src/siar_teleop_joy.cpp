@@ -63,7 +63,6 @@
 #define MED_LIGHT_BUTTON      1
 #define ARM_MODE_BUTTON	      4
 // New buttons ARM and width
-#define ACCUM_COSTMAP_BUTTON  11
 #define WIDTH_AXIS            4
 #define WIDTH_AXIS_2          5
 #define WHEEL_AXIS            2
@@ -104,8 +103,6 @@ int front_light_button, rear_light_button;
 int slowButton;
 int auto_button;
 int arm_mode_button;
-
-int accum_costmapButton;
 
 int arm_pan_tilt_button;
 int arm_nav_forwards_button;
@@ -156,7 +153,6 @@ ros::Publisher mode_pub;
 
 ros::Publisher width_pos_pub;
 ros::Publisher light_cmd_pub;
-ros::Publisher accum_costmap_pub;
 
 // New publishers for arm stuff
 ros::Publisher arm_pan_pub, arm_tilt_pub;
@@ -219,16 +215,6 @@ void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
 	
       }
       last_slow = joy->buttons[slowButton] == 1;
-      
-      // Costmap Button
-      int curr_cost_but = joy->buttons[accum_costmapButton];
-      if (curr_cost_but && curr_cost_but != ant_costmap_button) {
-	accum_costmap = !accum_costmap;
-	std_msgs::Bool msg;
-	msg.data = accum_costmap;
-	accum_costmap_pub.publish(msg);
-      }
-      ant_costmap_button = curr_cost_but;
       
       // Width position
       double width_pos = joy->axes[width_pos_axis]; 
@@ -383,14 +369,13 @@ int main(int argc, char** argv)
   pn.param<int>("med_light_button", med_light_button, MED_LIGHT_BUTTON);
   pn.param<int>("wheel_pos_axis", wheel_pos_axis, WHEEL_AXIS);
   pn.param<int>("wheel_pos_axis_2", wheel_pos_axis_2, WHEEL_AXIS_2);
-  pn.param<int>("accum_costmap_button", accum_costmapButton, ACCUM_COSTMAP_BUTTON);
   pn.param<int>("front_light_button", front_light_button, FRONT_LIGHT_BUTTON);
   pn.param<int>("rear_light_button", rear_light_button, REAR_LIGHT_BUTTON);
   pn.param<int>("arm_mode_button", arm_mode_button, ARM_MODE_BUTTON);
   
   pn.param<int>("arm_pan_tilt_button", arm_pan_tilt_button, auto_button);
   pn.param<int>("arm_nav_forwards_button", arm_nav_forwards_button, slowButton);
-  pn.param<int>("arm_nav_backwards_button", arm_nav_backwards_button, accum_costmapButton);
+  pn.param<int>("arm_nav_backwards_button", arm_nav_backwards_button, arm_nav_backwards_button);
   
   pn.param<double>("max_linear_velocity",maxLinearVelocity,MAX_LINEAR_VELOCITY);
   pn.param<double>("max_angular_velocity",maxAngularVelocity,MAX_ANGULAR_VELOCITY);
