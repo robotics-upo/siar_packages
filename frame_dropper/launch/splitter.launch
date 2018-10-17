@@ -12,6 +12,8 @@
   <arg name="only_depth" default="false"/>
   <arg name="downsample_depth" default="true"/>
   <arg name="node_name" default="image_splitter_web"/>
+  <arg name="flip_1" default="false"/>
+  <arg name="flip_2" default="false"/>
 
   <!-- a reproduction of the real images in nice quality is used, so its quality can be modified without disturbing the bag record -->
   <node pkg="frame_dropper" type="image_splitter_node" name="$(arg node_name)">
@@ -26,7 +28,10 @@
     <param name="/scale" value="$(arg scale_web)"/>
     <param name="/downsample_depth" value="$(arg downsample_depth)"/>
     <param name="/only_depth" value="$(arg only_depth)"/>
+    <param name="/flip_1" value="$(arg flip_1)"/>
+    <param name="/flip_2" value="$(arg flip_2)"/>
   </node>
   
 </launch>
+
 
