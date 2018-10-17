@@ -113,12 +113,14 @@ int width_pos_axis, width_pos_axis_2, wheel_pos_axis, wheel_pos_axis_2;
 int arm_axis_pan, arm_axis_tilt;
 int med_light_button, last_med_light_button;
 uint8_t arm_torque = 0; // Current state of arm_torque
-double ant_width_pos = 0.0;
 
 //////////////////////////////////
 
 double currentLinearVelocity  = 0.0;
 double currentAngularVelocity = 0.0;
+
+double currWidth = 1.0;
+bool last_change_width = false;
 
 //////////////////////////////////
 // Status flags
@@ -222,18 +224,28 @@ void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
 	std_msgs::Float32 msg;
 	msg.data = 0.0;
 	width_pos_pub.publish(msg);
-      } else if ( width_pos > 0.95 && fabs(width_pos_2) > 0.95) {
-	std_msgs::Float32 msg;
-	msg.data = 0.75;
-	if (width_pos_2 < 0) {
-	  msg.data *= -1.0;
-	}
-	width_pos_pub.publish(msg);
+	last_change_width = true;
+	currWidth = 0.0;
       } else if (fabs(width_pos_2) > 0.95) {
-	std_msgs::Float32 msg;
-	msg.data = width_pos_2;
-	width_pos_pub.publish(msg);
-      } else if (joy->buttons[med_light_button] == 1 && last_med_light_button == 0) {
+	if (!last_change_width) {
+	  std_msgs::Float32 msg;
+	  if (width_pos > 0.0) {
+	    currWidth += 0.05;
+	  } else {
+	    currWidth -= 0.05;
+	  }
+	  currWidth = std::min(1.0, currWidth);
+	  currWidth = std::max(-1.0, currWidth);
+	  msg.data = currWidth;
+	  width_pos_pub.publish(msg);
+	  last_change_width = true;
+	}
+	
+      } else {
+	last_change_width = false;
+      }
+      
+      if (joy->buttons[med_light_button] == 1 && last_med_light_button == 0) {
 	middle_light = !middle_light;
 	publishLight();
       }
