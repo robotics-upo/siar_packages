@@ -15,22 +15,26 @@
  <node pkg="web_video_server" type="web_video_server" name="videoserver_node" output="screen"/>
  
  <!-- Splitter nodes -->
- <include file="$(find frame_dropper)/launch/splitter.launch"/>
+ <include file="$(find frame_dropper)/launch/splitter.launch">
+   <arg name="downsample_depth" value="false"/>
+ </include>
  <include file="$(find frame_dropper)/launch/splitter.launch">
    <arg name="camera_1" value="/front_right"/>
    <arg name="camera_2" value="/back_right"/>
+   <arg name="flip_2" value="true"/>
    <arg name="downsample_depth" value="true"/>
    <arg name="only_depth" value="false"/>
-   <arg name="publish_all" value="true"/>
+   <arg name="publish_depth" value="true"/>
    <arg name="node_name" value="front_right"/>
  </include>
  
  <include file="$(find frame_dropper)/launch/splitter.launch">
    <arg name="camera_1" value="/front_left"/>
    <arg name="camera_2" value="/back_left"/>
+   <arg name="flip_1" value="true"/>
    <arg name="downsample_depth" value="true"/>
    <arg name="only_depth" value="false"/>
-   <arg name="publish_all" value="true"/>
+   <arg name="publish_depth" value="true"/>
    <arg name="node_name" value="front_left"/>
  </include>
  

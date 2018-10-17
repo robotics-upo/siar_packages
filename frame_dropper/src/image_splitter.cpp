@@ -47,6 +47,10 @@ public:
       downsample_depth = true;
     if(!lnh.getParam("only_depth", only_depth))
       only_depth = false;
+    if(!lnh.getParam("flip_1", flip_1))
+      flip_1 = false;
+    if(!lnh.getParam("flip_2", flip_2))
+      flip_2 = false;
     
     reverse = false;
     // Create bool subscribers
@@ -94,6 +98,9 @@ public:
     cv::Mat dst(msg->width * scale,msg->height * scale,img_cv->image.type());
     cv::resize(img_cv->image, dst, cv::Size(0,0), scale, scale);
     img_cv->image = dst;
+    
+    if (flip_1)
+      cv::flip(dst, dst, -1);
     
     sensor_msgs::ImagePtr pt = img_cv->toImageMsg();
     if (reverse && publish_all) 
@@ -144,7 +151,14 @@ public:
     cv_bridge::CvImagePtr img_cv = cv_bridge::toCvCopy(msg, "bgr8");
     cv::Mat dst(msg->width * scale,msg->height * scale,img_cv->image.type());
     cv::resize(img_cv->image, dst, cv::Size(0,0), scale, scale);
+    
+    if (flip_2)
+      cv::flip(dst, dst, -1);
+    
     img_cv->image = dst;
+    
+    
+      
      
     sensor_msgs::ImagePtr pt = img_cv->toImageMsg();
     
@@ -226,6 +240,7 @@ protected:
   int imgCount_2, depthCount_2;
   double scale; // Scaling in the image
   bool publish_depth, use_depth, reverse, publish_all, downsample_depth, only_depth;
+  bool flip_1, flip_2;
 };
 
 int main(int argc, char **argv)

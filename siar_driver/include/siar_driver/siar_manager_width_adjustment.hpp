@@ -455,24 +455,38 @@ inline bool SiarManagerWidthAdjustment::getIMD(double& imdl, double& imdr)
   command[0] = _config.get_enc;
   
   // Ask for odometry in both ports
+  siar_serial_1.flush();
   bool ret_val = siar_serial_1.write(command, 1);
   
   int16_t m_left, m_right;
-
-  if (ret_val && siar_serial_1.getResponse(buffer, 16))
+  
+  if (ret_val && siar_serial_1.getResponse(buffer, 16)) {
     if (checkSum(buffer, 16) && buffer[0] ==_config.get_enc) {
+//       std::cout << "Message Content: ";
+//       for (int i = 0; i < 16; i++) {
+// 	
+// 	std::cout << (unsigned int)buffer[i] << " ";
+// 	
+// 	
+//       }
+//       std::cout << "\n";
+      
       if (!first_odometry) {
         m_left = from_two_bytes_signed(buffer[5], buffer[6]);
-        m_right = -from_two_bytes_signed(buffer[7], buffer[8]);
-      } else {
-        first_odometry = true;
+	m_right = -from_two_bytes_signed(buffer[7], buffer[8]);
+//         std::cout << "Middle left: " << m_left << "\t right: " << m_right << std::endl;
       }
+    } else {
+      return false;
+    }
+  } else {
+    return false;
   }
   
 #ifdef _SIAR_MANAGER_DEBUG_
   if  (m_right != 0 || m_left != 0 && !first_odometry) 
   {
-    std::cout << "Middle right = " << m_right << "\t left = " << m_left << std::endl;
+//     std::cout << "Middle right = " << m_right << "\t left = " << m_left << std::endl;
   }
 #endif
 
@@ -698,7 +712,6 @@ bool SiarManagerWidthAdjustment::calculateOdometry()
   bool ret_val = getIMD(dl, dr);
   
   if (ret_val) {
-    dr *= -1; // The Rightmost motor are reversed
     double dist = ((dl + dr) * 0.5);
     dist = _config.encoders_dead.apply(dist);
     
