@@ -229,7 +229,7 @@ void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
       } else if (fabs(width_pos_2) > 0.95) {
 	if (!last_change_width) {
 	  std_msgs::Float32 msg;
-	  if (width_pos > 0.0) {
+	  if (width_pos_2 > 0.0) {
 	    currWidth += 0.05;
 	  } else {
 	    currWidth -= 0.05;
