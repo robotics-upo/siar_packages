@@ -21,6 +21,7 @@
    <arg name="camera_2" value="/back_right"/>
    <arg name="downsample_depth" value="true"/>
    <arg name="only_depth" value="false"/>
+   <arg name="publish_all" value="true"/>
    <arg name="node_name" value="front_right"/>
  </include>
  
@@ -29,6 +30,7 @@
    <arg name="camera_2" value="/back_left"/>
    <arg name="downsample_depth" value="true"/>
    <arg name="only_depth" value="false"/>
+   <arg name="publish_all" value="true"/>
    <arg name="node_name" value="front_left"/>
  </include>
  

@@ -144,9 +144,9 @@ public:
     image_sub_2 = nh.subscribe(imageTopic_2, 1, &UDPServer::imageCallback_2, this);
     imageCycle_2.init(imageRate);
     image_sub_3 = nh.subscribe(imageTopic_3, 1, &UDPServer::imageCallback_3, this);
-    imageCycle.init(imageRate);
+    imageCycle_3.init(imageRate);
     image_sub_4 = nh.subscribe(imageTopic_4, 1, &UDPServer::imageCallback_4, this);
-    imageCycle_2.init(imageRate);
+    imageCycle_4.init(imageRate);
     inspection_sub_1 = nh.subscribe(inspectionImageTopic1, 1, &UDPServer::inspectionCallback_1, this);
     inspectionCycle_1.init(imageRate);
     inspection_sub_2 = nh.subscribe(inspectionImageTopic2, 1, &UDPServer::inspectionCallback_2, this);
@@ -288,7 +288,7 @@ protected:
       return;
     }
     // Serialize msg and write over UDP
-    serializeWrite<sensor_msgs::CompressedImage>(imageTopic_2, *msg); 
+    serializeWrite<sensor_msgs::CompressedImage>(imageTopic_4, *msg); 
   }
   
   void inspectionCallback_1(const sensor_msgs::CompressedImage::ConstPtr& msg)
