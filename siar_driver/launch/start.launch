@@ -2,7 +2,6 @@
 <launch>
   
   <arg name="joystick" default="true"/>
-  <arg name="comms" default="false"/>
   <arg name="use_imu" default="true"/>
   <arg name="imu_device" default="/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A603UZCU-if00-port0"/>
   <arg name="imu_topic" default="/arduimu_v3/imu"/>
@@ -49,8 +48,5 @@
   
   <node name="siar_joy" pkg="siar_driver" type="siar_teleop_joy" output="screen" if="$(arg joystick)" />
   <node name="joy_node" pkg="joy" type="joy_node" if="$(arg joystick)" />
-  
-  <!-- Comms -->
-  <include file="$(find siar_driver)/launch/comms.launch" if="$(arg comms)"/>
   
 </launch>
