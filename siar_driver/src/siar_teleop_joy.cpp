@@ -113,7 +113,6 @@ int width_pos_axis, width_pos_axis_2, wheel_pos_axis, wheel_pos_axis_2;
 int arm_axis_pan, arm_axis_tilt;
 int med_light_button, last_med_light_button;
 uint8_t arm_torque = 0; // Current state of arm_torque
-int ant_costmap_button = 0;
 double ant_width_pos = 0.0;
 
 //////////////////////////////////
