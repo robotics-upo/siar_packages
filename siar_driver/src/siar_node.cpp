@@ -100,6 +100,15 @@ void armTorqueReceived(const std_msgs::UInt8::ConstPtr &val) {
   }
 }
 
+void armClearStatusReceived(const std_msgs::Bool::ConstPtr &val) {
+  for (int i = 0; i < N_HERCULEX; i++) {
+    if (siar->setHerculexClearStatus(i)) {
+      ROS_INFO("Siar Node --> Status cleared to motor: %d", i);
+    } else {
+      ROS_ERROR("Siar Node --> Could not clear status on motor: %d", i);
+    }
+  }
+}
 
 
 // TODO: go from [-1, 1] to the useful values in the electronics (better in siar_config?) TODO: Check it. Carlos suggested not to touch the width vel (the subscriber has been commented)
@@ -159,6 +168,7 @@ int main(int argc, char** argv)
     ros::Subscriber cmd_vel_sub = n.subscribe<geometry_msgs::Twist>("/cmd_vel",1,cmdVelReceived);
     ros::Subscriber cmd_arm_sub = n.subscribe<SiarArmCommand>("/arm_cmd",1,commandArmReceived);
     ros::Subscriber torque_arm_sub = n.subscribe<std_msgs::UInt8>("/arm_torque",1,armTorqueReceived);
+    ros::Subscriber clear_arm_sub = n.subscribe<std_msgs::Bool>("/arm_clear_status", 1, armClearStatusReceived);
     ros::Subscriber elec_x_sub = n.subscribe<std_msgs::Float32>("/set_x_pos", 1, elec_x_received); 
     ros::Subscriber width_pos_sub = n.subscribe<std_msgs::Float32>("/width_pos", 1, widthNormReceived);
     ros::Subscriber cmd_light_sub = n.subscribe<SiarLightCommand>("/light_cmd", 1, commandLightReceived);

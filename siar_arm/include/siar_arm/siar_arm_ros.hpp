@@ -52,7 +52,7 @@ class SiarArmROS:public SiarArm {
   int max_joint_dist_;
   
   enum ArmNodeStatus {
-    NOT_INITIALIZED, PARKED, READY, MOVING
+    NOT_INITIALIZED, PARKED, PAN_AND_TILT, INSPECTION, MOVING
   };
   
   ArmNodeStatus curr_status_;
@@ -104,7 +104,7 @@ class SiarArmROS:public SiarArm {
       ros::spinOnce();
       r.sleep();
       
-      if (curr_status_ == READY) {
+      if (curr_status_ == PAN_AND_TILT || curr_status_ == SiarArmROS::INSPECTION) {
 	movePanTilt(pan_rate_/loop_rate_, tilt_rate_/loop_rate_);
       }
       if (curr_status_ == MOVING) {
@@ -149,7 +149,7 @@ class SiarArmROS:public SiarArm {
   void goalCb() {
     auto goal = s_.acceptNewGoal();
     // TODO: Implement it!
-    if (curr_status_ == READY || curr_status_ == PARKED) {
+    if (curr_status_ == PAN_AND_TILT || curr_status_ == PARKED || curr_status_==INSPECTION) {
       curr_status_ = MOVING;
       
       std::vector< std::vector<double> > mat;
@@ -168,17 +168,25 @@ class SiarArmROS:public SiarArm {
         
 	  curr_traj_.push_back(curr_cmd);
 	}
+      
+        curr_feed_.n_movs = curr_traj_.size();
+        curr_feed_.curr_mov = 0;
+      
+        publishCmd(curr_traj_[curr_feed_.curr_mov]);
+      
+      
+      
+        //TODO: Reverse if necessary
+      
+        s_.publishFeedback(curr_feed_);
+      } else {
+        // Arm not ready or already moving to a destination --> cancel
+      siar_arm::armServosMoveActionResult::_result_type result;
+      result.executed = false;
+      result.position_servos_final = curr_siar_status_.herculex_position;
+      s_.setAborted(result, "Arm not ready");
+        
       }
-      curr_feed_.n_movs = curr_traj_.size();
-      curr_feed_.curr_mov = 0;
-      
-      publishCmd(curr_traj_[curr_feed_.curr_mov]);
-      
-      
-      
-      //TODO: Reverse if necessary
-      
-      s_.publishFeedback(curr_feed_);
       
     } else {
       // Arm not ready or already moving to a destination --> cancel
