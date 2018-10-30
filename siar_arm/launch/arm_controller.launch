@@ -2,11 +2,10 @@
  
 <launch>
 
-<arg name="camera_arm" default="/siar_arm"/>
-<arg name="camera_model" default="/mv_25001872"/>
-
-<include file="$(find bluefox2)/launch/single_node.launch" />
-    
-<node name="image_tester" type="image_processing_test" pkg="siar_arm" />
+<node name="arm_node" type="arm_node" pkg="siar_arm" >
+  <param name="motor_file" value="$(find siar_arm)/data/pos_"/>
+  <param name="ang_file" value="$(find siar_arm)/data/ang_"/>
+  
+</node>
 
 </launch>
