@@ -48,6 +48,7 @@ class SiarArmROS:public SiarArm {
   int pan_joint_, tilt_joint_;
   int seq_cmd_;
   std::vector<siar_driver::SiarArmCommand> curr_traj_;
+  std::string curr_traj_name_;
   std::string resource_folder_;
   int max_joint_dist_;
   
@@ -156,7 +157,8 @@ class SiarArmROS:public SiarArm {
       std::ostringstream os;
       os << resource_folder_ << "/" << goal->mov_name;
       curr_traj_.clear();
-      if (functions::getMatrixFromFile(os.str(), mat)) {
+      curr_traj_name_ = os.str();
+      if (functions::getMatrixFromFile(curr_traj_name_, mat)) {
 	for (size_t i = 0; i < mat.size(); i++) {
 	  siar_driver::SiarArmCommand curr_cmd;
 	  if (mat[i].size() < 6)
@@ -173,8 +175,6 @@ class SiarArmROS:public SiarArm {
       curr_feed_.curr_mov = 0;
       
       publishCmd(curr_traj_[curr_feed_.curr_mov]);
-      
-      
       
       //TODO: Reverse if necessary
       
