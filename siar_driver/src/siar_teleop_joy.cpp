@@ -176,7 +176,7 @@ void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
     arm_mode = !arm_mode;
     std_msgs::Bool msg;
     msg.data = arm_mode?1:0;
-    arm_mode_pub.publish(arm_mode);
+    arm_mode_pub.publish(msg);
   }
   ant_arm_button = joy->buttons[arm_mode_button] == 1;
   if (arm_mode) {
