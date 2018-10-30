@@ -180,7 +180,7 @@ class SiarArmROS:public SiarArm {
 	  break;
       }
       bool append = false;
-      if (goal->mov_name != "park" || goal->mov_name != "pan_tilt") {
+      if (goal->mov_name != "park" && goal->mov_name != "pan_tilt" && curr_status_!=INSPECTION) {
 	os << "navigation";
 	append = true;
       } else {
