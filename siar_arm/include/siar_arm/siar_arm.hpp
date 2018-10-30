@@ -7,7 +7,6 @@
 #include <string>
 #include <queue>
 #include <vector>
-#include <boost/concept_check.hpp>
 
 #define ARM_JOINTS 5
 

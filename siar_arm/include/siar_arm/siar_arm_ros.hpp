@@ -48,6 +48,7 @@ class SiarArmROS:public SiarArm {
   int pan_joint_, tilt_joint_;
   int seq_cmd_;
   std::vector<siar_driver::SiarArmCommand> curr_traj_;
+  std::string curr_traj_name_;
   std::string resource_folder_;
   int max_joint_dist_;
   
@@ -106,6 +107,8 @@ class SiarArmROS:public SiarArm {
       
       if (curr_status_ == PAN_AND_TILT || curr_status_ == SiarArmROS::INSPECTION) {
 	movePanTilt(pan_rate_/loop_rate_, tilt_rate_/loop_rate_);
+      } else {
+	pan_rate_ = tilt_rate_ = 0.0;
       }
       if (curr_status_ == MOVING) {
 	siar_driver::SiarArmCommand curr_com = curr_traj_[curr_feed_.curr_mov];
@@ -124,7 +127,20 @@ class SiarArmROS:public SiarArm {
 	    siar_arm::armServosMoveActionResult::_result_type result;
 	    result.executed = true;
 	    result.position_servos_final = curr_siar_status_.herculex_position;
-	    s_.setSucceeded(result, "Arm reached the final destination");
+	    std::ostringstream message;
+	    message <<"Arm reached the final destination. New state: ";
+	    
+	    if (curr_traj_name_ == "pan_tilt") {
+	      message << "PAN AND TILT";
+	      curr_status_ = PAN_AND_TILT;
+	    } else if (curr_traj_name_ == "park") {
+	      message << "PARKED";
+	      curr_status_ = PARKED;
+	    } else {
+	      message << "INSPECTION";
+	      curr_status_ = SiarArmROS::INSPECTION;
+	    }
+	    s_.setSucceeded(result, message.str());
 	  } else {
 	    s_.publishFeedback(curr_feed_);
 	    publishCmd(curr_traj_[curr_feed_.n_movs]);
@@ -150,13 +166,33 @@ class SiarArmROS:public SiarArm {
     auto goal = s_.acceptNewGoal();
     // TODO: Implement it!
     if (curr_status_ == PAN_AND_TILT || curr_status_ == PARKED || curr_status_==INSPECTION) {
-      curr_status_ = MOVING;
-      
       std::vector< std::vector<double> > mat;
       std::ostringstream os;
-      os << resource_folder_ << "/" << goal->mov_name;
+      os << resource_folder_ << "/";
+      
+      switch (curr_status_) {
+	case PARKED: 
+	  os << "park2";
+	  break;
+	  
+	case PAN_AND_TILT:
+	  os << "pan_tilt2";
+	  break;
+      }
+      bool append = false;
+      if (goal->mov_name != "park" && goal->mov_name != "pan_tilt" && curr_status_!=INSPECTION) {
+	os << "navigation";
+	append = true;
+      } else {
+	os << goal->mov_name;
+      }
+      
+      os << ".txt";
       curr_traj_.clear();
+      curr_traj_name_ =goal->mov_name;
+      ROS_INFO("SiarArmROS::goalCb. Command received: %s \t Trying to load file: %s", curr_traj_name_.c_str(), os.str().c_str());
       if (functions::getMatrixFromFile(os.str(), mat)) {
+	curr_status_ = MOVING;
 	for (size_t i = 0; i < mat.size(); i++) {
 	  siar_driver::SiarArmCommand curr_cmd;
 	  if (mat[i].size() < 6)
@@ -168,24 +204,43 @@ class SiarArmROS:public SiarArm {
         
 	  curr_traj_.push_back(curr_cmd);
 	}
-      
+	
+	if (append && curr_traj_name_ != "navigation") {
+	  std::vector< std::vector<double> > mat;
+	  std::ostringstream os;
+	  
+	  os << resource_folder_ << "/" << curr_traj_name_ << ".txt";
+	  ROS_INFO("SiarArmROS::goalCb. Appending file: %s", os.str().c_str());
+	  if (functions::getMatrixFromFile(os.str(), mat)) {
+	    for (size_t i = 0; i < mat.size(); i++) {
+	      siar_driver::SiarArmCommand curr_cmd;
+	      if (mat[i].size() < 6)
+		continue;
+	      for (int j = 0; j < 5; j++) {
+		curr_cmd.joint_values[j] = mat[i][j];
+	      }
+	      curr_cmd.command_time = mat[i][5];
+	      curr_traj_.push_back(curr_cmd);
+	    }
+	  } else {
+	    ROS_ERROR("Could not load the appended trajectory");
+	  }
+	}
         curr_feed_.n_movs = curr_traj_.size();
         curr_feed_.curr_mov = 0;
       
         publishCmd(curr_traj_[curr_feed_.curr_mov]);
       
-      
-      
         //TODO: Reverse if necessary
       
         s_.publishFeedback(curr_feed_);
+	
       } else {
         // Arm not ready or already moving to a destination --> cancel
-      siar_arm::armServosMoveActionResult::_result_type result;
-      result.executed = false;
-      result.position_servos_final = curr_siar_status_.herculex_position;
-      s_.setAborted(result, "Arm not ready");
-        
+	siar_arm::armServosMoveActionResult::_result_type result;
+	result.executed = false;
+	result.position_servos_final = curr_siar_status_.herculex_position;
+	s_.setAborted(result, "Trajectory resource not found");
       }
       
     } else {
@@ -218,7 +273,6 @@ class SiarArmROS:public SiarArm {
     cmd.command_time = 100;
       
     arm_cmd_pub_.publish(cmd);
-    
   }
   
   std_msgs::Header getHeader(int seq = 0) {

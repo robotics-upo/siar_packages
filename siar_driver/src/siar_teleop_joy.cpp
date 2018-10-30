@@ -33,6 +33,8 @@
 #include <sensor_msgs/Joy.h>
 #include <siar_driver/SiarLightCommand.h>
 #include <stdlib.h>
+#include <siar_arm/armServosMoveAction.h>
+#include <actionlib/client/simple_action_client.h>
 
 ///////////////////////////////////////////////////
 // Default values for buttons and other values   //
@@ -81,6 +83,8 @@
 #define MAX_AUTO_MODE         1
 #define MAX_TIME_DECAY        0.98
 
+
+typedef actionlib::SimpleActionClient<siar_arm::armServosMoveAction> MoveArmClient;
 
 ////////////////////////////////////////////////////
 // Variables that store the actual values        ///
@@ -154,17 +158,25 @@ ros::Publisher mode_pub;
 ros::Publisher width_pos_pub;
 ros::Publisher light_cmd_pub;
 
+
+
+MoveArmClient *move_arm_client;
+
 // New publishers for arm stuff
-ros::Publisher arm_pan_pub, arm_tilt_pub;
+ros::Publisher arm_pan_pub, arm_tilt_pub, arm_mode_pub;
 
 bool setAutomaticMode(int new_mode);
 void publishLight();
 
 void interpretArm(const sensor_msgs::Joy::ConstPtr& joy);
+void interpretLights(const sensor_msgs::Joy::ConstPtr& joy);
 
 void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
   if (!ant_arm_button && joy->buttons[arm_mode_button] == 1) {
     arm_mode = !arm_mode;
+    std_msgs::Bool msg;
+    msg.data = arm_mode?1:0;
+    arm_mode_pub.publish(arm_mode);
   }
   ant_arm_button = joy->buttons[arm_mode_button] == 1;
   if (arm_mode) {
@@ -245,11 +257,7 @@ void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
 	last_change_width = false;
       }
       
-      if (joy->buttons[med_light_button] == 1 && last_med_light_button == 0) {
-	middle_light = !middle_light;
-	publishLight();
-      }
-      last_med_light_button = joy->buttons[med_light_button];
+      
       
       double wheel_pos = joy->axes[wheel_pos_axis];
       double wheel_pos_2 = joy->axes[wheel_pos_axis_2];
@@ -273,20 +281,8 @@ void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
 	setAutomaticMode(auto_mode);
       }
       
-      // Light buttons
-      if (joy->buttons[front_light_button] == 1 && !last_front_button) {
-	front_light = !front_light;
-	publishLight();
-	
-      }
-      last_front_button = joy->buttons[front_light_button];
+      interpretLights(joy);
       
-      if (joy->buttons[rear_light_button] == 1 && !last_rear_button) {
-	rear_light = !rear_light;
-	publishLight();
-	
-      }
-      last_rear_button = joy->buttons[rear_light_button];
     }
   }
 }
@@ -302,7 +298,66 @@ void interpretArm(const sensor_msgs::Joy::ConstPtr& joy)
     arm_pan_pub.publish(msg);
     msg.data = joy->axes[arm_axis_tilt];
     arm_tilt_pub.publish(msg);
+  } else {
+    std_msgs::Float32 msg;
+    msg.data = 0.0;
+    arm_tilt_pub.publish(msg);
+    arm_pan_pub.publish(msg);
+    
+    double lateral = joy->axes[width_pos_axis]; 
+    double vertical = joy->axes[width_pos_axis_2];
+    siar_arm::armServosMoveGoal goal;
+    if (lateral > 0.95) {
+      goal.mov_name = "left";
+      move_arm_client->sendGoal(goal);
+    } else if (lateral < -0.95) {
+      goal.mov_name = "right";
+      move_arm_client->sendGoal(goal);
+    }
+    if (vertical > 0.95) {
+      goal.mov_name = "front";
+      move_arm_client->sendGoal(goal);
+    } else if (lateral < -0.95) {
+      goal.mov_name = "back";
+      move_arm_client->sendGoal(goal);
+    }
+    
+    if (joy->buttons[auto_button] == 1) {
+      goal.mov_name = "park";
+      move_arm_client->sendGoal(goal);
+    }
+    
+    if (joy->buttons[reverseButton] == 1) {
+      goal.mov_name = "pan_tilt";
+      move_arm_client->sendGoal(goal);
+    }
+    
+    // The lights go equal
+    interpretLights(joy);
   }
+  
+  
+}
+
+void interpretLights(const sensor_msgs::Joy::ConstPtr& joy) {
+  // Light buttons
+  if (joy->buttons[front_light_button] == 1 && !last_front_button) {
+    front_light = !front_light;
+    publishLight();
+    
+  }
+  last_front_button = joy->buttons[front_light_button];
+  if (joy->buttons[rear_light_button] == 1 && !last_rear_button) {
+    rear_light = !rear_light;
+    publishLight();
+    
+  }
+  last_rear_button = joy->buttons[rear_light_button];
+  if (joy->buttons[med_light_button] == 1 && last_med_light_button == 0) {
+    middle_light = !middle_light;
+    publishLight();
+  }
+  last_med_light_button = joy->buttons[med_light_button];
 }
 
 
@@ -409,6 +464,10 @@ int main(int argc, char** argv)
   arm_pan_pub = n.advertise<std_msgs::Float32>("/arm_pan", 1); // Publishers for sending velocity commands to pan&tilt
   arm_tilt_pub = n.advertise<std_msgs::Float32>("/arm_tilt", 1);
   
+  arm_mode_pub = n.advertise<std_msgs::Bool>("/arm_mode", 1);
+  
+  move_arm_client = new MoveArmClient("move_arm_client");
+  
   // Width, costmap, light
   width_pos_pub = n.advertise<std_msgs::Float32>("width_pos", 1);
   light_cmd_pub = n.advertise<siar_driver::SiarLightCommand>("light_cmd", 1);
@@ -508,6 +567,7 @@ int main(int argc, char** argv)
   
   // Before exiting --> stop Siar
   sendCmdVel(0.0, 0.0, vel_pub);
+  delete move_arm_client;
   
   return 0;
 }
