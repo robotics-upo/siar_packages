@@ -178,9 +178,6 @@ class SiarArmROS:public SiarArm {
 	case PAN_AND_TILT:
 	  os << "pan_tilt2";
 	  break;
-	  
-	default:
-	  os << "navigation2";
       }
       bool append = false;
       if (goal->mov_name != "park" || goal->mov_name != "pan_tilt") {
