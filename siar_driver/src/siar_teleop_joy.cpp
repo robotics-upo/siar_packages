@@ -154,16 +154,14 @@ ros::Time last_joy_time, last_remote_joy_time;
 ros::Publisher reverse_pub;
 ros::Publisher slow_pub;
 ros::Publisher mode_pub;
-
 ros::Publisher width_pos_pub;
 ros::Publisher light_cmd_pub;
-
-
 
 MoveArmClient *move_arm_client;
 
 // New publishers for arm stuff
 ros::Publisher arm_pan_pub, arm_tilt_pub, arm_mode_pub;
+ros::Publisher arm_torque_pub, arm_clear_pub;
 
 bool setAutomaticMode(int new_mode);
 void publishLight();
@@ -332,6 +330,20 @@ void interpretArm(const sensor_msgs::Joy::ConstPtr& joy)
       move_arm_client->sendGoal(goal);
     }
     
+    if (joy->buttons[slowButton] == 1) {
+      std_msgs::Bool msg;
+      msg.data = 0;
+      arm_clear_pub.publish(msg);
+    }
+    if (joy->buttons[startButton] == 1) {
+      std_msgs::UInt8 msg;
+      msg.data = arm_torque++;
+      if (arm_torque > 2) {
+	arm_torque = 0;
+      }
+      arm_clear_pub.publish(msg);
+    }
+    
     // The lights go equal
     interpretLights(joy);
   }
@@ -463,6 +475,9 @@ int main(int argc, char** argv)
   
   arm_pan_pub = n.advertise<std_msgs::Float32>("/arm_pan", 1); // Publishers for sending velocity commands to pan&tilt
   arm_tilt_pub = n.advertise<std_msgs::Float32>("/arm_tilt", 1);
+  
+  arm_torque_pub = n.advertise<std_msgs::UInt8>("/arm_torque", 1); // Publishers for low level arm control
+  arm_clear_pub = n.advertise<std_msgs::Bool>("/arm_clear_status", 1);
   
   arm_mode_pub = n.advertise<std_msgs::Bool>("/arm_mode", 1);
   

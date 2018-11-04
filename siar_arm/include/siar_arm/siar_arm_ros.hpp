@@ -9,6 +9,8 @@
 #include <vector>
 #include <ros/ros.h>
 #include <std_msgs/Float32.h>
+#include <std_msgs/Bool.h>
+#include <std_msgs/UInt8.h>
 
 #include "siar_driver/siar_functions.hpp"
 #include "siar_driver/SiarStatus.h"
@@ -44,23 +46,25 @@ class SiarArmROS:public SiarArm {
   double max_pan_rate_, max_tilt_rate_;
   siar_driver::SiarStatus curr_siar_status_;
   ros::Subscriber arm_pan_sub_, arm_tilt_sub_;
-  ros::Publisher arm_cmd_pub_; // Sends arm commands to SIAR Driver node
+  ros::Publisher arm_cmd_pub_, arm_clear_status_pub_, arm_torque_pub_; // Sends arm commands to SIAR Driver node
   int pan_joint_, tilt_joint_;
   int seq_cmd_;
   std::vector<siar_driver::SiarArmCommand> curr_traj_;
   std::string curr_traj_name_;
   std::string resource_folder_;
   int max_joint_dist_;
+  double timeout_, period_;
   
   enum ArmNodeStatus {
     NOT_INITIALIZED, PARKED, PAN_AND_TILT, INSPECTION, MOVING
   };
   
-  ArmNodeStatus curr_status_;
+  ArmNodeStatus curr_status_, last_status_;
   siar_arm::armServosMoveActionFeedback::_feedback_type curr_feed_;
   
   
   SiarArmROS(ros::NodeHandle &nh, ros::NodeHandle &pnh):SiarArm(),s_(nh, "move_arm", false),seq_cmd_(0){
+    timeout_ = -1.0;
     std::string mot_file, ang_file;
     
     s_.registerGoalCallback(boost::bind(&SiarArmROS::goalCb, this));
@@ -71,6 +75,8 @@ class SiarArmROS:public SiarArm {
     if (!pnh.getParam("loop_rate", loop_rate_)) {
       loop_rate_ = 10;
     }
+    period_ = 1/loop_rate_;
+    
     if (!pnh.getParam("max_pan_rate", max_pan_rate_)) {
       max_pan_rate_ = 0.1;
     }
@@ -94,11 +100,16 @@ class SiarArmROS:public SiarArm {
     arm_pan_sub_ = nh.subscribe<std_msgs::Float32>("/arm_pan", 1, &SiarArmROS::armPanReceived, this);
     arm_tilt_sub_ = nh.subscribe<std_msgs::Float32>("/arm_tilt", 1, &SiarArmROS::armTiltReceived, this);
     arm_cmd_pub_ = nh.advertise<siar_driver::SiarArmCommand>("/arm_cmd", 1);
+    arm_clear_status_pub_ = nh.advertise<std_msgs::Bool>("/arm_cmd", 1);
+    arm_torque_pub_ = nh.advertise<std_msgs::UInt8>("/arm_torque", 1);
+    
+    // Clear status and activate the motors of the arm
+    clearStatusAndActivateMotors();
     
     SiarArm::load_data(mot_file, ang_file);
     ros::Rate r(loop_rate_);
     
-    curr_status_ = NOT_INITIALIZED;
+    last_status_ = curr_status_ = NOT_INITIALIZED;
     s_.start();
     
     while (ros::ok()) {
@@ -111,6 +122,7 @@ class SiarArmROS:public SiarArm {
 	pan_rate_ = tilt_rate_ = 0.0;
       }
       if (curr_status_ == MOVING) {
+	timeout_ -= period_;
 	siar_driver::SiarArmCommand curr_com = curr_traj_[curr_feed_.curr_mov];
 	auto v = curr_com.joint_values;
 	auto v2 = curr_siar_status_.herculex_position;
@@ -120,6 +132,7 @@ class SiarArmROS:public SiarArm {
 	  arrived = fabs(v[i] - v2[i]) < max_joint_dist_;
 	}
 	
+	
 	if (arrived) {
 	  curr_feed_.curr_mov++;
 	  if (curr_feed_.curr_mov == curr_traj_.size()) {
@@ -128,7 +141,7 @@ class SiarArmROS:public SiarArm {
 	    result.executed = true;
 	    result.position_servos_final = curr_siar_status_.herculex_position;
 	    std::ostringstream message;
-	    message <<"Arm reached the final destination. New state: ";
+	    message <<"SiarArm::loop --> Arm reached the final destination. New state: ";
 	    
 	    if (curr_traj_name_ == "pan_tilt") {
 	      message << "PAN AND TILT";
@@ -144,8 +157,13 @@ class SiarArmROS:public SiarArm {
 	  } else {
 	    s_.publishFeedback(curr_feed_);
 	    publishCmd(curr_traj_[curr_feed_.n_movs]);
-	  }
+	  } 
 	  
+	} else if (timeout_ < 0.0) {
+	  ROS_ERROR("SiarArm::loop --> Timeout detected while following a trajectory. Returning to state: %d", (int)last_status_);
+	  curr_status_ = last_status_;
+	  
+	  clearStatusAndActivateMotors();
 	}
       }
     }
@@ -169,6 +187,8 @@ class SiarArmROS:public SiarArm {
       std::vector< std::vector<double> > mat;
       std::ostringstream os;
       os << resource_folder_ << "/";
+      
+      last_status_ = curr_status_;
       
       switch (curr_status_) {
 	case PARKED: 
@@ -256,13 +276,12 @@ class SiarArmROS:public SiarArm {
   void statusCb(const siar_driver::SiarStatus::ConstPtr& new_status) {
     curr_siar_status_ = *new_status;
     if (curr_status_ == NOT_INITIALIZED) {
-      curr_status_ = PARKED;
+      last_status_= curr_status_ = PARKED;
     }
   }
   
   void movePanTilt(double pan_angle, double tilt_angle) {
     auto curr_pos = curr_siar_status_.herculex_position;
-    
     
     curr_pos[pan_joint_] += pan_angle;
     curr_pos[tilt_joint_] += tilt_angle;
@@ -284,8 +303,25 @@ class SiarArmROS:public SiarArm {
   }
   
   void publishCmd(siar_driver::SiarArmCommand &cmd) {
+    timeout_ = cmd.command_time / 50.0;
     cmd.header = getHeader(seq_cmd_++);
     arm_cmd_pub_.publish(cmd);
+  }
+  
+  bool clearStatusAndActivateMotors() const {
+    bool ret_val = true;
+    ROS_INFO("Clearing status of the herculex and turning on the torque");
+    std_msgs::UInt8 msg2;
+    msg2.data = 2; // 2 for turning on the motors
+    arm_torque_pub_.publish(msg2);
+    usleep(50000);
+    std_msgs::Bool msg;
+    msg.data = 1;
+    arm_clear_status_pub_.publish(msg);
+    usleep(50000);
+    arm_torque_pub_.publish(msg2);
+    
+    return ret_val;
   }
     
 };

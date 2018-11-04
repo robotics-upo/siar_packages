@@ -12,6 +12,7 @@
 #include <rssi_get/Nvip_status.h>
 #include <siar_driver/SiarStatus.h>
 #include <std_msgs/UInt32.h>
+#include <std_msgs/UInt8.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/Float32.h>
 #include "cycle.hpp"
@@ -55,6 +56,7 @@ private:
   ros::Subscriber inspection_sub_1, inspection_sub_2, thermal_sub;
   ros::Subscriber depth_sub, depth_sub_2, rssi_sub, depth_sub_3, depth_sub_4, geo_tf_sub;
   ros::Subscriber  siar_status_sub, point_sub;
+  ros::Subscriber arm_mode_sub, arm_torque_sub;
   ros::NodeHandle nh;
   
 public:
@@ -168,6 +170,9 @@ public:
     point_sub = nh.subscribe(point_topic, 1, &UDPServer::pointCallback, this);
     pointCycle.init(point_rate);
     geo_tf_sub = nh.subscribe(geo_tf_topic, 1, &UDPServer::tfCallback, this);
+    
+    arm_torque_sub = nh.subscribe("/arm_torque", 1, &UDPServer::armTorqueCallback, this);
+    arm_mode_sub = nh.subscribe("/arm_mode", 1, &UDPServer::armModeCallback, this);
     
     // Set default compression quality 
     int i = 0;
@@ -446,6 +451,12 @@ protected:
     serializeWrite<sensor_msgs::PointCloud2>(point_topic, *msg);
   }
   
+  void armModeCallback(const std_msgs::Bool::ConstPtr &msg) {
+    serializeWrite<std_msgs::Bool>("/arm_mode", *msg);
+  }
+  void armTorqueCallback(const std_msgs::UInt8::ConstPtr &msg) {
+    serializeWrite<std_msgs::UInt8>("/arm_torque", *msg);
+  }
   
   bool setJPEGQuality(int quality, const std::string image_topic) {
     dynamic_reconfigure::ReconfigureRequest srv_req;

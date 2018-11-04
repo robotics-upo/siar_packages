@@ -11,6 +11,7 @@
 #include <sensor_msgs/Joy.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <siar_driver/SiarStatus.h>
+#include <std_msgs/UInt8.h>
 #include <std_msgs/UInt32.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/Float32.h>
@@ -36,6 +37,7 @@ private:
   std::string allCamerasTopic, publishDepthTopic, joyTopic, rssi_topic, slowTopic;
   std::string point_topic, siar_status_topic, geo_tf_topic;
   std::string posTopic, widthTopic;
+  std::string arm_mode_topic, arm_torque_topic;
   
   // ROS stuff
   ros::Publisher image_pub, odom_pub, odom_pub_2, image_pub_2, image_pub_3, image_pub_4;
@@ -45,6 +47,7 @@ private:
   ros::Publisher rssi_pub, siar_status_pub, point_pub;
   ros::Publisher inspection_pub_1, inspection_pub_2, inspection_cam_pub_1, inspection_cam_pub_2;
   ros::Publisher thermal_pub, thermal_cam_pub;
+  ros::Publisher arm_mode_pub, arm_torque_pub;
   
   ros::Subscriber publish_depth_sub, all_cameras_sub, joy_sub, slow_sub;
   ros::Subscriber set_x_pos_sub, width_pos_sub;
@@ -117,6 +120,8 @@ public:
     geo_tf_topic = "/rgbd_odom/transform";
     inspectionTopic_1 = inspection_camera_1 + "/image_raw/compressed";
     inspectionTopic_2 = inspection_camera_2 + "/image_raw/compressed";
+    arm_mode_topic = "/arm_mode";
+    arm_torque_topic = "/arm_torque";
     
     if (!lnh.getParam("thermal_camera_topic", thermal_camera_topic))
       thermal_camera_topic = "/flip_image";
@@ -136,6 +141,8 @@ public:
     inspection_pub_1 = nh.advertise<sensor_msgs::CompressedImage>(inspectionTopic_1, 1);
     inspection_pub_2 = nh.advertise<sensor_msgs::CompressedImage>(inspectionTopic_2, 1);
     thermal_pub = nh.advertise<sensor_msgs::CompressedImage>(thermal_camera_topic, 1);
+    arm_mode_pub = nh.advertise<std_msgs::Bool>(arm_mode_topic, 1);
+    arm_torque_pub = nh.advertise<std_msgs::UInt8>(arm_torque_topic, 1);
     
     camTopic = camera_1 + "/rgb/camera_info";
     camTopic_2 = camera_2 + "/rgb/camera_info";
@@ -572,6 +579,16 @@ protected:
       
         // Publish the odometry TF
         tf_broadcaster.sendTransform(odom_trans);
+      }
+      if (topic == arm_mode_topic)
+      {
+        ROS_INFO("Deserializing and publishing topic %s", topic.c_str());
+        deserializePublish<std_msgs::Bool>(buffer.data(), buffer.size(), arm_mode_pub);
+      }
+      if (topic == arm_torque_topic)
+      {
+        ROS_INFO("Deserializing and publishing topic %s", topic.c_str());
+        deserializePublish<std_msgs::UInt8>(buffer.data(), buffer.size(), arm_torque_pub);
       }
     }
   }
