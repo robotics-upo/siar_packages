@@ -337,23 +337,22 @@ width_to_lin_pos(NULL), x_elec_to_lin_pos(NULL), reverse_right(false)
   
   #ifdef _SIAR_MANAGER_DEBUG_
   _printTime();
-  std::cout << "Connecting to Siar"<<std::endl;
+  std::cout << "Connecting to the Motor Board"<<std::endl;
   #endif
   
-  if (!siar_serial_1.open()) {
+  while (!siar_serial_1.open() && ros::ok()) {
     
 #ifdef _SIAR_MANAGER_DEBUG_
-    std::cerr << "Could not connect to siar.\n";
+    std::cerr << "Could not connect to siar. Retrying\n";
 #endif
-    
-    throw SiarManagerException(siar_serial_1.getLastError());
-  } else {
-#ifdef _SIAR_MANAGER_DEBUG_
-    _printTime();
-    std::cout << "Connected to Siar board 2"<<std::endl;
-#endif
+    sleep(1);
   }
-  
+  if (!ros::ok) {
+    std::cerr << "Could not connect to the motor board. Aborting.\n";
+    throw SiarManagerException(siar_serial_1.getLastError());
+  }
+  _printTime();
+  std::cout << "Connected to motor board.\n";
   if (!joy_serial.open(B19200)) {
     std::cout << "Warning: Could not connect to joystick.\n";
     has_joystick = false;
@@ -364,19 +363,19 @@ width_to_lin_pos(NULL), x_elec_to_lin_pos(NULL), reverse_right(false)
     has_joystick = true;
 #endif
   }
-  if (!battery_serial.open()) {
+  while (!battery_serial.open() && ros::ok()) {
     
 #ifdef _SIAR_MANAGER_DEBUG_
-    std::cerr << "Could not connect to the battery monitoring board.\n";
+    std::cerr << "Could not connect to the battery monitoring board. Retrying. \n";
 #endif
-    
+  } 
+  
+  if (!ros::ok()) {
+    std::cerr << "Could not connect to the battery board. Aborting.\n";
     throw SiarManagerException(battery_serial.getLastError());
-  } else {
-#ifdef _SIAR_MANAGER_DEBUG_
-    _printTime();
-    std::cout << "Connected to the battery monitor board"<<std::endl;
-#endif
   }
+  _printTime();
+  std::cout << "Connected to the battery board.\n";
   
   ros::NodeHandle pn("~");
   state_pub = pn.advertise<siar_driver::SiarStatus>("/siar_status", 5);
