@@ -1,5 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(siar_costmap)
+set(CMAKE_BUILD_TYPE Debug)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -9,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
   pcl_ros
   roscpp
   sensor_msgs
+  std_msgs
   tf
 )
 

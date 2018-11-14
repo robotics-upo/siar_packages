@@ -30,7 +30,7 @@ Before compiling, please install the dependencies (see Dependencies section for 
  
  > git clone https://github.com/robotics-upo/siar_packages.git
  
- > sudo apt-get install libgsl0-dev libkml-dev libsuitesparse-metis-dev libsuperlu3-dev liblapack-dev libblas-dev libdxflib-dev
+ > sudo apt-get install libgsl0-dev libkml-dev libsuitesparse-metis-dev libsuperlu3-dev liblapack-dev libblas-dev libdxflib-dev libgeotranz3-dev
  
  > roscd
  

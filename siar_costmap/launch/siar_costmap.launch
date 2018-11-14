@@ -9,7 +9,7 @@
   <arg name="camera_4" default="/back_right"/>
   <arg name="camera_5" default="/front"/>
   <arg name="camera_6" default="/back"/>
-  <arg name="tilt_compensate" default="true"/>
+  <arg name="tilt_compensate" default="false"/>
   <arg name="consider_sign" default="true"/>
   <arg name="roi_x" default="4"/>
   <arg name="roi_y" default="4"/>
@@ -17,6 +17,7 @@
   <arg name="roi_h" default="232"/>
   <arg name="roi_w2" default="632"/>
   <arg name="roi_h2" default="472"/>
+  <arg name="exponential_decay" default="0.2"/>
   
   <arg name="range_min" default="0.35"/>
   <arg name="range_max" default="5.0"/>
@@ -95,7 +96,7 @@
     <param name="down_sampling" value = "4"/>                                                           # Camera down sampling factor. Values: 1, 2 or 4. The bigger the faster.
   </node>
   
-  <node pkg="siar_costmap" type="costmap_node" name="costmap_node" output="screen" >
+    <node pkg="siar_costmap" type="costmap_node" name="costmap_node" output="screen"> # launch-prefix="xterm -e gdb --args"> # 
     <remap from="cloud0" to="$(arg camera_1)/point_cloud"/>                 # Input cloud 0
     <remap from="cloud1" to="$(arg camera_2)/point_cloud"/>                  # Input cloud 1
     <remap from="cloud2" to="$(arg camera_3)/point_cloud"/>                  # Input cloud 2
@@ -103,20 +104,20 @@
     <remap from="cloud4" to="$(arg camera_5)/point_cloud"/>                  # Input cloud 4
     <remap from="cloud5" to="$(arg camera_6)/point_cloud"/>                  # Input cloud 5
 
-
-    <param name="hz" value = "10.0"/>                                                   # Costmap update rate
-    <param name="obstacle_height" value = "$(arg obstacle_height)"/>                               # Absolute value of obstacle height (or hole depth)
-    <param name="resolution" value="$(arg resolution)"/>
-    <param name="exp_decay" value = "10.0"/>					    # Obstacle exponential decay (it is counted in cells)
+    <param name="hz" value = "5.0"/>							# Costmap update rate
+    <param name="obstacle_height" value = "0.1"/>				# Absolute value of obstacle height (or hole depth)
+    <param name="obstacle_height_negative" value = "-0.08"/>                               # Value of obstacle height (or hole depth)
+    <param name="exp_decay" value = "15.0"/>					    # Obstacle exponential decay (it is counted in cells)
+    <remap from="/costmap_node/costmap" to="/test_costmap"/>
     <param name="width" value="2.5"/>
     <param name="height" value="5.0"/>
     <param name="tilt_compensate" value="$(arg tilt_compensate)"/>
     <param name="consider_sign" value="$(arg consider_sign)"/>
     <remap from="imu" to="/arduimu_v3/imu"/>
-    <param name="min_radius" value="4.0"/>
-    <param name="max_radius" value="10.0"/>
+    <param name="robot_height" value="0.7"/>
+    <param name="min_radius" value="3.65"/>
+    <param name="max_radius" value="1.2"/>
     <param name="inflate_negative" value="0"/>
-    <param name="robot_height" value="1.0"/>
   </node>
 
 </launch>

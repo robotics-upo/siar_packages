@@ -3,6 +3,7 @@
 
 #include <ros/ros.h>
 #include <tf/transform_listener.h>
+#include <std_msgs/Bool.h>
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/point_cloud2_iterator.h>
@@ -47,22 +48,28 @@ public:
   {
     PointPix(void)
     {
+      x = 0;
+      y = 0;
+      positive = true;
     }
     
     PointPix(int _x, int _y)
     {
       x = _x;
       y = _y;
+      positive = true;
     }
     
     PointPix(const PointPix &d)
     {
       x = d.x;
       y = d.y;
+      positive = d.positive;
     }
     
     int x;
     int y;
+    bool positive;
   };
 
   // Class constructor
@@ -90,16 +97,13 @@ public:
       m_tiltCompesante = false;
     if(!lnh.getParam("consider_sign", m_considerSign))
       m_considerSign = true;
-    if(!lnh.getParam("min_radius", m_min_radius))
-      m_min_radius = 0.6;
-    if(!lnh.getParam("max_radius", m_max_radius))
-      m_max_radius = 1.5;
     if(!lnh.getParam("inflate_negative", m_inflate_negative))
       m_inflate_negative = 1;
-    
-    m_min_radius*=m_min_radius;
-    m_max_radius*=m_max_radius;
-    
+    if(!lnh.getParam("integrate_odom", m_integrateOdom))
+      m_integrateOdom = false;
+    if(!lnh.getParam("odom_frame_id", m_odomFrameId))
+      m_odomFrameId = "odom"; 
+      
     // NOTE: Changes for demo --> ignore obstacles exceeding a height
     if(!lnh.getParam("robot_height", m_robotHeight))
       m_robotHeight = 0.4;
@@ -115,7 +119,8 @@ public:
       m_cloudNew[i] = false;
     m_sub6 = m_nh.subscribe("imu", 1, &SiarCostmap::imuCallback, this);
     m_imuNew = false;
-  
+	m_sub7 = m_nh.subscribe(nodeName+"/odom_integrate", 1, &SiarCostmap::odomIntegrateCallback, this);
+
     // Setup publisher
     m_pub = m_nh.advertise<nav_msgs::OccupancyGrid>(nodeName+"/costmap", 0);
     
@@ -137,24 +142,95 @@ public:
     m_costmap.info.origin.orientation.y = 0.0; 
     m_costmap.info.origin.orientation.z = -0.7071;
     m_costmap.info.origin.orientation.w = 0.7071;  
-    m_costmap.data.resize(m_costmap.info.width*m_costmap.info.height);  
+    n_pix = m_costmap.info.width*m_costmap.info.height;
+    m_costmap.data.resize(n_pix);  
+    m_unknown_map.resize(n_pix);  
     m_maxX = m_height/2.0;
     m_minX = -m_height/2.0;
     m_maxY = m_width/2.0;
     m_minY = -m_width/2.0;
     m_divRes = 1/m_resolution;
-    }
     
-    // Class destructor
-    ~SiarCostmap(void)
-    {
+    // Setup last odom transform in case of need
+    m_integrateOdomInit = false;
+  }
+    
+  // Class destructor
+  ~SiarCostmap(void)
+  {
   }
   
-  nav_msgs::OccupancyGrid &updateCostmap(void)
+  bool updateCostmap(void)
   {
     // Time stamp
     ros::Time t = ros::Time::now();
     
+    // Compute odometric trasnlation and rotation since last costmap update 
+    // and also make a copy of the previous costmap before modification
+        bool move_obstacles = false;
+	if(m_integrateOdom)
+	{
+                for (size_t i = 0; i != m_unknown_map.size(); i++) 
+                {
+                  m_unknown_map[i] = true;
+                }
+                
+		// Get the transform since last costmap update
+		tf::StampedTransform odomTf;
+		try
+		{
+			m_tfListener.waitForTransform(m_odomFrameId, m_baseFrameId, ros::Time(0), ros::Duration(1.0));
+			m_tfListener.lookupTransform(m_odomFrameId, m_baseFrameId, ros::Time(0), odomTf);
+		}
+		catch (tf::TransformException ex)
+		{
+			ROS_ERROR("SiarCostmap error: %s",ex.what());
+			return false;
+		}
+		if(!m_integrateOdomInit)
+		{
+			m_lastOdomTf = odomTf;
+			m_integrateOdomInit = true;
+		}
+// 		tf::Transform T = (m_lastOdomTf.inverse()*odomTf).inverse();
+                tf::Transform T = odomTf.inverse()*m_lastOdomTf;
+		
+		// Get rotation and translation in 2D
+		double yaw, pitch, roll;
+		T.getBasis().getRPY(roll, pitch, yaw);
+		float r00 = cos(yaw), r01 = sin(yaw);
+		float r10 = -sin(yaw), r11 = cos(yaw); 
+                
+		
+		// Get the transformed costamp if robot moved
+		if(fabs(T.getOrigin().x()) > 0.025 || fabs(yaw) > 0.1)
+		{
+                        ROS_INFO("YAW = %f d_x=%f d_y=%f", yaw, T.getOrigin().x(), T.getOrigin().y());
+                        move_obstacles = true;
+			// Transform each obstacle considering the odometry
+			for(size_t i=0; i<m_last_obstacles.size(); i++)
+			{
+                                PointPix &p = m_last_obstacles.at(i);
+                                float x, y;
+                                pix2point(x,y,p);
+                                float x_ = T.getOrigin().x() + x * r00 + y * r01;
+                                float y_ = T.getOrigin().y() + x * r10 + y * r11;
+                                
+                                if (i == m_last_obstacles.size() / 2) {
+                                  ROS_INFO("Original point: %d ,%d   %f,%f", p.x, p.y, x, y);
+                                }
+                                point2pix(x_, y_, p);
+                                if (i == m_last_obstacles.size() / 2) {
+                                  ROS_INFO("Transformed point: %d ,%d    %f,%f" , p.x, p.y, x_, y_);
+                                }
+			} 
+			
+		
+	// Save current odom for next iteration
+			m_lastOdomTf = odomTf;     
+		}
+	}
+	
     // Initialize all cells in the grid to unkown value
     for(int i=0; i<m_costmap.data.size(); i++)
       m_costmap.data[i] = SC_UNKNOWN;
@@ -180,8 +256,8 @@ public:
       
       // Compute roll and pitch rotation matrix from IMU
       double roll, pitch, yaw;
-      double cr, sr, cp, sp, cy, sy, rx, ry;
-      double r00, r01, r02, r10, r11, r12, r20, r21, r22;
+      float cr, sr, cp, sp, cy, sy, rx, ry;
+      float r00, r01, r02, r10, r11, r12, r20, r21, r22;
       if(m_tiltCompesante)
       {
         tf::Quaternion q(m_imu.orientation.x, m_imu.orientation.y, m_imu.orientation.z, m_imu.orientation.w);
@@ -221,7 +297,9 @@ public:
         if(x > m_minX && x < m_maxX && y > m_minY && y < m_maxY)
         {
           int index;
-          point2index(x, y, index);
+          if (point2index(x, y, index)) {
+            m_unknown_map.at(index) = false;
+          }
           if(m_costmap.data[index] != SC_POSITIVE_OBS && m_costmap.data[index] != SC_NEGATIVE_OBS)
           {
             if(z > m_obstacleHeight && z < m_robotHeight)
@@ -229,6 +307,7 @@ public:
               SiarCostmap::PointPix p;
               m_costmap.data[index] = SC_POSITIVE_OBS;
               index2pix(index, p);
+              p.positive = true;
               obstacles.push_back(p);
             } 
             else if (z < m_obstacleHeightNeg) 
@@ -236,6 +315,7 @@ public:
               SiarCostmap::PointPix p;
               addNegativeObstacle(index);
               index2pix(index, p);
+              p.positive = false;
               obstacles.push_back(p);                                    
             } else 
               m_costmap.data[index] = 0;
@@ -243,7 +323,30 @@ public:
         }
         
       }
+      
     }
+    
+    // Add transformed obstacles from last observation if they correspond to unknown areas
+    for (size_t i = 0; i < m_last_obstacles.size() && m_integrateOdom ; i++) {
+      PointPix &p = m_last_obstacles.at(i);
+      int index = p.x*m_costmap.info.width + p.y;
+      if (p.x >= 0 && p.x < m_costmap.info.height && p.y < m_costmap.info.width && p.y >= 0 &&
+        m_unknown_map.at(index)
+      ) {
+        obstacles.push_back(p);
+        if (p.positive) {
+          m_costmap.data[index] = SC_POSITIVE_OBS; 
+        } else {
+          m_costmap.data[index] = SC_NEGATIVE_OBS; 
+        }
+      }
+    }
+    
+    if (m_integrateOdom && move_obstacles)
+      m_last_obstacles = obstacles;
+    
+    if (!m_integrateOdom)
+      m_last_obstacles.clear();
     
     // Apply exponential decay over obstacles
     if(m_expDecay > 0.0 && obstacles.size() > 0)
@@ -269,10 +372,7 @@ public:
       {
         for(int j=0; j<m_costmap.info.width; j++, k++)
         {
-          if(m_costmap.data[k] == SC_UNKNOWN && isInRoi(k))
-          {
-          }
-          else if(m_costmap.data[k] != SC_POSITIVE_OBS && m_costmap.data[k] != SC_NEGATIVE_OBS)
+          if(m_costmap.data[k] != SC_POSITIVE_OBS && m_costmap.data[k] != SC_NEGATIVE_OBS)
           {
             // Compute distance to closest obstacle
             queryPt[0] = i;
@@ -281,36 +381,17 @@ public:
             // Evaluate the cost  
             m_costmap.data[k] = (int)(127.0*exp(-C*sqrt(dists[0])));
           }
-//           else if(m_costmap.data[k] == SC_UNKNOWN)  NOTE: Commented by chur... why not to calculate cost in unknown pixels?
-//             m_costmap.data[k] = 0;
         }
       }      
     }
+    
     
     // Update costmap info
     m_costmap.header.seq++;
     m_costmap.header.stamp = t;
     m_costmap.info.map_load_time = t;
-    
-    // Prepare next sensor reading
-    //for(int i=0; i<6; i++)
-    //  m_cloudNew[i] = false;
       
-    return m_costmap;
-  }
-  
-  bool isInRoi(int index) {
-    bool ret_val = false;
-    float x,y;
-    index2point(x, y, index);
-    float r = x*x + y*y;
-//     ROS_INFO("x=%f\ty=%f\tr=%f", x,y,r);
-    if ( r > m_min_radius && r < m_max_radius ) {
-      ret_val = true;
-      
-    }
-    
-    return ret_val;
+    return true;
   }
   
   nav_msgs::OccupancyGrid &getCostmap(void)
@@ -321,9 +402,8 @@ public:
   inline float getCost(float x, float y)
   {
     int index;
-    if(x > m_minX && x < m_maxX && y > m_minY && y < m_maxY)
+    if(x > m_minX && x < m_maxX && y > m_minY && y < m_maxY && point2index(x, y, index))
     {
-      point2index(x, y, index);
       return m_costmap.data[index];
     }
     else
@@ -340,8 +420,9 @@ public:
       float y = points[i].y;
       if(x > m_minX && x < m_maxX && y > m_minY && y < m_maxY)
       {
-        point2index(x, y, index);
-        cost[i] = m_costmap.data[index];
+        if (point2index(x, y, index)) {
+          cost[i] = m_costmap.data[index];
+        }
       }
     }
     return cost;
@@ -370,7 +451,7 @@ private:
   }
   
   void cloud4Callback(const sensor_msgs::PointCloud2ConstPtr& msg)
-    {
+  {
     processCloud(msg, 4);
   }
   
@@ -384,14 +465,26 @@ private:
     m_imu = *msg;
     m_imuNew = true;
   } 
+  
+  void odomIntegrateCallback(const std_msgs::Bool::ConstPtr& msg)
+  {
+	if(msg->data == 0)
+	  m_integrateOdom = false;
+	else
+	{
+	  m_integrateOdom = true; 
+	  m_integrateOdomInit = false;
+    }	  
+  }
 
   void updateTimer(const ros::TimerEvent& event)
   {
     // Update costmap
-    updateCostmap();
-    
-    // Publish costmap
-    m_pub.publish(m_costmap);
+    if(updateCostmap())
+    {
+		// Publish costmap
+		m_pub.publish(m_costmap);
+	}
   }
   
   void processCloud(const sensor_msgs::PointCloud2ConstPtr& msg, int id)
@@ -409,26 +502,41 @@ private:
       }
   }
   
-  inline void point2index(float &x, float &y, int &index)
+  inline bool point2index(float &x, float &y, int &index)
   {
     index = ((int)((x-m_minX)*m_divRes))*m_costmap.info.width + m_costmap.info.width - (int)((y-m_minY)*m_divRes);
+    return index >= 0 && index < n_pix;
   }
   
-  inline void point2pix(float &x, float &y, SiarCostmap::PointPix &pix)
+  inline bool point2pix(float &x, float &y, SiarCostmap::PointPix &pix)
   {
-    pix.x = (int)((x-m_minX)*m_divRes);
-    pix.y = m_costmap.info.width - (int)((y-m_minY)*m_divRes);
+    pix.x = round((x-m_minX)*m_divRes);
+    pix.y = m_costmap.info.width - round((y-m_minY)*m_divRes);
+    return pix.x >=0 && pix.x < m_costmap.info.height &&
+           pix.y >=0 && pix.y < m_costmap.info.width;
   }
   
-  inline void index2point(float &x, float &y, const int &index) {
+  inline void index2point(float &x, float &y, const int &index) 
+  {
     x = index/m_costmap.info.width * m_resolution + m_minX;
-    y = m_minY + index%m_costmap.info.width * m_resolution;
+    y = m_minY + (m_costmap.info.width - index%m_costmap.info.width) * m_resolution;
+  }
+  
+  inline void pix2point(float &x, float &y, const SiarCostmap::PointPix &pix) 
+  {
+    x = pix.x * m_resolution + m_minX;
+    y = m_minY + (m_costmap.info.width - pix.y) * m_resolution;
   }
   
   inline void index2pix(int &index, SiarCostmap::PointPix &pix)
   {
     pix.x = index/m_costmap.info.width;
     pix.y = index%m_costmap.info.width;
+  }
+  
+  inline void pix2index(int &index, const SiarCostmap::PointPix &pix)
+  {
+    index = pix.x * m_costmap.info.width + pix.y;
   }
   
   void addNegativeObstacle(int index)
@@ -441,22 +549,26 @@ private:
         if (new_index <0 || new_index >= m_costmap.data.size())
           continue;
         m_costmap.data[index+i+j*m_costmap.info.width] = m_considerSign?SC_NEGATIVE_OBS:SC_POSITIVE_OBS;
+        
       }
     }
+    
   }
   
   // Params
-  double m_hz, m_obstacleHeight, m_obstacleHeightNeg, m_expDecay;
-  double m_width, m_height, m_resolution, m_robotHeight;
-  std::string m_baseFrameId;
-  bool m_tiltCompesante;
+  float m_hz, m_obstacleHeight, m_obstacleHeightNeg, m_expDecay;
+  float m_width, m_height, m_resolution, m_robotHeight;
+  std::string m_baseFrameId, m_odomFrameId;
+  bool m_tiltCompesante, m_integrateOdom, m_integrateOdomInit;
   
   // ROS stuff
   ros::NodeHandle m_nh;  
   ros::Timer timer;
   tf::TransformListener m_tfListener;
-  ros::Subscriber m_sub0, m_sub1, m_sub2, m_sub3, m_sub4, m_sub5, m_sub6;
+  ros::Subscriber m_sub0, m_sub1, m_sub2, m_sub3, m_sub4, m_sub5, m_sub6, m_sub7;
   ros::Publisher m_pub;
+  tf::StampedTransform m_lastOdomTf;
+
 
   // Sensor data
   sensor_msgs::PointCloud2 m_cloud[6];
@@ -466,9 +578,11 @@ private:
   
   // Compute costmap
   float m_minX, m_maxX, m_minY, m_maxY;
-  float m_min_radius, m_max_radius;
   float m_divRes;
+  int n_pix;
   nav_msgs::OccupancyGrid m_costmap; 
+  std::vector<SiarCostmap::PointPix> m_last_obstacles;
+  std::vector<bool> m_unknown_map;
   bool m_considerSign;
   int m_inflate_negative;
 };

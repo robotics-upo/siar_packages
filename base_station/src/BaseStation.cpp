@@ -23,19 +23,23 @@
 #include <QFileDialog>
 #include <QInputDialog>
 #include <QRadioButton>
-#include <boost/lexical_cast.hpp>
+
 #include <QStatusBar>
-#include <qwt/qwt_dial_needle.h>
-#include <qwt/qwt_dial.h>
 #include <QVBoxLayout>
 #define BUFFER_LENGTH 100000
 // #include <QUrl>
 #include <QMdiArea>
 #include <QMdiSubWindow>
+
+#include <qwt/qwt_dial_needle.h>
+
+#ifndef Q_MOC_RUN
 #include "rviz/default_plugin/camera_display.h"
 #include "rviz/default_plugin/image_display.h"
 #include "rviz/view_controller.h"
 #include "rviz/default_plugin/view_controllers/xy_orbit_view_controller.h"
+#include <boost/lexical_cast.hpp>
+#endif
 
 #include "OGRE/OgreCamera.h"
 
@@ -45,7 +49,7 @@ using boost::lexical_cast;
 using boost::bad_lexical_cast;
 
 BaseStation::BaseStation(int argc, char **argv, QWidget* parent, Qt::WindowFlags flags): 
-QMainWindow(parent, flags), argc(argc), argv(argv), init_log_time(), node(NULL), uavs(), pos_log(), started(false)
+QMainWindow(parent, flags), argc(argc), argv(argv), init_log_time(), node(NULL), started(false)
 {
   setupUi(this);
   QwtDialSimpleNeedle *nd = new QwtDialSimpleNeedle(QwtDialSimpleNeedle::Arrow, Qt::white, Qt::red);
@@ -54,26 +58,43 @@ QMainWindow(parent, flags), argc(argc), argv(argv), init_log_time(), node(NULL),
   
   d.setNeedle(nd);
   d.setMode(QwtDial::RotateNeedle);
-  d.setRange( 0.0, 1.0,  0.2);
-  d.setScale(135,45, 0.2);
-  d.setScaleArc(135,-135);
+//   d.setScaleArc(  0.0, 1.0);
+  d.setScale( 0.0, 1.0);
+  d.setScaleArc(315,35);
   
   
   // Start ROS comms
   startComms();
   
   
-  
+  mdiArea->setFocusPolicy(Qt::ClickFocus);
   // RViz stuff
   
   window_1 = configureRVizDisplay(manager_, render_panel_, "base_link", mdiArea);
-  configurePointCloud(point_cloud_1,"/front/points");
-  configurePointCloud(point_cloud_2,"/front_left/points");
-  configurePointCloud(point_cloud_3,"/front_right/points");
+  configurePointCloud(point_cloud_1,"/front/points", manager_);
+  configurePointCloud(point_cloud_2,"/front_left/points", manager_);
+  configurePointCloud(point_cloud_3,"/front_right/points", manager_);
 //   window_1->resize(640, 480);
   window_1->setWindowTitle("PointClouds");
   
-  window_2 = configureCameraDisplay();
+  window_2 = configureImageDisplay("/inspection1_cam/image_raw", "Inpection1");
+  window_img_2 = configureImageDisplay("/inspection2_cam/image_raw", "Inpection2");
+  window_img_3 = configureImageDisplay("/flip_image", "Thermal");
+  
+  // Create a Grid display. 
+  grid_display = manager_->createDisplay( "rviz/Grid", "grid", true );
+//   ROS_ASSERT( grid_ != NULL );
+
+  // Configure the GridDisplay the way we like it.
+  grid_display->subProp( "Line Style" )->setValue( "Lines" );
+  grid_display->subProp( "Cell Size" )->setValue(0.2); 
+  grid_display->subProp( "Plane Cell Count" )->setValue(50);
+//   grid_display->subProp( "Color" )->setValue( Qt::yellow );
+  
+  // Create a robot model display
+  robot_model_display = manager_->createDisplay("rviz/MarkerArray", "marker", true);
+  robot_model_display->setTopic("/siar_model", "visualization_msgs/MarkerArray");
+  
   
   window_3 = configureRVizDisplay(manager_2, render_panel_2, "map", mdiArea);
   window_3->setWindowTitle("Map");
@@ -89,6 +110,22 @@ QMainWindow(parent, flags), argc(argc), argv(argv), init_log_time(), node(NULL),
   ROS_INFO("Camera cloud settings: %s" , cloud_camera_.toString().c_str());
   ROS_INFO("Map camera settings: %s" , map_camera_.toString().c_str());
   
+  // Third display:
+  window_unused = configureRVizDisplay(manager_3, render_panel_3, "base_link", mdiArea);
+  window_unused->showMinimized();
+  window_unused->setWindowTitle("Processed Points");
+  window_cam = configureCameraDisplay();
+  configurePointCloud(point_cloud_defects, "/serviceabilityProblems", manager_3);
+  point_cloud_defects->subProp("Size (m)")->setValue(0.05);
+  configurePointCloud(p_c_curb, "/curbCloud", manager_3);
+  p_c_curb->subProp("Size (m)")->setValue(0.05);
+  configurePointCloud(p_c_gutter, "/gutterCloud", manager_3);
+  p_c_curb->subProp("Color Transformer")->setValue("FlatColor");
+  p_c_curb->subProp("Color")->setValue("#0000FF");
+  p_c_gutter->subProp("Size (m)")->setValue(0.05);
+  window_cam->setWindowTitle("Front Camera");
+  p_c_gutter->subProp("Color Transformer")->setValue("FlatColor");
+  p_c_gutter->subProp("Color")->setValue("#777777");
   // End of RVIZ stuff
   
   // Tree widget!!
@@ -97,6 +134,14 @@ QMainWindow(parent, flags), argc(argc), argv(argv), init_log_time(), node(NULL),
   window_4->showMinimized();
   window_4->setWindowTitle("Database");
   
+  
+  window_1->setFocusPolicy(Qt::ClickFocus);
+  window_2->setFocusPolicy(Qt::ClickFocus);
+  window_img_2->setFocusPolicy(Qt::ClickFocus);
+  window_3->setFocusPolicy(Qt::ClickFocus);
+  window_4->setFocusPolicy(Qt::ClickFocus);
+  window_cam->setFocusPolicy(Qt::ClickFocus);
+  window_unused->setFocusPolicy(Qt::ClickFocus);
   
   setExploreView();
   
@@ -107,14 +152,22 @@ QMainWindow(parent, flags), argc(argc), argv(argv), init_log_time(), node(NULL),
 //   q.tileSubWindows();
 //   q.cascadeSubWindows();
   
+  
+  
   // Make Qt connections
   connect(actionExploration, SIGNAL(triggered()), this, SLOT(setExploreView()));
   connect(actionAlert, SIGNAL(triggered()), this, SLOT(setMissionView()));
+  connect(actionServiceability, SIGNAL(triggered()), this, SLOT(setServiceabilityView()));
+  connect(actionInspection, SIGNAL(triggered()), this, SLOT(setInspectionView()));
   connect(emergencyButton, SIGNAL(clicked()), node, SLOT(setEmergencyStop())); 
   connect(node, SIGNAL(siarStatusChanged(const siar_driver::SiarStatus &)), this, SLOT(updateSiarStatus(const siar_driver::SiarStatus &)));
   connect(node, SIGNAL(newRSSI(const rssi_get::Nvip_status&)), this, SLOT(updateRSSIStatus(const rssi_get::Nvip_status &)));
   connect(node, SIGNAL(alertDBReceived(const std::string&)), this, SLOT(updateTreeContent(const std::string&)));
   connect(horizontalSlider_width_indicator_2, SIGNAL(valueChanged(int)), node, SLOT(setElecX(int)));
+  connect(checkBox_Curb, SIGNAL(toggled(bool)), p_c_curb, SLOT(setEnabled(bool)));
+  connect(checkBox_Gutter, SIGNAL(toggled(bool)), p_c_gutter, SLOT(setEnabled(bool)));
+  connect(checkBox_Defects, SIGNAL(toggled(bool)), point_cloud_defects, SLOT(setEnabled(bool)));
+  connect(checkBox, SIGNAL(toggled(bool)), marker_section, SLOT(setEnabled(bool)));
   
   // Setviews:
   // Set the view
@@ -132,20 +185,23 @@ void BaseStation::setExploreView()
   QSize size_ = this->size();
   
   window_1->showNormal();
-  window_2->showNormal();
+  window_2->showMinimized();
   window_3->showNormal();
   window_4->showMinimized();
+  window_cam->showNormal();
+  window_img_2->showMinimized();
+  window_img_3->showMinimized();
   
   window_1->setMinimumWidth(size_.width()*0.2);
   window_1->resize(size_.width()*0.4, size_.height()*0.55);
   window_1->setMaximumWidth(size_.width()*2.1);
   window_1->setMaximumHeight(size_.height()*2.2);
   window_1->setMinimumHeight(size_.height()*0.2);
-  window_2->setMinimumWidth(size_.width()*0.1);
-  window_2->setMaximumWidth(size_.width()*2.0);
-  window_2->resize(size_.width()*0.4, size_.height()*0.55);
-  window_2->setMaximumHeight(size_.height()*2.2);
-  window_2->setMinimumHeight(size_.height()*0.1);
+  window_cam->setMinimumWidth(size_.width()*0.1);
+  window_cam->setMaximumWidth(size_.width()*2.0);
+  window_cam->resize(size_.width()*0.4, size_.height()*0.55);
+  window_cam->setMaximumHeight(size_.height()*2.2);
+  window_cam->setMinimumHeight(size_.height()*0.1);
   window_3->setMinimumWidth(size_.width()*0.2);
   window_3->setMaximumWidth(size_.width()*3);
   window_3->setMaximumHeight(size_.height()*1.2);
@@ -153,8 +209,56 @@ void BaseStation::setExploreView()
   window_3->resize(size_.width()*0.8, size_.height()*0.4);
   
   window_1->move(0,0);
-  window_2->move(size_.width()*0.4,0);
+  window_cam->move(size_.width()*0.4,0);
   window_3->move(0, size_.height()*0.54);
+}
+
+void BaseStation::setInspectionView() {
+  QSize size_ = this->size();
+  
+  window_1->showNormal();
+  window_2->showNormal();
+  window_3->showMinimized();
+  window_4->showMinimized();
+  window_cam->showNormal();
+  window_img_2->showNormal();
+  window_img_3->showNormal();
+  
+  window_2->setMinimumWidth(size_.width()*0.2);
+  window_2->resize(size_.width()*0.4, size_.height()*0.5);
+  window_2->setMaximumWidth(size_.width()*2.1);
+  window_2->setMaximumHeight(size_.height()*2.2);
+  window_2->setMinimumHeight(size_.height()*0.2);
+  
+  window_img_2->setMinimumWidth(size_.width()*0.2);
+  window_img_2->resize(size_.width()*0.4, size_.height()*0.5);
+  window_img_2->setMaximumWidth(size_.width()*2.1);
+  window_img_2->setMaximumHeight(size_.height()*2.2);
+  window_img_2->setMinimumHeight(size_.height()*0.2);
+  
+  window_cam->setMinimumWidth(size_.width()*0.1);
+  window_cam->setMaximumWidth(size_.width()*2.0);
+  window_cam->resize(size_.width()*0.4, size_.height()*0.5);
+  window_cam->setMaximumHeight(size_.height()*2.2);
+  window_cam->setMinimumHeight(size_.height()*0.1);
+  window_img_3->setMinimumWidth(size_.width()*0.1);
+  window_img_3->setMaximumWidth(size_.width()*2);
+  window_img_3->setMaximumHeight(size_.height()*2.2);
+  window_img_3->setMinimumHeight(size_.height()*0.01);
+  window_img_3->resize(size_.width()*0.2, size_.height()*0.5);
+  
+  window_1->setMinimumWidth(size_.width()*0.1);
+  window_1->resize(size_.width()*0.2, size_.height()*0.5);
+  window_1->setMaximumWidth(size_.width()*2.1);
+  window_1->setMaximumHeight(size_.height()*2.2);
+  window_1->setMinimumHeight(size_.height()*0.2);
+  
+  window_2->move(0,0);
+  window_img_2->move(0,size_.height()*0.5);
+  window_cam->move(size_.width()*0.4,0);
+  window_img_3->move(size_.width()*0.4, size_.height()*0.5);
+  window_1->move(size_.width()*0.6, size_.height()*0.5);
+  
 }
 
 void BaseStation::setMissionView()
@@ -165,6 +269,7 @@ void BaseStation::setMissionView()
   window_2->showMinimized();
   window_3->showNormal();
   window_4->showNormal();
+  window_cam->showMinimized();
   
   window_3->setMinimumWidth(size_.width()*0.2);
   window_3->setMaximumWidth(size_.width()*3);
@@ -182,6 +287,39 @@ void BaseStation::setMissionView()
   window_4->move(size_.width()*0.6, 0);
 }
 
+void BaseStation::setServiceabilityView()
+{
+  QSize size_ = this->size();
+  
+  window_1->showNormal();
+  window_2->showMinimized();
+  window_3->showNormal();
+  window_4->showMinimized();
+  window_cam->showNormal();
+  
+  
+  window_1->setMinimumWidth(size_.width()*0.2);
+  window_1->resize(size_.width()*0.4, size_.height()*0.55);
+  window_1->setMaximumWidth(size_.width()*2.1);
+  window_1->setMaximumHeight(size_.height()*2.2);
+  window_1->setMinimumHeight(size_.height()*0.2);
+  window_1->move(0, size_.height() * 0.4);
+  
+  window_3->setMinimumWidth(size_.width()*0.2);
+  window_3->setMaximumWidth(size_.width()*3);
+  window_3->setMaximumHeight(size_.height()*2.2);
+  window_3->setMinimumHeight(size_.height()*0.1);
+  window_3->resize(size_.width()*0.85, size_.height()*0.2);
+  window_3->move(0, 0);
+  
+  window_cam->setMinimumWidth(size_.width()*0.2);
+  window_cam->setMaximumWidth(size_.width()*3);
+  window_cam->setMaximumHeight(size_.height()*2.2);
+  window_cam->setMinimumHeight(size_.height()*0.1);
+  window_cam->resize(size_.width()*0.5, size_.height()*0.9);
+  
+  window_cam->move(size_.width()*0.4, 0);
+}
 
 
 BaseStation::BaseStation(const QMainWindow& ): QMainWindow()
@@ -231,9 +369,9 @@ QMdiSubWindow *BaseStation::configureRVizDisplay(rviz::VisualizationManager*& ma
   return ret_val;
 }
 
-void BaseStation::configurePointCloud(rviz::Display *&pc_display, const std::string &topic)
+void BaseStation::configurePointCloud(rviz::Display *&pc_display, const std::string &topic, rviz::VisualizationManager *manager)
 {
-  pc_display = manager_->createDisplay("rviz/PointCloud2", "sensors_msgs::PointCloud2",true);
+  pc_display = manager->createDisplay("rviz/PointCloud2", "sensors_msgs::PointCloud2",true);
   pc_display->setTopic(QString::fromStdString(topic), "sensor_msgs/PointCloud2");
   pc_display->subProp("Color Transformer")->setValue("AxisColor");
 //   pc_display->initialize(manager_);
@@ -241,33 +379,48 @@ void BaseStation::configurePointCloud(rviz::Display *&pc_display, const std::str
 
 QMdiSubWindow *BaseStation::configureCameraDisplay() {
   QMdiSubWindow *ret_val = NULL;
-//   camera_display = manager_->createDisplay("rviz/Camera", "Front camera",true);
-  camera_display = manager_->createDisplay("rviz/Image", "Front camera",true);
+  camera_display = manager_3->createDisplay("rviz/Camera", "Front camera",true);
   camera_display->setTopic("/front_web/rgb/image_raw", "sensor_msgs/Image");
   camera_display->subProp("Transport Hint")->setValue("compressed");
-//   camera_display->subProp("Overlay Alpha")->setValue(0.9);
-//   camera_display->subProp("Image Rendering")->setValue("background");
+  camera_display->subProp("Overlay Alpha")->setValue(0.9);
+  camera_display->subProp("Image Rendering")->setValue("background");
   
-//   rviz::CameraDisplay *a = dynamic_cast<rviz::CameraDisplay*>(camera_display);
   ret_val = mdiArea->addSubWindow(camera_display->getAssociatedWidget());
   
+  marker_section = manager_3->createDisplay("rviz/Marker", "Marker Sec Typ", true);
+  marker_section->setTopic("/section_type", "visualization_msgs/Marker");
+  
+  
+  
+  
+//   grid_display->subProp( "Color" )->setValue( Qt::yellow );
+  return ret_val;
+}
+
+
+void BaseStation::configureGridDisplay(rviz::VisualizationManager *vis) {
   // Create a Grid display. 
-  grid_display = manager_->createDisplay( "rviz/Grid", "grid", true );
-//   ROS_ASSERT( grid_ != NULL );
+  grid_display = vis->createDisplay( "rviz/Grid", "grid", true );
+  ROS_ASSERT( grid_display != NULL );
 
   // Configure the GridDisplay the way we like it.
   grid_display->subProp( "Line Style" )->setValue( "Lines" );
-  grid_display->subProp( "Cell Size" )->setValue(0.2);
+  grid_display->subProp( "Cell Size" )->setValue(0.2); 
   grid_display->subProp( "Plane Cell Count" )->setValue(50);
-//   grid_display->subProp( "Color" )->setValue( Qt::yellow );
+}
+
+QMdiSubWindow *BaseStation::configureImageDisplay(const std::string &topic, const std::string &window_name) {
+  QMdiSubWindow *ret_val = NULL;
+//   camera_display = manager_->createDisplay("rviz/Camera", "Front camera",true);
+  image_display = manager_->createDisplay("rviz/Image", QString::fromStdString(window_name),true);
+  image_display->setTopic(QString::fromStdString(topic), "sensor_msgs/Image");
+  image_display->subProp("Transport Hint")->setValue("compressed");
   
-  // Create a robot model display
-  robot_model_display = manager_->createDisplay("rviz/RobotModel", "robot model", true);
+  ret_val = mdiArea->addSubWindow(image_display->getAssociatedWidget());
+  
   
   
   return ret_val;
-//   image_display = manager_->createDisplay("rviz/Image", "Front image", true);
-//   image_display->setTopic("/front_web/rgb/image_raw", "sensor_msgs/Image");
 }
 
 void BaseStation::configureMap() {

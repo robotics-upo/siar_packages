@@ -73,6 +73,7 @@ protected:
   geometry_msgs::Twist user_command, last_velocity, planned_cmd;
   CommandEvaluator *cmd_eval;
   double width_thres;
+  double safety_width;
   
   // Include ways to escape the local minima
   double t_unfeasible,ang_scape_inc, max_t_unfeasible;
@@ -185,6 +186,7 @@ void SiarController::getParameters(ros::NodeHandle& pn)
   pn.param("n_lin", _conf.n_lin, 3);
   pn.param("n_ang", _conf.n_ang, 12);
   pn.param("width_thres", width_thres, 0.02);
+  pn.param("safety_width", safety_width, 0.02);
   pn.getParam("min_wheel_left", min_wheel_left);
   pn.getParam("min_wheel_right", min_wheel_right);
   
@@ -303,17 +305,18 @@ void SiarController::modeCallback(const std_msgs::Int8& msg)
 void SiarController::loop() {
   // Main loop --> we have to 
   geometry_msgs::Twist cmd_vel_msg = user_command;
-  if (operation_mode == 100) {
-    // Bypass the planned velocity
-    // Fully autonomous mode TODO: Check it!!
-    cmd_vel_msg = planned_cmd;
-  } else if (operation_mode > 0) {
+  if (operation_mode > 0) {
+    if (operation_mode == 100) {
+      // Bypass the planned velocity
+      // Fully autonomous mode TODO: Check it!!
+      cmd_vel_msg = planned_cmd;
+    }
     if (!occ_received) {
       ROS_INFO("SiarController --> Warning: no altitude map");
     } else if (!computeCmdVel(cmd_vel_msg, last_command)) {
       if (fabs(user_command.linear.x) >= lin_vel_dec) {
         // The USER wants to go
-        t_unfeasible+=_conf.T;
+        t_unfeasible +=_conf.T;
         
         ROS_ERROR("Could not get a feasible velocity --> Stopping the robot. Time without speed = %f", t_unfeasible);
         // Stop the robot 
@@ -324,8 +327,6 @@ void SiarController::loop() {
         cmd_vel_msg.linear.x = 0.0;
         t_unfeasible = 0.0;
       } 
-      
-      
     } else {
       t_unfeasible = 0.0; // A valid command has been generated --> restart the time counter
       if (operation_mode != 1) {
@@ -533,6 +534,13 @@ void SiarController::initializeDiscreteTestSet()
 void SiarController::evaluateAndActualizeBest(const geometry_msgs::Twist& cmd_vel, const geometry_msgs::Twist &v_ini)
 {
   m.points.clear();
+  if ((int)min_wheel_left.size()  < operation_mode + 1) 
+  {
+    ROS_ERROR("SiarController --> evaluateAndActualizeBest. Could not set the operation mode to %d", operation_mode);
+    ROS_ERROR("M_wheel sizes --> L = %d\t R = %d", (int)min_wheel_left.size(), (int)min_wheel_right.size());
+    return;
+  }
+  
   double m_w_l = min_wheel_left[operation_mode - 1];
   double m_w_r = min_wheel_right[operation_mode - 1];
   
@@ -601,7 +609,7 @@ void SiarController::copyMarker(visualization_msgs::Marker& dst, const visualiza
 void SiarController::statusCallback(const siar_driver::SiarStatus& msg)
 {
   // Check if the width has changed enough to perform an actualization of the footprint
-  double new_width = msg.width - 0.04;
+  double new_width = msg.width - 0.04 + safety_width;
   if (fabs(new_width - _conf.robot_width) > width_thres && cmd_eval != NULL ) {
     cmd_eval->setWidth(new_width);
     _conf.robot_width = new_width;

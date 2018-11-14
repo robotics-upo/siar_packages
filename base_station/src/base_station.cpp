@@ -8,7 +8,8 @@
 #include <fstream>
 #include "functions/FormattedTime.h"
 
-#include <QtGui/QApplication>
+#include <QtGui/QGuiApplication>
+#include <QApplication>
 #include "BaseStation.h"
 
 #ifndef PI

@@ -1,8 +1,12 @@
 #ifndef __CAMERA_SETTINGS_HPP___
 #define __CAMERA_SETTINGS_HPP___
 
+
+
+#ifndef Q_MOC_RUN
 #include <ros/ros.h>
 #include <rviz/view_controller.h>
+#endif
 
 struct CameraSettings {
   std::string frame;

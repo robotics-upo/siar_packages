@@ -224,6 +224,14 @@ class SiarManagerWidthAdjustment:public SiarManager
   
   bool setRawVelocityCarlos(int16_t left, int16_t right, int16_t left_out, int16_t right_out);
   
+  //! --------------------- RAW commands for motor diagnostics
+  //! @brief Sets the raw velocities of one motor
+  //! @param motor number of the motor
+  //! @param vel The raw velocity command
+  //! @retval true Success
+  //! @retval false Error
+  virtual bool setMotorVelocity(int motor, int16_t vel);
+  
   double getWidth() const;
   
   //! @brief Sets the norm width
@@ -577,8 +585,8 @@ inline bool SiarManagerWidthAdjustment::setRawVelocity(int16_t left, int16_t rig
   bool ret_val = true;
   
   if(state.slow) {
-    left /= 4;
-    right /= 4;
+    left /= 3;
+    right /= 3;
   }
   
   right *= -1; // The right motors are reversed
@@ -605,6 +613,29 @@ inline bool SiarManagerWidthAdjustment::setRawVelocity(int16_t left, int16_t rig
   
   return ret_val;
 }
+
+bool SiarManagerWidthAdjustment::setMotorVelocity(int motor, int16_t vel)
+{
+  bool ret_val = true;
+  // get the right command
+  command[0] = _config.set_vel;
+  for (int i = 1; i < 12; i++) {
+    command[i] = 0;
+  }
+  if (motor >= 0 && motor < 6) {
+    command[motor*2 + 1] = (unsigned char)(vel >> 8);
+    command[motor*2 + 2] = (unsigned char)(vel & 0xFF);
+  }
+  
+  // Send it to front and rear board and wait for response
+  siar_serial_1.flush();
+  ret_val = siar_serial_1.write(command, 13);
+  ret_val = siar_serial_1.getResponse(buffer, 4);
+  
+  return ret_val;
+}
+
+
 
 inline bool SiarManagerWidthAdjustment::setVelocity(double linear, double angular)
 {
@@ -895,10 +926,13 @@ bool SiarManagerWidthAdjustment::setLinearPosition(u_int16_t value)
   int tam = 4;
   
   // Reduce the input to the correct range
-  double max = width_inter->upper_bound(10000)->first;
-  if (value > max) {
-    value = max;
-  }
+  double max = width_inter->lower_bound(10000)->first;
+//  if (value > max) {
+//     ROS_INFO("SiarManager::setLinearPosition --> Wrong command with value %u received. Bounded to %f", value, max);
+//     value = max;
+    if (value >120) // TODO: erase it
+      value = 120;
+//  }
   
   command[0] = _config.set_lin_pos;
   command[1] = value >> 8;
@@ -1392,10 +1426,13 @@ bool SiarManagerWidthAdjustment::setXElectronics(const double value)
 double SiarManagerWidthAdjustment::setNormWidth(const double value)
 {
   std::map<double, double>::const_iterator it = x_elec_to_lin_pos->lower_bound(10000);
-  double up_bound = it->first;
+  double up_bound = (*x_inter)[0];
   it = x_elec_to_lin_pos -> upper_bound(-10000);
+  double eff_val = value*up_bound;
   double low_bound = fabs(it->first);
-  double eff_val = value*low_bound;
+
+  if (value < 0.0)
+	  eff_val = value*low_bound;
   
   uint16_t val = x_elec_to_lin_pos->interpolate(eff_val);
   ROS_INFO("Linear Pos: %u\tUp=%f\tlow=%fValue=%f", val,up_bound, low_bound, value);

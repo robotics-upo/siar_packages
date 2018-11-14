@@ -27,6 +27,7 @@
 #include "functions/FormattedTime.h"
 
 // ROS includes
+#ifndef Q_MOC_RUN
 #include <ros/ros.h>
 
 #include <siar_driver/SiarStatus.h>
@@ -35,7 +36,7 @@
 #include <boost/thread.hpp>
 #include <boost/thread/mutex.hpp>
 #include <std_msgs/String.h>
-
+#endif
 // #include "CameraSettings.hpp"
 
 class Comms:public QObject
