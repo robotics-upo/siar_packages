@@ -14,7 +14,7 @@ fi
 
 until [ $CONTADOR -gt $2 ]; do
   
-  roslaunch amcl_sewer amcl_bag.launch bag_file:=/home/chur/SIAR/siar_2017-09-21-12-17-39.bag stats_file:=/home/chur/stats/stats23_sept_cnn_$CONTADOR.txt start:=150 &
+  roslaunch amcl_sewer amcl_bag.launch bag_file:=/home/chur/SIAR/siar_2017-09-21-12-17-39.bag stats_file:=/home/chur/stats/stats23_sept_orb_$CONTADOR.txt start:=150 &
   let  pid1 = $!
 #   rosbag play "/home/chur/SIAR/Sewers_jan_17/siar_2017-01-17-11-17-28.bag" -s 390 --clock -r 0.9
   rosnode kill -a
