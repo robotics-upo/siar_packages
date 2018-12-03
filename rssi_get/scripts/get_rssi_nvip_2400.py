@@ -15,7 +15,20 @@ def talker():
     ip = "192.168.168.47"
     if rospy.has_param('~ip'):
       ip = rospy.get_param('~ip')
-    url = "http://admin:admin@" + ip + "/cgi-bin/webif/status-wlan.sh?interval=-1"
+      
+    password = "admin"
+    if rospy.has_param('~password'):
+		password = rospy.get_param('~password')
+	      
+
+    device = 'nVIP2400'
+    if rospy.has_param('~device'):
+      device = rospy.get_param('~device') # Can be: nVIP2400 or pX2
+      
+    webname = {'nVIP2400': '/cgi-bin/webif/status-wlan.sh?interval=-1', 'pX2': '/cgi-bin/webif/status-wlan.sh?interval=-1'}
+    url = "http://admin:" + password + "@" + ip + webname[device]
+  
+    print "Connecting to: ", url
     rate_d = 0.33
     if rospy.has_param('~rate'):
       rate_d = rospy.get_param('~rate')
@@ -26,13 +39,13 @@ def talker():
       #s_.keep_alive = False
       #r = requests.post(url, "", headers={'Connection':'close'})
       try:
-        req = requests.get(url)
+        req = requests.get(url, timeout=2)
       except Exception:
         print "Could not make the request"
       else:
         if req.status_code == 200:
           text = req.text
-          #print text
+          #print text         # DEBBBUGGGGG
           text_elem = 0
           cont = -1
           cont_elem = 0
@@ -47,19 +60,19 @@ def talker():
                 cont_row = cont_row + 1
               else:
                 info[cont_row] = info[cont_row] + item + os.linesep 
-            if "Connection Status" in item:
+            if "Connection Status" in item or "Connection Info" in item:
               in_table = 1
           i = 1
           # get the data from the interesting areas
           for s in info:
-            #print s
+            print s
             if len(s) > 20:
-              result_list = re.findall(r"(([0-9a-f]{2}:){5}[0-9a-f]{2})+", s)
-              #print result_list
+              result_list = re.findall(r"(([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2})+", s)
+              #print "Result list: ", result_list              # DEBBBUGGGGG
               if (len(result_list) > 0):
                 st = Nvip_status(result_list[0][0], 0 ,0 ,0 ,0)
                 result_list = re.findall(">[0-9\-]+<", s)
-                #print result_list
+                #print result_list                                  # DEBBBUGGGGG
                 st.rssi = int(result_list[2][1:-1]) 
                 result_list = re.findall("[0-9\.\-]+\sM", s)
                 st.tx_rate = float(result_list[0][0:-1]) 
