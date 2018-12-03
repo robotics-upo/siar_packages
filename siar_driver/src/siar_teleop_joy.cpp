@@ -170,6 +170,7 @@ void interpretArm(const sensor_msgs::Joy::ConstPtr& joy);
 void interpretLights(const sensor_msgs::Joy::ConstPtr& joy);
 
 void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
+  panic = panic | (joy->buttons[panicButton] == 1);
   if (!ant_arm_button && joy->buttons[arm_mode_button] == 1) {
     arm_mode = !arm_mode;
     std_msgs::Bool msg;
@@ -181,7 +182,6 @@ void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
     interpretArm(joy);
   } else {
     startPressed = joy->buttons[startButton] == 1;
-    panic = panic | (joy->buttons[panicButton] == 1);
     backPressed = joy->buttons[backButton] == 1;
     
     if (!ant_auto_button && joy->buttons[auto_button] == 1) {
@@ -296,11 +296,6 @@ void interpretArm(const sensor_msgs::Joy::ConstPtr& joy)
     arm_pan_pub.publish(msg);
     msg.data = joy->axes[arm_axis_tilt];
     arm_tilt_pub.publish(msg);
-  } else {
-    std_msgs::Float32 msg;
-    msg.data = 0.0;
-    arm_tilt_pub.publish(msg);
-    arm_pan_pub.publish(msg);
     
     double lateral = joy->axes[width_pos_axis]; 
     double vertical = joy->axes[width_pos_axis_2];
@@ -308,9 +303,11 @@ void interpretArm(const sensor_msgs::Joy::ConstPtr& joy)
     if (lateral > 0.95) {
       goal.mov_name = "left";
       move_arm_client->sendGoal(goal);
+      ROS_INFO("Sending left arm command.");
     } else if (lateral < -0.95) {
       goal.mov_name = "right";
       move_arm_client->sendGoal(goal);
+      ROS_INFO("Sending right arm command.");
     }
     if (vertical > 0.95) {
       goal.mov_name = "front";
@@ -318,16 +315,19 @@ void interpretArm(const sensor_msgs::Joy::ConstPtr& joy)
     } else if (lateral < -0.95) {
       goal.mov_name = "back";
       move_arm_client->sendGoal(goal);
+      ROS_INFO("Sending back arm command.");
     }
     
     if (joy->buttons[auto_button] == 1) {
       goal.mov_name = "park";
       move_arm_client->sendGoal(goal);
+      ROS_INFO("Sending park arm command.");
     }
     
     if (joy->buttons[reverseButton] == 1) {
       goal.mov_name = "pan_tilt";
       move_arm_client->sendGoal(goal);
+      ROS_INFO("Sending pan and tilt arm command.");
     }
     
     if (joy->buttons[slowButton] == 1) {
@@ -346,6 +346,12 @@ void interpretArm(const sensor_msgs::Joy::ConstPtr& joy)
     
     // The lights go equal
     interpretLights(joy);
+  } else {
+    std_msgs::Float32 msg;
+    msg.data = 0.0;
+    arm_tilt_pub.publish(msg);
+    arm_pan_pub.publish(msg);
+    
   }
   
   
@@ -481,7 +487,7 @@ int main(int argc, char** argv)
   
   arm_mode_pub = n.advertise<std_msgs::Bool>("/arm_mode", 1);
   
-  move_arm_client = new MoveArmClient("move_arm_client");
+  move_arm_client = new MoveArmClient("move_arm");
   
   // Width, costmap, light
   width_pos_pub = n.advertise<std_msgs::Float32>("width_pos", 1);

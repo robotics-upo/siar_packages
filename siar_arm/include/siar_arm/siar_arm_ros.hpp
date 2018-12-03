@@ -4,6 +4,7 @@
 
 #include "math.h"
 #include <functions/linear_interpolator.hpp>
+#include <functions/functions.h>
 #include <string>
 #include <queue>
 #include <vector>
@@ -45,7 +46,7 @@ class SiarArmROS:public SiarArm {
   double pan_rate_, tilt_rate_, loop_rate_;
   double max_pan_rate_, max_tilt_rate_;
   siar_driver::SiarStatus curr_siar_status_;
-  ros::Subscriber arm_pan_sub_, arm_tilt_sub_;
+  ros::Subscriber arm_pan_sub_, arm_tilt_sub_, siar_status_sub_;
   ros::Publisher arm_cmd_pub_, arm_clear_status_pub_, arm_torque_pub_; // Sends arm commands to SIAR Driver node
   int pan_joint_, tilt_joint_;
   int seq_cmd_;
@@ -94,11 +95,12 @@ class SiarArmROS:public SiarArm {
     }
     if (!pnh.getParam("max_joint_distance", max_joint_dist_)) {
       
-      max_joint_dist_ = 20;
+      max_joint_dist_ = 100;
     }
     
     arm_pan_sub_ = nh.subscribe<std_msgs::Float32>("/arm_pan", 1, &SiarArmROS::armPanReceived, this);
     arm_tilt_sub_ = nh.subscribe<std_msgs::Float32>("/arm_tilt", 1, &SiarArmROS::armTiltReceived, this);
+    siar_status_sub_ = nh.subscribe<siar_driver::SiarStatus>("/siar_status", 1, &SiarArmROS::statusCb, this);
     arm_cmd_pub_ = nh.advertise<siar_driver::SiarArmCommand>("/arm_cmd", 1);
     arm_clear_status_pub_ = nh.advertise<std_msgs::Bool>("/arm_cmd", 1);
     arm_torque_pub_ = nh.advertise<std_msgs::UInt8>("/arm_torque", 1);
@@ -156,13 +158,11 @@ class SiarArmROS:public SiarArm {
 	    s_.setSucceeded(result, message.str());
 	  } else {
 	    s_.publishFeedback(curr_feed_);
-	    publishCmd(curr_traj_[curr_feed_.n_movs]);
-	  } 
-	  
+	    publishCmd(curr_traj_[curr_feed_.curr_mov]);
+	  }
 	} else if (timeout_ < 0.0) {
 	  ROS_ERROR("SiarArm::loop --> Timeout detected while following a trajectory. Returning to state: %d", (int)last_status_);
 	  curr_status_ = last_status_;
-	  
 	  clearStatusAndActivateMotors();
 	}
       }
@@ -212,6 +212,7 @@ class SiarArmROS:public SiarArm {
       curr_traj_name_ =goal->mov_name;
       ROS_INFO("SiarArmROS::goalCb. Command received: %s \t Trying to load file: %s", curr_traj_name_.c_str(), os.str().c_str());
       if (functions::getMatrixFromFile(os.str(), mat)) {
+        ROS_INFO("Load succeded.");
 	curr_status_ = MOVING;
 	for (size_t i = 0; i < mat.size(); i++) {
 	  siar_driver::SiarArmCommand curr_cmd;
@@ -277,6 +278,7 @@ class SiarArmROS:public SiarArm {
     curr_siar_status_ = *new_status;
     if (curr_status_ == NOT_INITIALIZED) {
       last_status_= curr_status_ = PARKED;
+      ROS_INFO("Received first status. Assuming park STATE");
     }
   }
   
@@ -303,6 +305,11 @@ class SiarArmROS:public SiarArm {
   }
   
   void publishCmd(siar_driver::SiarArmCommand &cmd) {
+    std::vector<int> v;
+    for (auto val:cmd.joint_values) {
+      v.push_back((int)val);
+    }
+    ROS_INFO("Publishing command: %s %d", functions::printVector(v).c_str(), (int)cmd.command_time);
     timeout_ = cmd.command_time / 50.0;
     cmd.header = getHeader(seq_cmd_++);
     arm_cmd_pub_.publish(cmd);
