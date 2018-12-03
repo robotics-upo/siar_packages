@@ -1185,7 +1185,7 @@ bool SiarManagerWidthAdjustment::setLights(bool front_light, bool rear_light, bo
   bool ret_val = true;
   const int tam = 4;
   command[0] = _config.set_lights;
-  command[1] = (front_light?1:0) + (rear_light?2:0) + (middle_light?4:0);
+  command[1] = (front_light?1:0) + (rear_light?2:0) + (middle_light?8:0);
   
   state.front_light = front_light?1:0;
   state.rear_light = rear_light?1:0;
