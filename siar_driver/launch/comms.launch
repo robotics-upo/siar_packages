@@ -16,12 +16,11 @@
  
  <!-- Splitter nodes -->
  <include file="$(find frame_dropper)/launch/splitter.launch">
-   <arg name="downsample_depth" value="false"/>
+   <arg name="downsample_depth" value="true"/>
  </include>
  <include file="$(find frame_dropper)/launch/splitter.launch">
    <arg name="camera_1" value="/front_right"/>
-   <arg name="camera_2" value="/back_right"/>
-   <arg name="flip_2" value="true"/>
+   <arg name="camera_2" value="/back_left"/>
    <arg name="downsample_depth" value="true"/>
    <arg name="only_depth" value="false"/>
    <arg name="publish_depth" value="true"/>
@@ -30,8 +29,9 @@
  
  <include file="$(find frame_dropper)/launch/splitter.launch">
    <arg name="camera_1" value="/front_left"/>
-   <arg name="camera_2" value="/back_left"/>
+   <arg name="camera_2" value="/back_right"/>
    <arg name="flip_1" value="true"/>
+   <arg name="flip_2" value="true"/>
    <arg name="downsample_depth" value="true"/>
    <arg name="only_depth" value="false"/>
    <arg name="publish_depth" value="true"/>

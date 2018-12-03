@@ -368,6 +368,7 @@ width_to_lin_pos(NULL), x_elec_to_lin_pos(NULL), reverse_right(false)
 #ifdef _SIAR_MANAGER_DEBUG_
     std::cerr << "Could not connect to the battery monitoring board. Retrying. \n";
 #endif
+    sleep(1);
   } 
   
   if (!ros::ok()) {
@@ -1188,6 +1189,8 @@ bool SiarManagerWidthAdjustment::setLights(bool front_light, bool rear_light, bo
   
   state.front_light = front_light?1:0;
   state.rear_light = rear_light?1:0;
+  state.middle_light = middle_light?1:0;
+  
   
 //   ROS_INFO("SiarManagerWidthAdjustment::setLights. Command = %u", command[1]);
 //   if (front_light) 

@@ -341,7 +341,7 @@ void interpretArm(const sensor_msgs::Joy::ConstPtr& joy)
       if (arm_torque > 2) {
 	arm_torque = 0;
       }
-      arm_clear_pub.publish(msg);
+      arm_torque_pub.publish(msg);
     }
     
     // The lights go equal

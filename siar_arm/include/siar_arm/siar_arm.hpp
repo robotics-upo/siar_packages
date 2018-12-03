@@ -7,6 +7,7 @@
 #include <string>
 #include <queue>
 #include <vector>
+#include <iostream>
 
 #define ARM_JOINTS 5
 
@@ -33,7 +34,8 @@ class SiarArm {
       std::ostringstream mot_arm, pos_arm;
       mot_arm << mot_arm_file << i;
       pos_arm << pos_arm_file << i;
-      pos_mot_interpol_.push_back(new functions::LinearInterpolator(mot_arm.str(), pos_arm.str()));
+      mot_pos_interpol_.push_back(new functions::LinearInterpolator(mot_arm.str(), pos_arm.str()));
+      pos_mot_interpol_.push_back(new functions::LinearInterpolator(pos_arm.str(), mot_arm.str()));
     }
     length.push_back(0.035);
     length.push_back(0.186);
@@ -161,7 +163,7 @@ class SiarArm {
     
     for (int i = 0; i < n_motors && ret_val; i++) {
       double max, min;
-      functions::LinearInterpolator &curr_inter = *mot_pos_interpol_[i];
+      functions::LinearInterpolator &curr_inter = *(mot_pos_interpol_[i]);
       min = curr_inter.upper_bound(0)->first;
       max = curr_inter.lower_bound(2000)->first; // Usually the commands are in the [0, 2000] range
        
@@ -176,9 +178,14 @@ class SiarArm {
   {
     for (int i = 0; i < n_motors; i++) {
       int16_t max, min;
-      functions::LinearInterpolator &curr_inter = *mot_pos_interpol_[i];
+      functions::LinearInterpolator &curr_inter = *(mot_pos_interpol_[i]);
       min = curr_inter.upper_bound(0)->first;
-      max = curr_inter.lower_bound(2000)->first; // Usually the commands are in the [0, 2000] range
+      auto it = curr_inter.lower_bound(2000) ;
+      it--;
+      max = it->first; // Usually the commands are in the [0, 2000] range
+      
+      std::cout << "Trying to saturate between: " << min << " and " << max << std::endl;
+      
        
       joint_values[i] = functions::saturate(joint_values[i], min, max); 
       

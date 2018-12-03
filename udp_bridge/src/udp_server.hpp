@@ -179,8 +179,7 @@ public:
     
     quality_set = setJPEGQuality(jpeg_quality, imageTopic);
     quality_set_2 = setJPEGQuality(jpeg_quality, imageTopic_2);
-//     setJPEGQuality(jpeg_quality, depthTopic); TODO: png quality of the depth images
-//     setJPEGQuality(jpeg_quality, depthTopic_2);
+    setJPEGQuality(jpeg_quality, inspectionImageTopic1);
 
     // Init the UDP session
     init(); 
