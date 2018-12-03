@@ -1185,18 +1185,11 @@ bool SiarManagerWidthAdjustment::setLights(bool front_light, bool rear_light, bo
   bool ret_val = true;
   const int tam = 4;
   command[0] = _config.set_lights;
-  command[1] = (front_light?1:0) + (rear_light?2:0) + (middle_light?4:0);
+  command[1] = (front_light?1:0) + (rear_light?2:0) + (middle_light?8:0);
   
   state.front_light = front_light?1:0;
   state.rear_light = rear_light?1:0;
   state.middle_light = middle_light?1:0;
-  
-  
-//   ROS_INFO("SiarManagerWidthAdjustment::setLights. Command = %u", command[1]);
-//   if (front_light) 
-//     std::cout << "Front\n";
-//   if (rear_light)
-//     std::cout << "Rear\n";
   
   ret_val = battery_serial.write(command, 2);
   battery_serial.flush();
