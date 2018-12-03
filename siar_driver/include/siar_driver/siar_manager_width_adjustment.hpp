@@ -1188,6 +1188,7 @@ bool SiarManagerWidthAdjustment::setLights(bool front_light, bool rear_light, bo
   
   state.front_light = front_light?1:0;
   state.rear_light = rear_light?1:0;
+  state.middle_light = middle_light?1:0;
   
 //   ROS_INFO("SiarManagerWidthAdjustment::setLights. Command = %u", command[1]);
 //   if (front_light) 
