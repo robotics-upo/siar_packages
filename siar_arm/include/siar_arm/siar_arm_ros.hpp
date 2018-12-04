@@ -51,6 +51,7 @@ class SiarArmROS:public SiarArm {
   ros::Subscriber arm_pan_sub_, arm_tilt_sub_, siar_status_sub_;
   ros::Publisher arm_cmd_pub_, arm_clear_status_pub_, arm_torque_pub_; // Sends arm commands to SIAR Driver node
   int pan_joint_, tilt_joint_;
+  bool move_pan_, move_tilt_;
   int seq_cmd_;
   std::vector<siar_driver::SiarArmCommand> curr_traj_;
   std::string curr_traj_name_;
@@ -62,13 +63,15 @@ class SiarArmROS:public SiarArm {
     NOT_INITIALIZED, PARKED, PAN_AND_TILT, INSPECTION, MOVING
   };
   
-  ArmNodeStatus curr_status_, last_status_;
+  ArmNodeStatus curr_status_, last_status_, initial_status_;
   siar_arm::armServosMoveActionFeedback::_feedback_type curr_feed_;
   
   
   SiarArmROS(ros::NodeHandle &nh, ros::NodeHandle &pnh):SiarArm(),s_(nh, "move_arm", false),seq_cmd_(0){
     timeout_ = -1.0;
     std::string mot_file, ang_file;
+    move_pan_ = move_tilt_ = false;
+
     s_.registerGoalCallback(boost::bind(&SiarArmROS::goalCb, this));
     
     if (!pnh.getParam("motor_file", mot_file) || !pnh.getParam("angular_file", ang_file)) {
@@ -86,7 +89,7 @@ class SiarArmROS:public SiarArm {
       max_tilt_rate_ = 0.1;
     }
     if (!pnh.getParam("pan_joint", pan_joint_)) {
-      pan_joint_ = 3;
+      pan_joint_ = 4;
     }
     if (!pnh.getParam("tilt_joint", tilt_joint_)) {
       tilt_joint_ = 3;
@@ -98,13 +101,20 @@ class SiarArmROS:public SiarArm {
       
       max_joint_dist_ = 100;
     }
+    int i;
+    if (!pnh.getParam("initial_status", i)) {
+      initial_status_ = PARKED;
+    } else {
+      initial_status_ = (ArmNodeStatus)i;
+    }
     
     arm_pan_sub_ = nh.subscribe<std_msgs::Float32>("/arm_pan", 1, &SiarArmROS::armPanReceived, this);
     arm_tilt_sub_ = nh.subscribe<std_msgs::Float32>("/arm_tilt", 1, &SiarArmROS::armTiltReceived, this);
     siar_status_sub_ = nh.subscribe<siar_driver::SiarStatus>("/siar_status", 1, &SiarArmROS::statusCb, this);
     arm_cmd_pub_ = nh.advertise<siar_driver::SiarArmCommand>("/arm_cmd", 1);
-    arm_clear_status_pub_ = nh.advertise<std_msgs::Bool>("/arm_cmd", 1);
+    arm_clear_status_pub_ = nh.advertise<std_msgs::Bool>("/arm_clear_status", 1);
     arm_torque_pub_ = nh.advertise<std_msgs::UInt8>("/arm_torque", 1);
+
     
     // Clear status and activate the motors of the arm
     clearStatusAndActivateMotors();
@@ -119,7 +129,9 @@ class SiarArmROS:public SiarArm {
       ros::spinOnce();
       r.sleep();
       
-      if (curr_status_ == PAN_AND_TILT || curr_status_ == SiarArmROS::INSPECTION) {
+      if ( (curr_status_ == PAN_AND_TILT || curr_status_ == SiarArmROS::INSPECTION) &&
+         (move_pan_ || move_tilt_)
+      ) {
 	movePanTilt(pan_rate_/loop_rate_, tilt_rate_/loop_rate_);
       } else {
 	pan_rate_ = tilt_rate_ = 0.0;
@@ -132,6 +144,8 @@ class SiarArmROS:public SiarArm {
 	bool arrived = true;
 	
 	for (int i = 0; i < v.size() && arrived; i++) {
+	  if (i == 3)
+		continue; // Quick fix for the troublesome joint
 	  arrived = fabs(v[i] - v2[i]) < max_joint_dist_;
 	}
 	
@@ -164,6 +178,12 @@ class SiarArmROS:public SiarArm {
 	  }
 	} else if (timeout_ < 0.0) {
 	  ROS_ERROR("SiarArm::loop --> Timeout detected while following a trajectory. Returning to state: %d", (int)last_status_);
+          siar_arm::armServosMoveActionResult::_result_type result;
+          result.executed = false;
+          result.position_servos_final = curr_siar_status_.herculex_position;
+          std::ostringstream message;
+          message <<"SiarArm::loop --> Could not final destination. Returning to previous state.";
+          s_.setSucceeded(result, message.str());
 	  curr_status_ = last_status_;
 	  clearStatusAndActivateMotors();
 	}
@@ -173,11 +193,21 @@ class SiarArmROS:public SiarArm {
   }
   
   void armPanReceived(const std_msgs::Float32ConstPtr &data) {
+    if (fabs(data->data) > 0.3)
+      move_pan_ = true; 
+    
+    else 
+      move_pan_ = false;
     pan_rate_ = functions::saturate((double)data->data, -1.0, 1.0);
     pan_rate_ *= max_pan_rate_;
   }
   
   void armTiltReceived(const std_msgs::Float32ConstPtr &data) {
+     if (fabs(data->data) > 0.3)
+      move_tilt_ = true; 
+    
+    else 
+      move_tilt_ = false;
     tilt_rate_ = functions::saturate((double)data->data, -1.0, 1.0);
     tilt_rate_ *= max_tilt_rate_;
   }
@@ -281,10 +311,13 @@ class SiarArmROS:public SiarArm {
   void statusCb(const siar_driver::SiarStatus::ConstPtr& new_status) {
     curr_siar_status_ = *new_status;
     if (curr_status_ == NOT_INITIALIZED) {
-      last_status_= curr_status_ = PARKED;
-      ROS_INFO("Received first status. Assuming park STATE");
-      
       curr_cmd_ = curr_siar_status_.herculex_position;
+      last_status_= curr_status_ = initial_status_;
+      if (initial_status_ == PARKED) {
+        ROS_INFO("Received first status. Assuming park STATE");
+      } else if (initial_status_ == PAN_AND_TILT) {
+        ROS_INFO("Received first status. Assuming PAN_AND_TILT");
+      } 
     }
   }
   
@@ -296,7 +329,9 @@ class SiarArmROS:public SiarArm {
     cmd.header = getHeader(seq_cmd_++);
     cmd.joint_values = curr_cmd_;
     cmd.command_time = 100;
-      
+    
+    
+    std::cout << "movePanTilt-->Moving: " << pan_angle << " and " << tilt_angle << " Objective: " << commandToString(cmd) << std::endl;
     arm_cmd_pub_.publish(cmd);
   }
   
@@ -309,13 +344,8 @@ class SiarArmROS:public SiarArm {
   }
   
   void publishCmd(siar_driver::SiarArmCommand &cmd) {
-    std::vector<int> v;
-    
     correctJointLimits(cmd.joint_values);
-    for (auto val:cmd.joint_values) {
-      v.push_back((int)val);
-    }
-    ROS_INFO("Publishing command: %s %d", functions::printVector(v).c_str(), (int)cmd.command_time);
+    ROS_INFO("Publishing command: %s", commandToString(cmd).c_str());
     timeout_ = cmd.command_time / 50.0;
     cmd.header = getHeader(seq_cmd_++);
     arm_cmd_pub_.publish(cmd);
@@ -335,6 +365,16 @@ class SiarArmROS:public SiarArm {
     arm_torque_pub_.publish(msg2);
     
     return ret_val;
+  }
+  
+  std::string commandToString(const siar_driver::SiarArmCommand &msg) {
+    std::ostringstream os;
+    for (auto i:msg.joint_values) {
+      os << i << " ";
+    }
+    
+    os << (int)msg.command_time;
+    return os.str();
   }
     
 };

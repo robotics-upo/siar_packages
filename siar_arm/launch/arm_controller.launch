@@ -1,12 +1,29 @@
 <?xml version="1.0"?>
  
 <launch>
+  
+  <arg name="debug" default="false"/>
+  <arg name="initial_status" default="2"/>
 
-<node name="arm_node" type="arm_node" pkg="siar_arm" output="screen">
+<node name="arm_node" type="arm_node" pkg="siar_arm" output="screen" unless="$(arg debug)">
   <param name="motor_file" value="$(find siar_arm)/data/pos_"/>
   <param name="angular_file" value="$(find siar_arm)/data/ang_"/>
   <param name="resource_folder" value="$(find siar_arm)data/traj"/>
   <param name="max_joint_distance" value="70"/>
+  <param name="initial_status" value="$(arg initial_status)"/>
+  <param name="max_pan_rate" value="800"/>
+  <param name="max_tilt_rate" value="1600"/>
+  <param name="tilt_joint" value="2"/>
+</node>
+
+<node name="arm_node" type="arm_node" pkg="siar_arm" if="$(arg debug)" launch-prefix="xterm -e gdb --args">
+  <param name="motor_file" value="$(find siar_arm)/data/pos_"/>
+  <param name="angular_file" value="$(find siar_arm)/data/ang_"/>
+  <param name="resource_folder" value="$(find siar_arm)data/traj"/>
+  <param name="max_joint_distance" value="70"/>
+  <param name="initial_status" value="$(arg initial_status)"/>
+  <param name="max_pan_rate" value="800"/>
+  <param name="max_tilt_rate" value="1600"/>
 </node>
 
 </launch>
