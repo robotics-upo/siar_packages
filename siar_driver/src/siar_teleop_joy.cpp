@@ -271,6 +271,11 @@ void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
 	  auto_mode = 4;
 	}
 	setAutomaticMode(auto_mode);
+      } else if (wheel_pos_2 < 0.95) {
+	if (auto_mode > 0) {
+	  auto_mode = 5;
+	}
+	setAutomaticMode(auto_mode);
       } else {
 	// Return to normal operation mode
 	if (auto_mode > 0) {

@@ -46,6 +46,8 @@ class SiarArmROS:public SiarArm {
   double pan_rate_, tilt_rate_, loop_rate_;
   double max_pan_rate_, max_tilt_rate_;
   siar_driver::SiarStatus curr_siar_status_;
+  boost::array<int16_t, 5> curr_cmd_;
+  
   ros::Subscriber arm_pan_sub_, arm_tilt_sub_, siar_status_sub_;
   ros::Publisher arm_cmd_pub_, arm_clear_status_pub_, arm_torque_pub_; // Sends arm commands to SIAR Driver node
   int pan_joint_, tilt_joint_;
@@ -68,9 +70,8 @@ class SiarArmROS:public SiarArm {
   SiarArmROS(ros::NodeHandle &nh, ros::NodeHandle &pnh):SiarArm(),s_(nh, "move_arm", false),seq_cmd_(0){
     timeout_ = -1.0;
     std::string mot_file, ang_file;
-    
     move_pan_ = move_tilt_ = false;
-    
+
     s_.registerGoalCallback(boost::bind(&SiarArmROS::goalCb, this));
     
     if (!pnh.getParam("motor_file", mot_file) || !pnh.getParam("angular_file", ang_file)) {
@@ -173,6 +174,7 @@ class SiarArmROS:public SiarArm {
 	  } else {
 	    s_.publishFeedback(curr_feed_);
 	    publishCmd(curr_traj_[curr_feed_.curr_mov]);
+	    curr_cmd_ = curr_traj_[curr_feed_.curr_mov].joint_values;
 	  }
 	} else if (timeout_ < 0.0) {
 	  ROS_ERROR("SiarArm::loop --> Timeout detected while following a trajectory. Returning to state: %d", (int)last_status_);
@@ -281,6 +283,7 @@ class SiarArmROS:public SiarArm {
         curr_feed_.curr_mov = 0;
       
         publishCmd(curr_traj_[curr_feed_.curr_mov]);
+	curr_cmd_ = curr_traj_[curr_feed_.curr_mov].joint_values;
       
         //TODO: Reverse if necessary
       
@@ -292,6 +295,7 @@ class SiarArmROS:public SiarArm {
 	result.executed = false;
 	result.position_servos_final = curr_siar_status_.herculex_position;
 	s_.setAborted(result, "Trajectory resource not found");
+	curr_cmd_ = curr_siar_status_.herculex_position;
       }
       
     } else {
@@ -307,6 +311,7 @@ class SiarArmROS:public SiarArm {
   void statusCb(const siar_driver::SiarStatus::ConstPtr& new_status) {
     curr_siar_status_ = *new_status;
     if (curr_status_ == NOT_INITIALIZED) {
+      curr_cmd_ = curr_siar_status_.herculex_position;
       last_status_= curr_status_ = initial_status_;
       if (initial_status_ == PARKED) {
         ROS_INFO("Received first status. Assuming park STATE");
@@ -317,14 +322,12 @@ class SiarArmROS:public SiarArm {
   }
   
   void movePanTilt(double pan_angle, double tilt_angle) {
-    auto curr_pos = curr_siar_status_.herculex_position;
-    
-    curr_pos[pan_joint_] += pan_angle;
-    curr_pos[tilt_joint_] += tilt_angle;
-    correctJointLimits(curr_pos);
+    curr_cmd_[pan_joint_] += pan_angle;
+    curr_cmd_[tilt_joint_] += tilt_angle;
+    correctJointLimits(curr_cmd_);
     siar_driver::SiarArmCommand cmd;
     cmd.header = getHeader(seq_cmd_++);
-    cmd.joint_values = curr_pos;
+    cmd.joint_values = curr_cmd_;
     cmd.command_time = 100;
     
     
@@ -341,7 +344,8 @@ class SiarArmROS:public SiarArm {
   }
   
   void publishCmd(siar_driver::SiarArmCommand &cmd) {
-    ROS_INFO("Publishing command: %s %d", commandToString(cmd).c_str(), (int)cmd.command_time);
+    correctJointLimits(cmd.joint_values);
+    ROS_INFO("Publishing command: %s", commandToString(cmd).c_str());
     timeout_ = cmd.command_time / 50.0;
     cmd.header = getHeader(seq_cmd_++);
     arm_cmd_pub_.publish(cmd);
@@ -368,6 +372,8 @@ class SiarArmROS:public SiarArm {
     for (auto i:msg.joint_values) {
       os << i << " ";
     }
+    
+    os << (int)msg.command_time;
     return os.str();
   }
     
