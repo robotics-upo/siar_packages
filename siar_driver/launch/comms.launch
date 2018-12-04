@@ -5,7 +5,11 @@
   <arg name="joy_topic" default="/joy" />
 
   <!-- Launch nVIP2400 RSSI monitoring if enabled -->
-  <node pkg="rssi_get" type="get_rssi_nvip_2400.py" name="rssi_get_node" if="$(arg nvip_monitor)"/>
+  <node pkg="rssi_get" type="get_rssi_nvip_2400.py" name="rssi_get_node" if="$(arg nvip_monitor)">
+    <param name="ip" value="192.168.168.50"/> <!-- for the new comm system in Dec -->
+    <param name="password" value="siar_admin"/> <!-- new comm system in Dec -->
+  </node>
+    
   <!-- Launch serial and udp comms  -->
   <include file="$(find udp_bridge)/launch/udp_server.launch">
     <arg name="joy_topic" value="$(arg joy_topic)"/>

@@ -1250,6 +1250,7 @@ bool SiarManagerWidthAdjustment::setHerculexTorque(uint8_t id, uint8_t value)
  
   battery_serial.flush();
   ret_val = battery_serial.write(command, 3);
+  usleep(10000);
   ret_val = battery_serial.getResponse(buffer, tam);
   
   if (ret_val) {
@@ -1294,6 +1295,7 @@ bool SiarManagerWidthAdjustment::setHerculexClearStatus(uint8_t id)
   
   ret_val = battery_serial.write(command, 2);
   battery_serial.flush();
+  usleep(10000);
   ret_val = battery_serial.getResponse(buffer, tam);
   
   if (ret_val) {
@@ -1311,6 +1313,7 @@ bool SiarManagerWidthAdjustment::getHerculexStatus()
   
   ret_val = battery_serial.write(command, 1);
   battery_serial.flush();
+  usleep(10000);
   ret_val = battery_serial.getResponse(buffer, tam);
   
   if (ret_val) {
@@ -1332,6 +1335,7 @@ bool SiarManagerWidthAdjustment::getHerculexTorque()
   
   ret_val = battery_serial.write(command, 1);
   battery_serial.flush();
+  usleep(10000);
   ret_val = battery_serial.getResponse(buffer, tam);
   
   if (ret_val) {
@@ -1351,18 +1355,24 @@ bool SiarManagerWidthAdjustment::getHerculexPosition()
   const int tam = 14;
   command[0] = _config.get_herculex_position;
   
+  std::cout << "Get Herculex Pos start. Command " << std::hex << (int)command[0] << ":\n";
+  
   ret_val = battery_serial.write(command, 1);
   usleep(10000);
   battery_serial.flush();
-  usleep(50000);
+  usleep(300000);
   ret_val = battery_serial.getResponse(buffer, tam);
   
   if (ret_val) {
     ret_val = checkSum(buffer, tam) && buffer[0] == _config.get_herculex_position;
     
+    std::cout << "Recevied herculex pos: ";
+    
     for (int i = 0; i < N_HERCULEX && ret_val; i++) {
       state.herculex_position[i] = from_two_bytes(buffer[i * 2 + 1] , buffer[i * 2 + 2]);
+      std::cout << (int)state.herculex_position[i] << " ";
     }
+    std::cout << std::endl;
   }
   
   return ret_val;
