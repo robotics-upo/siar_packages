@@ -319,7 +319,7 @@ class SiarManagerWidthAdjustment:public SiarManager
 inline SiarManagerWidthAdjustment::SiarManagerWidthAdjustment(const std::string& device_1, 
                                                             const std::string& device_2,
                                                             const std::string& device_battery,
-							    const SiarConfig &config) :
+                                                            const SiarConfig &config) :
 siar_serial_1(device_1), joy_serial(device_2, false), battery_serial(device_battery), 
 first_odometry(true), controlled(false), has_joystick(true), bat_cont(0), bat_skip(10), arm_cont(0), arm_skip(23), width_inter(NULL), x_inter(NULL),
 width_to_lin_pos(NULL), x_elec_to_lin_pos(NULL), reverse_right(false)
@@ -464,16 +464,16 @@ inline bool SiarManagerWidthAdjustment::getIMD(double& imdl, double& imdr)
     if (checkSum(buffer, 16) && buffer[0] ==_config.get_enc) {
 //       std::cout << "Message Content: ";
 //       for (int i = 0; i < 16; i++) {
-// 	
-// 	std::cout << (unsigned int)buffer[i] << " ";
-// 	
-// 	
+//      
+//      std::cout << (unsigned int)buffer[i] << " ";
+//      
+//      
 //       }
 //       std::cout << "\n";
       
       if (!first_odometry) {
         m_left = from_two_bytes_signed(buffer[5], buffer[6]);
-	m_right = -from_two_bytes_signed(buffer[7], buffer[8]);
+        m_right = -from_two_bytes_signed(buffer[7], buffer[8]);
 //         std::cout << "Middle left: " << m_left << "\t right: " << m_right << std::endl;
       }
     } else {
@@ -490,7 +490,7 @@ inline bool SiarManagerWidthAdjustment::getIMD(double& imdl, double& imdr)
   }
 #endif
 
-// 	
+//      
   if (m_left == 0 && m_right == 0) {
     state.is_stopped = true;
     imdl = 0.0;
@@ -715,7 +715,7 @@ bool SiarManagerWidthAdjustment::calculateOdometry()
     double dist = ((dl + dr) * 0.5);
     dist = _config.encoders_dead.apply(dist);
     
-//      double d_theta_ticks = (dr - dl) / _config.estimated_diag;	 	//rad
+//      double d_theta_ticks = (dr - dl) / _config.estimated_diag;              //rad
     double d_theta_ticks = (dr - dl) / state.width;          //rad
     
 //     ROS_INFO("d_theta_ticks = %f", d_theta_ticks);
@@ -736,12 +736,12 @@ bool SiarManagerWidthAdjustment::calculateOdometry()
       state.odom.header.stamp = t;
       // Correct the angles with the IMU, if available
       if (imu_) {
-	sensor_msgs::Imu angles = imu_->getFilteredAngles(angular_rate_ticks);
-	state.odom.pose.pose.orientation = angles.orientation;
-	state.odom.twist.twist.angular = angles.angular_velocity;
+        sensor_msgs::Imu angles = imu_->getFilteredAngles(angular_rate_ticks);
+        state.odom.pose.pose.orientation = angles.orientation;
+        state.odom.twist.twist.angular = angles.angular_velocity;
       } else {
-	state.odom.pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0.0, 0.0, yaw);
-	state.odom.twist.twist.angular.z = angular_rate_ticks;
+        state.odom.pose.pose.orientation = tf::createQuaternionMsgFromRollPitchYaw(0.0, 0.0, yaw);
+        state.odom.twist.twist.angular.z = angular_rate_ticks;
       }
       double eff_angle = yaw + state.odom.twist.twist.angular.z * d_t * 0.5;
       // We use the odometry model in Thurn, Burgard, Fox; considering that the two turns have equal value (half of the total)
@@ -772,11 +772,11 @@ bool SiarManagerWidthAdjustment::getJoystickActuate()
 
       if (buffer[1] == 1) //release control
       {
-	  //Sending the velocities
+          //Sending the velocities
         if (controlled) {
-	  controlled = false;
-	  setRawVelocity(0.0, 0.0);
-	  last_cmd = ros::Time::now();
+          controlled = false;
+          setRawVelocity(0.0, 0.0);
+          last_cmd = ros::Time::now();
 #ifdef _SIAR_MANAGER_DEBUG_
           ROS_INFO("Removing control");
 #endif
@@ -784,8 +784,8 @@ bool SiarManagerWidthAdjustment::getJoystickActuate()
       }
       else if (buffer[1] == 2) //hardstop
       {
-	sendHardStop();
-	ROS_ERROR("Sending hard stop command to the SIAR\n");
+        sendHardStop();
+        ROS_ERROR("Sending hard stop command to the SIAR\n");
       }
       else if (buffer[1] == 3) //Gain control
       {
@@ -796,12 +796,12 @@ bool SiarManagerWidthAdjustment::getJoystickActuate()
 #endif
         }
         last_cmd = ros::Time::now();
-	int16_t vel_Rotation, vel_Rotation_out, vel_Forward;
-	int16_t Left_ref, Right_ref;
-	int16_t Left_ref_out, Right_ref_out;
-	vel_Rotation = -(int16_t) (((buffer[3]-1)-100)*8);
-	vel_Rotation_out = -(int16_t) (((buffer[3]-1)-100)*10);
-	vel_Forward = -(int16_t) (((buffer[2]-1) -100) *15);
+        int16_t vel_Rotation, vel_Rotation_out, vel_Forward;
+        int16_t Left_ref, Right_ref;
+        int16_t Left_ref_out, Right_ref_out;
+        vel_Rotation = -(int16_t) (((buffer[3]-1)-100)*8);
+        vel_Rotation_out = -(int16_t) (((buffer[3]-1)-100)*10);
+        vel_Forward = -(int16_t) (((buffer[2]-1) -100) *15);
         
         if (state.reverse) 
           vel_Forward *= -1;
@@ -810,37 +810,37 @@ bool SiarManagerWidthAdjustment::getJoystickActuate()
         ROS_INFO("vel_Rotation = %d\tvel_Rotation_out=%dtvel_forward=%d",
                  vel_Rotation, vel_Rotation_out, vel_Forward);
 #endif
-	Left_ref = (int16_t)-(vel_Forward + vel_Rotation);
-	Right_ref = (int16_t)(vel_Forward - vel_Rotation);
-	Left_ref_out = (int16_t)-(vel_Forward + vel_Rotation_out);
-	Right_ref_out = (int16_t)(vel_Forward - vel_Rotation_out);
+        Left_ref = (int16_t)-(vel_Forward + vel_Rotation);
+        Right_ref = (int16_t)(vel_Forward - vel_Rotation);
+        Left_ref_out = (int16_t)-(vel_Forward + vel_Rotation_out);
+        Right_ref_out = (int16_t)(vel_Forward - vel_Rotation_out);
         
         Right_ref *= -1;
         Right_ref_out *= -1;
 
-	// Put a dead zone in the joystick controller
-	if (Left_ref > 60) Left_ref = Left_ref - 60;
-	else if (Left_ref < -60) Left_ref = Left_ref + 60;
-	else Left_ref = 0;
+        // Put a dead zone in the joystick controller
+        if (Left_ref > 60) Left_ref = Left_ref - 60;
+        else if (Left_ref < -60) Left_ref = Left_ref + 60;
+        else Left_ref = 0;
 
-	if (Right_ref > 60) Right_ref = Right_ref - 60;
-	else if (Right_ref < -60) Right_ref = Right_ref + 60;
-	else Right_ref = 0;
+        if (Right_ref > 60) Right_ref = Right_ref - 60;
+        else if (Right_ref < -60) Right_ref = Right_ref + 60;
+        else Right_ref = 0;
 
-	if (Left_ref_out > 60) Left_ref_out = Left_ref_out - 60;
-	else if (Left_ref_out < -60) Left_ref_out = Left_ref_out + 60;
-	else Left_ref_out = 0;
+        if (Left_ref_out > 60) Left_ref_out = Left_ref_out - 60;
+        else if (Left_ref_out < -60) Left_ref_out = Left_ref_out + 60;
+        else Left_ref_out = 0;
 
-	if (Right_ref_out > 60) Right_ref_out = Right_ref_out - 60;
-	else if (Right_ref_out < -60) Right_ref_out = Right_ref_out + 60;
-	else Right_ref_out = 0;
+        if (Right_ref_out > 60) Right_ref_out = Right_ref_out - 60;
+        else if (Right_ref_out < -60) Right_ref_out = Right_ref_out + 60;
+        else Right_ref_out = 0;
         
 #ifdef _SIAR_MANAGER_DEBUG_
         ROS_INFO("Left_ref = %d \t Right_ref = %d",Left_ref, Right_ref);
         ROS_INFO("OUT: Left_ref = %d \t Right_ref = %d",Left_ref_out, Right_ref_out);
 #endif
-	
-	setRawVelocityCarlos(Left_ref, Right_ref, Left_ref_out, Right_ref_out);
+        
+        setRawVelocityCarlos(Left_ref, Right_ref, Left_ref_out, Right_ref_out);
       }
     } else {
       joy_serial.flush();
@@ -1250,7 +1250,6 @@ bool SiarManagerWidthAdjustment::setHerculexTorque(uint8_t id, uint8_t value)
  
   battery_serial.flush();
   ret_val = battery_serial.write(command, 3);
-  usleep(10000);
   ret_val = battery_serial.getResponse(buffer, tam);
   
   if (ret_val) {
@@ -1295,7 +1294,6 @@ bool SiarManagerWidthAdjustment::setHerculexClearStatus(uint8_t id)
   
   ret_val = battery_serial.write(command, 2);
   battery_serial.flush();
-  usleep(10000);
   ret_val = battery_serial.getResponse(buffer, tam);
   
   if (ret_val) {
@@ -1313,7 +1311,6 @@ bool SiarManagerWidthAdjustment::getHerculexStatus()
   
   ret_val = battery_serial.write(command, 1);
   battery_serial.flush();
-  usleep(10000);
   ret_val = battery_serial.getResponse(buffer, tam);
   
   if (ret_val) {
@@ -1335,7 +1332,6 @@ bool SiarManagerWidthAdjustment::getHerculexTorque()
   
   ret_val = battery_serial.write(command, 1);
   battery_serial.flush();
-  usleep(10000);
   ret_val = battery_serial.getResponse(buffer, tam);
   
   if (ret_val) {
@@ -1355,24 +1351,18 @@ bool SiarManagerWidthAdjustment::getHerculexPosition()
   const int tam = 14;
   command[0] = _config.get_herculex_position;
   
-  std::cout << "Get Herculex Pos start. Command " << std::hex << (int)command[0] << ":\n";
-  
   ret_val = battery_serial.write(command, 1);
   usleep(10000);
   battery_serial.flush();
-  usleep(300000);
+  usleep(50000);
   ret_val = battery_serial.getResponse(buffer, tam);
   
   if (ret_val) {
     ret_val = checkSum(buffer, tam) && buffer[0] == _config.get_herculex_position;
     
-    std::cout << "Recevied herculex pos: ";
-    
     for (int i = 0; i < N_HERCULEX && ret_val; i++) {
       state.herculex_position[i] = from_two_bytes(buffer[i * 2 + 1] , buffer[i * 2 + 2]);
-      std::cout << (int)state.herculex_position[i] << " ";
     }
-    std::cout << std::endl;
   }
   
   return ret_val;
@@ -1468,7 +1458,7 @@ double SiarManagerWidthAdjustment::setNormWidth(const double value)
   double low_bound = fabs(it->first);
 
   if (value < 0.0)
-	  eff_val = value*low_bound;
+          eff_val = value*low_bound;
   
   uint16_t val = x_elec_to_lin_pos->interpolate(eff_val);
   ROS_INFO("Linear Pos: %u\tUp=%f\tlow=%fValue=%f", val,up_bound, low_bound, value);
