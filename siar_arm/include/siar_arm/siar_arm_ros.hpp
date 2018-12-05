@@ -60,7 +60,7 @@ class SiarArmROS:public SiarArm {
   double timeout_, period_;
   
   enum ArmNodeStatus {
-    NOT_INITIALIZED, PARKED, PAN_AND_TILT, INSPECTION, MOVING
+    NOT_INITIALIZED, PARKED, PAN_AND_TILT, NAVIGATION, MOVING
   };
   
   ArmNodeStatus curr_status_, last_status_, initial_status_;
@@ -129,7 +129,7 @@ class SiarArmROS:public SiarArm {
       ros::spinOnce();
       r.sleep();
       
-      if ( (curr_status_ == PAN_AND_TILT || curr_status_ == SiarArmROS::INSPECTION) &&
+      if ( (curr_status_ == PAN_AND_TILT || curr_status_ == SiarArmROS::NAVIGATION) &&
          (move_pan_ || move_tilt_)
       ) {
 	movePanTilt(pan_rate_/loop_rate_, tilt_rate_/loop_rate_);
@@ -144,8 +144,6 @@ class SiarArmROS:public SiarArm {
 	bool arrived = true;
 	
 	for (int i = 0; i < v.size() && arrived; i++) {
-	  if (i == 3)
-		continue; // Quick fix for the troublesome joint
 	  arrived = fabs(v[i] - v2[i]) < max_joint_dist_;
 	}
 	
@@ -160,15 +158,15 @@ class SiarArmROS:public SiarArm {
 	    std::ostringstream message;
 	    message <<"SiarArm::loop --> Arm reached the final destination. New state: ";
 	    
-	    if (curr_traj_name_ == "pan_tilt") {
-	      message << "PAN AND TILT";
-	      curr_status_ = PAN_AND_TILT;
+	    if (curr_traj_name_ == "navigation") {
+	      message << "NAVIGATION";
+	      curr_status_ = NAVIGATION;
 	    } else if (curr_traj_name_ == "park") {
 	      message << "PARKED";
 	      curr_status_ = PARKED;
 	    } else {
-	      message << "INSPECTION";
-	      curr_status_ = SiarArmROS::INSPECTION;
+	      message << "PAN_AND_TILT";
+	      curr_status_ = SiarArmROS::PAN_AND_TILT;
 	    }
 	    s_.setSucceeded(result, message.str());
 	  } else {
@@ -215,28 +213,31 @@ class SiarArmROS:public SiarArm {
   void goalCb() {
     auto goal = s_.acceptNewGoal();
     // TODO: Implement it!
-    if (curr_status_ == PAN_AND_TILT || curr_status_ == PARKED || curr_status_==INSPECTION) {
+    if (curr_status_ == PAN_AND_TILT || curr_status_ == PARKED || curr_status_==NAVIGATION) {
       std::vector< std::vector<double> > mat;
       std::ostringstream os;
-      os << resource_folder_ << "/";
+      os << resource_folder_ << "/" << goal->mov_name;
       
       last_status_ = curr_status_;
       
-      switch (curr_status_) {
-	case PARKED: 
-	  os << "park2";
-	  break;
-	  
-	case PAN_AND_TILT:
-	  os << "pan_tilt2";
-	  break;
+      if (curr_status_== PARKED && goal->mov_name != "pan_tilt") { // From PARKED position we can only reach PAN_AND_TILT
+        // Arm not ready or already moving to a destination --> cancel
+        siar_arm::armServosMoveActionResult::_result_type result;
+        result.executed = false;
+        result.position_servos_final = curr_siar_status_.herculex_position;
+        s_.setAborted(result, "From park status we can only reach pan_tilt state.");
+        curr_cmd_ = curr_siar_status_.herculex_position;
+        ROS_ERROR("Could not do goal: %s. From park status we can only reach pan_tilt state.", goal->mov_name.c_str());
+        return;
       }
-      bool append = false;
-      if (goal->mov_name != "park" && goal->mov_name != "pan_tilt" && curr_status_!=INSPECTION) {
-	os << "navigation";
-	append = true;
-      } else {
-	os << goal->mov_name;
+      
+      if (goal->mov_name == "navigation") {
+        // We have to add forwards or backwards depending on the siar status
+        if (curr_siar_status_.reverse) {
+          os << "_back";
+        } else {
+          os << "_front";
+        }
       }
       
       os << ".txt";
@@ -258,37 +259,13 @@ class SiarArmROS:public SiarArm {
 	  curr_traj_.push_back(curr_cmd);
 	}
 	
-	if (append && curr_traj_name_ != "navigation") {
-	  std::vector< std::vector<double> > mat;
-	  std::ostringstream os;
-	  
-	  os << resource_folder_ << "/" << curr_traj_name_ << ".txt";
-	  ROS_INFO("SiarArmROS::goalCb. Appending file: %s", os.str().c_str());
-	  if (functions::getMatrixFromFile(os.str(), mat)) {
-	    for (size_t i = 0; i < mat.size(); i++) {
-	      siar_driver::SiarArmCommand curr_cmd;
-	      if (mat[i].size() < 6)
-		continue;
-	      for (int j = 0; j < 5; j++) {
-		curr_cmd.joint_values[j] = mat[i][j];
-	      }
-	      curr_cmd.command_time = mat[i][5];
-	      curr_traj_.push_back(curr_cmd);
-	    }
-	  } else {
-	    ROS_ERROR("Could not load the appended trajectory");
-	  }
-	}
         curr_feed_.n_movs = curr_traj_.size();
         curr_feed_.curr_mov = 0;
       
         publishCmd(curr_traj_[curr_feed_.curr_mov]);
 	curr_cmd_ = curr_traj_[curr_feed_.curr_mov].joint_values;
       
-        //TODO: Reverse if necessary
-      
         s_.publishFeedback(curr_feed_);
-	
       } else {
         // Arm not ready or already moving to a destination --> cancel
 	siar_arm::armServosMoveActionResult::_result_type result;
@@ -304,7 +281,6 @@ class SiarArmROS:public SiarArm {
       result.executed = false;
       result.position_servos_final = curr_siar_status_.herculex_position;
       s_.setAborted(result, "Arm not ready");
-//       s_.
     }
   }
   

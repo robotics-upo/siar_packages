@@ -317,7 +317,7 @@ void interpretArm(const sensor_msgs::Joy::ConstPtr& joy)
     if (vertical > 0.95) {
       goal.mov_name = "front";
       move_arm_client->sendGoal(goal);
-    } else if (lateral < -0.95) {
+    } else if (vertical < -0.95) {
       goal.mov_name = "back";
       move_arm_client->sendGoal(goal);
       ROS_INFO("Sending back arm command.");
@@ -336,9 +336,9 @@ void interpretArm(const sensor_msgs::Joy::ConstPtr& joy)
     }
     
     if (joy->buttons[slowButton] == 1) {
-      std_msgs::Bool msg;
-      msg.data = 0;
-      arm_clear_pub.publish(msg);
+      goal.mov_name = "navigation";
+      move_arm_client->sendGoal(goal);
+      ROS_INFO("Sending navigation command.");
     }
     if (joy->buttons[startButton] == 1) {
       std_msgs::UInt8 msg;
@@ -347,6 +347,10 @@ void interpretArm(const sensor_msgs::Joy::ConstPtr& joy)
 	arm_torque = 0;
       }
       arm_torque_pub.publish(msg);
+      usleep(1000);
+      std_msgs::Bool msg2;
+      msg2.data = 0;
+      arm_clear_pub.publish(msg2);
     }
     
     // The lights go equal
