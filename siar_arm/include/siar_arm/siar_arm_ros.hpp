@@ -486,6 +486,17 @@ class SiarArmROS:public SiarArm {
 	stf.setOrigin(v);
 	tfb.sendTransform(stf);
 	
+        
+        // PreRotation 5
+        stf.frame_id_ = stf.child_frame_id_;
+        stf.child_frame_id_ = "siar_arm_prerotation_5";
+        stf.setIdentity();
+        v.setValue(0.02,0,0);
+        q.setRPY(0, M_PI/2, 0);
+        stf.setRotation(q);
+        stf.setOrigin(v);
+        tfb.sendTransform(stf);
+        
 	// Rotation 5
 	stf.frame_id_ = stf.child_frame_id_;
 	stf.child_frame_id_ = "siar_arm_rotation_5";
