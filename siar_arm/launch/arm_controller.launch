@@ -26,8 +26,8 @@
   <param name="resource_folder" value="$(find siar_arm)data/traj"/>
   <param name="max_joint_distance" value="70"/>
   <param name="initial_status" value="$(arg initial_status)"/>
-  <param name="max_pan_rate" value="800"/>
-  <param name="max_tilt_rate" value="1600"/>
+  <param name="max_pan_rate" value="100"/>
+  <param name="max_tilt_rate" value="100"/>
 </node>
 
 </launch>

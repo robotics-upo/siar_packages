@@ -28,6 +28,8 @@ public:
       publish_depth = false;
     if(!lnh.getParam("scale", scale))
       scale = 1.0;
+    if(!lnh.getParam("downsample_depth", downsample_depth))
+      downsample_depth = true;
     
     // Create subsciber
     sub = it.subscribe(imageTopic, 1, &FrameDropper::imageCb, this); 
@@ -76,6 +78,7 @@ public:
       return;
     }
     depthCount = 0;
+    double scale = downsample_depth?this->scale*0.5:this->scale;
     cv_bridge::CvImagePtr img_cv = cv_bridge::toCvCopy(msg, "32FC1");
     cv::Mat dst(msg->width * scale,msg->height * scale,img_cv->image.type());
     cv::resize(img_cv->image, dst, cv::Size(0,0), scale, scale);
@@ -102,7 +105,7 @@ protected:
   int frameSkip;
   int imgCount, depthCount;
   double scale; // Scaling in the image
-  bool publish_depth;
+  bool publish_depth, downsample_depth;
 };
 
 int main(int argc, char **argv)

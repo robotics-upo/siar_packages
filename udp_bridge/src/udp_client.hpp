@@ -29,10 +29,11 @@ private:
 
   // ROS params
   double joyRate, joyMinRate;
-  std::string odomTopic, odomTopic_2, imageTopic, imageTopic_2, imageTopic_3, imageTopic_4;
-  std::string depthTopic, depthTopic_2, depthTopic_3, depthTopic_4;
-  std::string camera_1, camera_2, camera_3, camera_4, inspection_camera_1, inspection_camera_2;
-  std::string camTopic, camTopic_2, camTopic_3, camTopic_4, depthCamTopic, depthCamTopic_2, depthCamTopic_3, depthCamTopic_4;
+  std::string odomTopic, odomTopic_2, imageTopic, imageTopic_2, imageTopic_3, imageTopic_4, imageTopic_5;
+  std::string depthTopic, depthTopic_2, depthTopic_3, depthTopic_4, depthTopic_5;
+  std::string camera_1, camera_2, camera_3, camera_4, camera_5, inspection_camera_1, inspection_camera_2;
+  std::string camTopic, camTopic_2, camTopic_3, camTopic_4, camTopic_5;
+  std::string depthCamTopic, depthCamTopic_2, depthCamTopic_3, depthCamTopic_4, depthCamTopic_5;
   std::string inspectionTopic_1, inspectionTopic_2, inspectionCam_1, inspectionCam_2, thermal_camera_topic, thermal_camera_info_topic;
   std::string allCamerasTopic, publishDepthTopic, joyTopic, rssi_topic, slowTopic;
   std::string point_topic, siar_status_topic, geo_tf_topic;
@@ -40,10 +41,10 @@ private:
   std::string arm_mode_topic, arm_torque_topic;
   
   // ROS stuff
-  ros::Publisher image_pub, odom_pub, odom_pub_2, image_pub_2, image_pub_3, image_pub_4;
-  ros::Publisher depth_pub, depth_pub_2, depth_pub_3, depth_pub_4;
-  ros::Publisher cam_pub, cam_pub_2, cam_pub_3, cam_pub_4;
-  ros::Publisher depth_cam_pub, depth_cam_pub_2, depth_cam_pub_3, depth_cam_pub_4;
+  ros::Publisher image_pub, odom_pub, odom_pub_2, image_pub_2, image_pub_3, image_pub_4, image_pub_5;
+  ros::Publisher depth_pub, depth_pub_2, depth_pub_3, depth_pub_4, depth_pub_5;
+  ros::Publisher cam_pub, cam_pub_2, cam_pub_3, cam_pub_4, cam_pub_5;
+  ros::Publisher depth_cam_pub, depth_cam_pub_2, depth_cam_pub_3, depth_cam_pub_4, depth_cam_pub_5;
   ros::Publisher rssi_pub, siar_status_pub, point_pub;
   ros::Publisher inspection_pub_1, inspection_pub_2, inspection_cam_pub_1, inspection_cam_pub_2;
   ros::Publisher thermal_pub, thermal_cam_pub;
@@ -88,6 +89,8 @@ public:
       camera_3 = "/front_left";
     if(!lnh.getParam("camera_4", camera_4))
       camera_4 = "/front_right";
+    if(!lnh.getParam("camera_5", camera_5))
+      camera_5 = "/up_web";
     if (!lnh.getParam("inspection_camera_1", inspection_camera_1))
       inspection_camera_1 = "/inspection1_cam";
     if (!lnh.getParam("inspection_camera_2", inspection_camera_2))
@@ -113,10 +116,12 @@ public:
     imageTopic_2 = camera_2 + "/rgb/image_raw/compressed";
     imageTopic_3 = camera_3 + "/rgb/image_raw/compressed";
     imageTopic_4 = camera_4 + "/rgb/image_raw/compressed";
+    imageTopic_5 = camera_5 + "/rgb/image_raw/compressed";
     depthTopic = camera_1 + "/depth_registered/image_raw/compressedDepth";
     depthTopic_2 = camera_2 + "/depth_registered/image_raw/compressedDepth";
     depthTopic_3 = camera_3 + "/depth_registered/image_raw/compressedDepth";
     depthTopic_4 = camera_4 + "/depth_registered/image_raw/compressedDepth";
+    depthTopic_5 = camera_5 + "/depth_registered/image_raw/compressedDepth";
     geo_tf_topic = "/rgbd_odom/transform";
     inspectionTopic_1 = inspection_camera_1 + "/image_raw/compressed";
     inspectionTopic_2 = inspection_camera_2 + "/image_raw/compressed";
@@ -131,10 +136,12 @@ public:
     image_pub_2 = nh.advertise<sensor_msgs::CompressedImage>(imageTopic_2, 1);
     image_pub_3 = nh.advertise<sensor_msgs::CompressedImage>(imageTopic_3, 1);
     image_pub_4 = nh.advertise<sensor_msgs::CompressedImage>(imageTopic_4, 1);
+    image_pub_5 = nh.advertise<sensor_msgs::CompressedImage>(imageTopic_5, 1);
     depth_pub = nh.advertise<sensor_msgs::CompressedImage>(depthTopic, 1);
     depth_pub_2 = nh.advertise<sensor_msgs::CompressedImage>(depthTopic_2, 1);
     depth_pub_3 = nh.advertise<sensor_msgs::CompressedImage>(depthTopic_3, 1);
     depth_pub_4 = nh.advertise<sensor_msgs::CompressedImage>(depthTopic_4, 1);
+    depth_pub_5 = nh.advertise<sensor_msgs::CompressedImage>(depthTopic_5, 1);
     rssi_pub = nh.advertise<rssi_get::Nvip_status>(rssi_topic, 1);
     siar_status_pub = nh.advertise<siar_driver::SiarStatus>(siar_status_topic, 1);
     point_pub = nh.advertise<sensor_msgs::PointCloud2>(point_topic, 1);
@@ -148,10 +155,12 @@ public:
     camTopic_2 = camera_2 + "/rgb/camera_info";
     camTopic_3 = camera_3 + "/rgb/camera_info";
     camTopic_4 = camera_4 + "/rgb/camera_info";
+    camTopic_5 = camera_5 + "/rgb/camera_info";
     depthCamTopic = camera_1 + "/depth_registered/camera_info";
     depthCamTopic_2 = camera_2 + "/depth_registered/camera_info";
     depthCamTopic_3 = camera_3 + "/depth_registered/camera_info";
     depthCamTopic_4 = camera_4 + "/depth_registered/camera_info";
+    depthCamTopic_5 = camera_5 + "/depth_registered/camera_info";
     inspectionCam_1 = inspection_camera_1 + "/camera_info";
     inspectionCam_2 = inspection_camera_2 + "/camera_info";
     
@@ -159,10 +168,12 @@ public:
     cam_pub_2 = nh.advertise<sensor_msgs::CameraInfo>(camTopic_2, 1);
     cam_pub_3 = nh.advertise<sensor_msgs::CameraInfo>(camTopic_3, 1);
     cam_pub_4 = nh.advertise<sensor_msgs::CameraInfo>(camTopic_4, 1);
+    cam_pub_5 = nh.advertise<sensor_msgs::CameraInfo>(camTopic_5, 1);
     depth_cam_pub = nh.advertise<sensor_msgs::CameraInfo>(depthCamTopic, 1);
     depth_cam_pub_2 = nh.advertise<sensor_msgs::CameraInfo>(depthCamTopic_2, 1);
     depth_cam_pub_3 = nh.advertise<sensor_msgs::CameraInfo>(depthCamTopic_3, 1);
     depth_cam_pub_4 = nh.advertise<sensor_msgs::CameraInfo>(depthCamTopic_4, 1);
+    depth_cam_pub_5 = nh.advertise<sensor_msgs::CameraInfo>(depthCamTopic_5, 1);
     
     odom_pub = nh.advertise<nav_msgs::Odometry>(odomTopic, 1);
     odom_pub_2 = nh.advertise<nav_msgs::Odometry>(odomTopic_2, 1);
@@ -466,6 +477,17 @@ protected:
         msg_info.header.frame_id = msg.header.frame_id;
         cam_pub_4.publish(msg_info);
       }
+      if(topic == imageTopic_5) 
+      {
+        ROS_INFO("Deserializing and publishing topic %s", topic.c_str());
+        sensor_msgs::CompressedImage msg = deserialize<sensor_msgs::CompressedImage>(buffer.data(), buffer.size());
+        msg.header.stamp = ros::Time::now();
+        image_pub_5.publish(msg);
+        sensor_msgs::CameraInfo msg_info = downsampled_info;
+        msg_info.header = msg.header;
+        msg_info.header.frame_id = msg.header.frame_id;
+        cam_pub_5.publish(msg_info);
+      }
       if(topic == inspectionTopic_1) 
       {
         ROS_INFO("Deserializing and publishing topic %s", topic.c_str());
@@ -546,6 +568,18 @@ protected:
         msg_info.header.frame_id = msg.header.frame_id;
         
         depth_cam_pub_4.publish(msg_info);
+      }
+      if(topic == depthTopic_5) 
+      {
+        ROS_INFO("Deserializing and publishing topic %s", topic.c_str());
+        sensor_msgs::CompressedImage msg = deserialize<sensor_msgs::CompressedImage>(buffer.data(), buffer.size());
+        msg.header.stamp = ros::Time::now();
+        depth_pub_5.publish(msg);
+        sensor_msgs::CameraInfo msg_info = downsampled_info;
+        msg_info.header = msg.header;
+        msg_info.header.frame_id = msg.header.frame_id;
+        
+        depth_cam_pub_5.publish(msg_info);
       }
       if(topic == odomTopic) 
       {

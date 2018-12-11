@@ -33,28 +33,28 @@ private:
 
   // ROS params
   double odomRate, imageRate, depthRate, siar_status_rate, rssiRate, point_rate;
-  std::string odomTopic, imageTopic, imageTopic_2, imageTopic_3, imageTopic_4;
+  std::string odomTopic, imageTopic, imageTopic_2, imageTopic_3, imageTopic_4, imageTopic_5;
   std::string inspectionImageTopic1, inspectionImageTopic2;
-  std::string depthTopic, depthTopic_2, depthTopic_3, depthTopic_4;
+  std::string depthTopic, depthTopic_2, depthTopic_3, depthTopic_4, depthTopic_5;
   std::string allCamerasTopic, publishDepthTopic, joyTopic, rssi_topic, point_topic;
   std::string siar_status_topic, slowTopic, geo_tf_topic;
-  std::string camera_1, camera_2, camera_3, camera_4, inspection_camera1, inspection_camera2;
+  std::string camera_1, camera_2, camera_3, camera_4, camera_5, inspection_camera1, inspection_camera2;
   std::string posTopic, widthTopic;
   int jpeg_quality, min_quality;
   bool quality_set, quality_set_2;
   std::string thermal_camera_topic;
   
   // Subscriber rates
-  Cycle odomCycle, imageCycle, imageCycle_2, imageCycle_3, imageCycle_4;
+  Cycle odomCycle, imageCycle, imageCycle_2, imageCycle_3, imageCycle_4, imageCycle_5;
   Cycle inspectionCycle_1, inspectionCycle_2, thermalCycle;
-  Cycle depthCycle, depthCycle_2, rssiCycle, depthCycle_3, depthCycle_4;
+  Cycle depthCycle, depthCycle_2, rssiCycle, depthCycle_3, depthCycle_4, depthCycle_5;
   Cycle siarStatusCycle, pointCycle;
   
   // Publishers and subscribers
   ros::Publisher publish_depth_pub, all_cameras_pub, joy_pub, slow_pub, elec_x_pos_pub, width_pos_pub;
-  ros::Subscriber odom_sub, image_sub, image_sub_2, image_sub_3, image_sub_4;
+  ros::Subscriber odom_sub, image_sub, image_sub_2, image_sub_3, image_sub_4, image_sub_5;
   ros::Subscriber inspection_sub_1, inspection_sub_2, thermal_sub;
-  ros::Subscriber depth_sub, depth_sub_2, rssi_sub, depth_sub_3, depth_sub_4, geo_tf_sub;
+  ros::Subscriber depth_sub, depth_sub_2, rssi_sub, depth_sub_3, depth_sub_4, depth_sub_5, geo_tf_sub;
   ros::Subscriber  siar_status_sub, point_sub;
   ros::Subscriber arm_mode_sub, arm_torque_sub;
   ros::NodeHandle nh;
@@ -83,6 +83,8 @@ public:
       camera_3 = "/front_left_web";
     if(!lnh.getParam("camera_4", camera_4))
       camera_4 = "/front_right_web";
+    if(!lnh.getParam("camera_5", camera_5))
+      camera_5 = "/up_web";
     if(!lnh.getParam("image_rate", imageRate))
       imageRate = 5.0; 
     if(!lnh.getParam("depth_rate", depthRate))
@@ -117,10 +119,12 @@ public:
     imageTopic_2 = camera_2 + "/rgb/image_raw/compressed";
     imageTopic_3 = camera_3 + "/rgb/image_raw/compressed";
     imageTopic_4 = camera_4 + "/rgb/image_raw/compressed";
+    imageTopic_5 = camera_5 + "/rgb/image_raw/compressed";
     depthTopic = camera_1 + "/depth_registered/image_raw/compressedDepth";
     depthTopic_2 = camera_2 + "/depth_registered/image_raw/compressedDepth";
     depthTopic_3 = camera_3 + "/depth_registered/image_raw/compressedDepth";
     depthTopic_4 = camera_4 + "/depth_registered/image_raw/compressedDepth";
+    depthTopic_5 = camera_5 + "/depth_registered/image_raw/compressedDepth";
     geo_tf_topic = "/rgbd_odom/transform";
     
     inspectionImageTopic1 = inspection_camera1 + "/image_raw/compressed";
@@ -149,6 +153,8 @@ public:
     imageCycle_3.init(imageRate);
     image_sub_4 = nh.subscribe(imageTopic_4, 1, &UDPServer::imageCallback_4, this);
     imageCycle_4.init(imageRate);
+    image_sub_5 = nh.subscribe(imageTopic_5, 1, &UDPServer::imageCallback_5, this);
+    imageCycle_5.init(imageRate);
     inspection_sub_1 = nh.subscribe(inspectionImageTopic1, 1, &UDPServer::inspectionCallback_1, this);
     inspectionCycle_1.init(imageRate);
     inspection_sub_2 = nh.subscribe(inspectionImageTopic2, 1, &UDPServer::inspectionCallback_2, this);
@@ -163,6 +169,8 @@ public:
     depthCycle_3.init(depthRate);
     depth_sub_4 = nh.subscribe(depthTopic_4, 1, &UDPServer::depthCallback_4, this);
     depthCycle_4.init(depthRate);
+    depth_sub_5 = nh.subscribe(depthTopic_5, 1, &UDPServer::depthCallback_5, this);
+    depthCycle_5.init(depthRate);
     rssi_sub = nh.subscribe(rssi_topic, 1, &UDPServer::rssiCallback, this);
     rssiCycle.init(rssiRate);
     siar_status_sub = nh.subscribe(siar_status_topic, 1, &UDPServer::siarStatusCallback, this);
@@ -295,6 +303,17 @@ protected:
     serializeWrite<sensor_msgs::CompressedImage>(imageTopic_4, *msg); 
   }
   
+  void imageCallback_5(const sensor_msgs::CompressedImage::ConstPtr& msg)
+  {
+    // Check if it is time for sending new data 
+    if(!imageCycle_5.newCycle())
+    {
+      return;
+    }
+    // Serialize msg and write over UDP
+    serializeWrite<sensor_msgs::CompressedImage>(imageTopic_5, *msg); 
+  }
+  
   void inspectionCallback_1(const sensor_msgs::CompressedImage::ConstPtr& msg)
   {
     // Check if it is time for sending new data 
@@ -359,6 +378,7 @@ protected:
     // Serialize msg and write over UDP
     serializeWrite<sensor_msgs::CompressedImage>(depthTopic_3, *msg); 
   }
+  
   void depthCallback_4(const sensor_msgs::CompressedImage::ConstPtr& msg)
   {
     // Check if it is time for sending new data 
@@ -368,6 +388,17 @@ protected:
     }
     // Serialize msg and write over UDP
     serializeWrite<sensor_msgs::CompressedImage>(depthTopic_4, *msg); 
+  }
+  
+  void depthCallback_5(const sensor_msgs::CompressedImage::ConstPtr& msg)
+  {
+    // Check if it is time for sending new data 
+    if(!depthCycle_5.newCycle())
+    {
+      return;
+    }
+    // Serialize msg and write over UDP
+    serializeWrite<sensor_msgs::CompressedImage>(depthTopic_5, *msg); 
   } 
   
   void rssiCallback(const rssi_get::Nvip_status::ConstPtr& msg)
