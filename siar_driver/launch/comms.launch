@@ -42,10 +42,11 @@
    <arg name="node_name" value="front_left"/>
  </include>
  
- <include file="$(find frame_dropper)/launch/splitter.launch">
+ <include file="$(find frame_dropper)/launch/frame_dropper.launch">
    <arg name="in" value="/up"/>
    <arg name="out" value="/up_web"/>
    <arg name="downsample_depth" value="true"/>
+   <arg name="publish_depth" value="true"/>
  </include>
  
 </launch>
