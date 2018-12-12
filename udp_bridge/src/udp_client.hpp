@@ -13,6 +13,7 @@
 #include <siar_driver/SiarStatus.h>
 #include <std_msgs/UInt8.h>
 #include <std_msgs/UInt32.h>
+#include <std_msgs/UInt8.h>
 #include <std_msgs/Bool.h>
 #include <std_msgs/Float32.h>
 
@@ -52,6 +53,7 @@ private:
   
   ros::Subscriber publish_depth_sub, all_cameras_sub, joy_sub, slow_sub;
   ros::Subscriber set_x_pos_sub, width_pos_sub;
+  ros::Subscriber comm_mode_sub;
   ros::NodeHandle nh;
   tf::TransformBroadcaster tf_broadcaster;
   std::string base_frame_id, odom_frame_id;
@@ -200,6 +202,7 @@ public:
     joy_sub = nh.subscribe(joyTopic, 1, &UDPClient::joyCallback, this);
     set_x_pos_sub = nh.subscribe(posTopic, 1, &UDPClient::posReceived, this);
     width_pos_sub = nh.subscribe(widthTopic, 1, &UDPClient::widthReceived, this); 
+    comm_mode_sub = nh.subscribe("comms_mode", 1, &UDPClient::commsModeReceived, this);
     
     // Set the general camera info
     general_info.D.resize(5);
@@ -665,6 +668,11 @@ protected:
   void widthReceived(const std_msgs::Float32ConstPtr &msg)
   {
     serializeWrite<std_msgs::Float32>(widthTopic, *msg);
+  }
+  
+  void commsModeReceived(const std_msgs::UInt8ConstPtr &msg)
+  {
+    serializeWrite<std_msgs::UInt8>("comms_mode", *msg);
   }
 };
 

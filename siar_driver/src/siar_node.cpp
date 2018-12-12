@@ -59,7 +59,7 @@ void cmdVelReceived(const geometry_msgs::Twist::ConstPtr& cmd_vel)
 {
   cmd_vel_time = ros::Time::now();
 	  
-  siar->setVelocity(cmd_vel->linear.x,cmd_vel->angular.z *1.2); // Bias detected from experiments Dec 2018
+  siar->setVelocity(cmd_vel->linear.x,cmd_vel->angular.z *1.3); // Mult for the autonomous mode
 }
 
 void commandArmReceived(const siar_driver::SiarArmCommand::ConstPtr& arm_cmd) {

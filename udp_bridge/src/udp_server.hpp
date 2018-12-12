@@ -43,6 +43,7 @@ private:
   int jpeg_quality, min_quality;
   bool quality_set, quality_set_2;
   std::string thermal_camera_topic;
+  u_int8_t comm_mode;
   
   // Subscriber rates
   Cycle odomCycle, imageCycle, imageCycle_2, imageCycle_3, imageCycle_4, imageCycle_5;
@@ -64,6 +65,7 @@ public:
   // Default constructor
   UDPServer():UDPManager()
   {
+    comm_mode = 0;
     ROS_INFO("In UDPServer::UDPServer");
     // Read node parameters
     ros::NodeHandle lnh("~");
@@ -262,12 +264,15 @@ protected:
       quality_set = setJPEGQuality(jpeg_quality, imageTopic);
     else
       serializeWrite<sensor_msgs::CompressedImage>(imageTopic, *msg); 
+    
+    if (comm_mode > 1) 
+      setJPEGQuality(jpeg_quality*0.5, imageTopic);
   } 
   
   void imageCallback_2(const sensor_msgs::CompressedImage::ConstPtr& msg)
   {
     // Check if it is time for sending new data 
-    if(!imageCycle_2.newCycle())
+    if(!imageCycle_2.newCycle() && comm_mode > 1)
     {
       return;
     }
@@ -282,7 +287,7 @@ protected:
   void imageCallback_3(const sensor_msgs::CompressedImage::ConstPtr& msg)
   {
     // Check if it is time for sending new data 
-    if(!imageCycle_3.newCycle())
+    if(!imageCycle_3.newCycle() && comm_mode > 1)
     {
       return;
     }
@@ -295,7 +300,7 @@ protected:
   void imageCallback_4(const sensor_msgs::CompressedImage::ConstPtr& msg)
   {
     // Check if it is time for sending new data 
-    if(!imageCycle_4.newCycle())
+    if(!imageCycle_4.newCycle() && comm_mode > 1)
     {
       return;
     }
@@ -306,7 +311,7 @@ protected:
   void imageCallback_5(const sensor_msgs::CompressedImage::ConstPtr& msg)
   {
     // Check if it is time for sending new data 
-    if(!imageCycle_5.newCycle())
+    if(!imageCycle_5.newCycle() && comm_mode > 2)
     {
       return;
     }
@@ -467,6 +472,21 @@ protected:
       }
       if (topic == widthTopic) {
         deserializePublish<std_msgs::Float32>(buffer.data(), buffer.size(), width_pos_pub);
+      }
+      if (topic == "comms_mode") {
+	// Handle the arm_mode
+	std_msgs::UInt8  msg;
+	try 
+	{
+	  ros::serialization::IStream stream(buffer.data(), buffer.size());
+	  ros::serialization::Serializer<std_msgs::UInt8>::read(stream, msg);
+	  comm_mode = msg.data;
+	} 
+	catch (std::exception &e) 
+	{
+	}
+	
+	
       }
     }
   }
