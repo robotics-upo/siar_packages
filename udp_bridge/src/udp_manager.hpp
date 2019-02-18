@@ -12,6 +12,7 @@
 #include <boost/thread.hpp>
 #include <vector>
 #include <list>
+#include <cmath>
 
 #include <boost/asio.hpp>
 using boost::asio::ip::udp;
@@ -185,7 +186,7 @@ protected:
             msg[cont] = msg_chunk[i];
           }
 //           ROS_INFO("Cont: %d \t Size: %d", (int)cont, (int)size);
-          if (abs(cont - size) < 2) {
+          if (std::abs(static_cast<long>(cont - size)) < 2) {
             // All the data has been retrieved --> return a non-negative number
             ROS_INFO("Got a message composed by one datagram. Topic = %s. Size = %d", topic.c_str(), (int)size);
             msg_complete = true;
