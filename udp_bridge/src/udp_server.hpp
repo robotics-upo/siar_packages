@@ -264,9 +264,6 @@ protected:
       quality_set = setJPEGQuality(jpeg_quality, imageTopic);
     else
       serializeWrite<sensor_msgs::CompressedImage>(imageTopic, *msg); 
-    
-    if (comm_mode > 1) 
-      setJPEGQuality(jpeg_quality*0.5, imageTopic);
   } 
   
   void imageCallback_2(const sensor_msgs::CompressedImage::ConstPtr& msg)
@@ -287,7 +284,7 @@ protected:
   void imageCallback_3(const sensor_msgs::CompressedImage::ConstPtr& msg)
   {
     // Check if it is time for sending new data 
-    if(!imageCycle_3.newCycle() && comm_mode > 1)
+    if(!imageCycle_3.newCycle() || comm_mode > 0)
     {
       return;
     }
@@ -300,7 +297,7 @@ protected:
   void imageCallback_4(const sensor_msgs::CompressedImage::ConstPtr& msg)
   {
     // Check if it is time for sending new data 
-    if(!imageCycle_4.newCycle() && comm_mode > 1)
+    if(!imageCycle_4.newCycle() || comm_mode > 0)
     {
       return;
     }
@@ -311,7 +308,7 @@ protected:
   void imageCallback_5(const sensor_msgs::CompressedImage::ConstPtr& msg)
   {
     // Check if it is time for sending new data 
-    if(!imageCycle_5.newCycle() && comm_mode > 2)
+    if(!imageCycle_5.newCycle() || comm_mode > 0)
     {
       return;
     }
@@ -322,7 +319,7 @@ protected:
   void inspectionCallback_1(const sensor_msgs::CompressedImage::ConstPtr& msg)
   {
     // Check if it is time for sending new data 
-    if(!inspectionCycle_1.newCycle())
+    if(!inspectionCycle_1.newCycle() || comm_mode > 1)
     {
       return;
     }
@@ -335,7 +332,7 @@ protected:
   void inspectionCallback_2(const sensor_msgs::CompressedImage::ConstPtr& msg)
   {
     // Check if it is time for sending new data 
-    if(!inspectionCycle_2.newCycle())
+    if(!inspectionCycle_2.newCycle() || comm_mode > 1)
     {
       return;
     }
@@ -481,6 +478,12 @@ protected:
 	  ros::serialization::IStream stream(buffer.data(), buffer.size());
 	  ros::serialization::Serializer<std_msgs::UInt8>::read(stream, msg);
 	  comm_mode = msg.data;
+	  ROS_INFO("Received a new comm mode: %d", (int)msg.data);
+          if (msg.data > 1) 
+            setJPEGQuality(jpeg_quality*0.5, imageTopic);
+          else
+            setJPEGQuality(jpeg_quality, imageTopic);
+          
 	} 
 	catch (std::exception &e) 
 	{

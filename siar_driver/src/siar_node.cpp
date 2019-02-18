@@ -46,6 +46,7 @@
 
 SiarManagerWidthAdjustment *siar = NULL;
 
+double angular_gain = 1.0;
 ros::Time cmd_vel_time;
 double vel_timeout;
 siar_driver::SiarStatus siar_state; // State of SIAR
@@ -59,7 +60,7 @@ void cmdVelReceived(const geometry_msgs::Twist::ConstPtr& cmd_vel)
 {
   cmd_vel_time = ros::Time::now();
 	  
-  siar->setVelocity(cmd_vel->linear.x,cmd_vel->angular.z *1.3); // Mult for the autonomous mode
+  siar->setVelocity(cmd_vel->linear.x,cmd_vel->angular.z * angular_gain); // Mult for the autonomous mode
 }
 
 void commandArmReceived(const siar_driver::SiarArmCommand::ConstPtr& arm_cmd) {
@@ -140,6 +141,7 @@ int main(int argc, char** argv)
     pn.param<std::string>("battery_device", battery_port, "/dev/serial/by-id/usb-FTDI_MM232R_USB_MODULE_FTGT8JO-if00-port0");
     pn.param<std::string>("joy_device", joy_port, "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A602XIGF-if00-port0");
     pn.param<bool>("reverse_right", reverse_right, false);
+    pn.param<double>("angular_gain", angular_gain, 1.0);
 
     std::string base_frame_id;
     std::string base_ticks_id;

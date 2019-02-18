@@ -25,6 +25,7 @@
     <param name="lin_mot_file" value="$(find siar_driver)/data/lin_pos"/>
     <param name="width_file" value="$(find siar_driver)/data/width"/>
     <param name="elec_x_file" value="$(find siar_driver)/data/center_x"/>
+    <param name="angular_gain" value="1.25"/>
   </node>
   
   
