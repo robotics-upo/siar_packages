@@ -13,7 +13,7 @@
   
   <!-- Launch udp bridge -->
   
-  <node pkg="udp_bridge" type="udp_client" name="udp_client" output="screen" unless="$(arg debug)" respawn="true">
+  <node pkg="udp_bridge" type="udp_client" name="udp_client"  unless="$(arg debug)" respawn="true">
    <param name="camera_1"  value="$(arg camera_1)"/>
    <param name="camera_2"  value="$(arg camera_2)"/>
    <param name="camera_3"  value="$(arg camera_3)"/>
@@ -25,7 +25,7 @@
    <rosparam file="$(find udp_bridge)/cfg/camera_info_160.yaml" command="load" />
  </node>
   
- <node pkg="udp_bridge" type="udp_client" name="udp_client" output="screen" launch-prefix="xterm -e gdb --args" if="$(arg debug)">
+ <node pkg="udp_bridge" type="udp_client" name="udp_client"  launch-prefix="xterm -e gdb --args" if="$(arg debug)">
    <param name="camera_1"  value="$(arg camera_1)"/>
    <param name="camera_2"  value="$(arg camera_2)"/>
    <param name="ip_address" value="$(arg ip_address)"/>

@@ -10,6 +10,7 @@
 #include <sensor_msgs/PointCloud2.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <rssi_get/Nvip_status.h>
+#include <libelium_waspmote_gas_node/GasMeasure.h>
 #include <siar_driver/SiarStatus.h>
 #include <std_msgs/UInt32.h>
 #include <std_msgs/UInt8.h>
@@ -55,7 +56,7 @@ private:
   ros::Publisher publish_depth_pub, all_cameras_pub, joy_pub, slow_pub, elec_x_pos_pub, width_pos_pub;
   ros::Subscriber odom_sub, image_sub, image_sub_2, image_sub_3, image_sub_4, image_sub_5;
   ros::Subscriber inspection_sub_1, inspection_sub_2, thermal_sub;
-  ros::Subscriber depth_sub, depth_sub_2, rssi_sub, depth_sub_3, depth_sub_4, depth_sub_5, geo_tf_sub;
+  ros::Subscriber depth_sub, depth_sub_2, rssi_sub, gas_sub, depth_sub_3, depth_sub_4, depth_sub_5, geo_tf_sub;
   ros::Subscriber  siar_status_sub, point_sub;
   ros::Subscriber arm_mode_sub, arm_torque_sub;
   ros::NodeHandle nh;
@@ -175,6 +176,7 @@ public:
     depthCycle_5.init(depthRate);
     rssi_sub = nh.subscribe(rssi_topic, 1, &UDPServer::rssiCallback, this);
     rssiCycle.init(rssiRate);
+    gas_sub = nh.subscribe("gas_info", 1, &UDPServer::gasCallback, this);
     siar_status_sub = nh.subscribe(siar_status_topic, 1, &UDPServer::siarStatusCallback, this);
     siarStatusCycle.init(siar_status_rate);
     point_sub = nh.subscribe(point_topic, 1, &UDPServer::pointCallback, this);
@@ -417,6 +419,11 @@ protected:
     // Serialize msg and write over UDP
     serializeWrite<rssi_get::Nvip_status>(rssi_topic, *msg); 
   } 
+
+  void gasCallback(const libelium_waspmote_gas_node::GasMeasure::ConstPtr &msg)
+  {
+    serializeWrite<libelium_waspmote_gas_node::GasMeasure>("gas_info", *msg);
+  }
   
   void siarStatusCallback(const siar_driver::SiarStatus::ConstPtr& msg)
   {

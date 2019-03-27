@@ -23,6 +23,7 @@
 #include "joy_translator.hpp"
 #include <boost/thread/scoped_thread.hpp>
 #include <geometry_msgs/TransformStamped.h>
+#include <libelium_waspmote_gas_node/GasMeasure.h>
 
 class UDPClient : public UDPManager
 {
@@ -36,7 +37,7 @@ private:
   std::string camTopic, camTopic_2, camTopic_3, camTopic_4, camTopic_5;
   std::string depthCamTopic, depthCamTopic_2, depthCamTopic_3, depthCamTopic_4, depthCamTopic_5;
   std::string inspectionTopic_1, inspectionTopic_2, inspectionCam_1, inspectionCam_2, thermal_camera_topic, thermal_camera_info_topic;
-  std::string allCamerasTopic, publishDepthTopic, joyTopic, rssi_topic, slowTopic;
+  std::string allCamerasTopic, publishDepthTopic, joyTopic, rssi_topic, gas_topic, slowTopic;
   std::string point_topic, siar_status_topic, geo_tf_topic;
   std::string posTopic, widthTopic;
   std::string arm_mode_topic, arm_torque_topic;
@@ -46,7 +47,7 @@ private:
   ros::Publisher depth_pub, depth_pub_2, depth_pub_3, depth_pub_4, depth_pub_5;
   ros::Publisher cam_pub, cam_pub_2, cam_pub_3, cam_pub_4, cam_pub_5;
   ros::Publisher depth_cam_pub, depth_cam_pub_2, depth_cam_pub_3, depth_cam_pub_4, depth_cam_pub_5;
-  ros::Publisher rssi_pub, siar_status_pub, point_pub;
+  ros::Publisher rssi_pub, gas_pub, siar_status_pub, point_pub;
   ros::Publisher inspection_pub_1, inspection_pub_2, inspection_cam_pub_1, inspection_cam_pub_2;
   ros::Publisher thermal_pub, thermal_cam_pub;
   ros::Publisher arm_mode_pub, arm_torque_pub;
@@ -103,6 +104,8 @@ public:
       odom_frame_id = "/odom";
     if (!lnh.getParam("rssi_topic", rssi_topic))
       rssi_topic = "/rssi_nvip_2400";
+      if (!lnh.getParam("gas_topic", gas_topic))
+      rssi_topic = "/gas_info";
     if (!lnh.getParam("siar_status_topic", siar_status_topic))
       siar_status_topic = "/siar_status";
     if (!lnh.getParam("joy_topic", joyTopic))
@@ -145,6 +148,7 @@ public:
     depth_pub_4 = nh.advertise<sensor_msgs::CompressedImage>(depthTopic_4, 1);
     depth_pub_5 = nh.advertise<sensor_msgs::CompressedImage>(depthTopic_5, 1);
     rssi_pub = nh.advertise<rssi_get::Nvip_status>(rssi_topic, 1);
+    gas_pub = nh.advertise<libelium_waspmote_gas_node::GasMeasure>(gas_topic, 1);
     siar_status_pub = nh.advertise<siar_driver::SiarStatus>(siar_status_topic, 1);
     point_pub = nh.advertise<sensor_msgs::PointCloud2>(point_topic, 1);
     inspection_pub_1 = nh.advertise<sensor_msgs::CompressedImage>(inspectionTopic_1, 1);
@@ -626,6 +630,11 @@ protected:
       {
         ROS_INFO("Deserializing and publishing topic %s", topic.c_str());
         deserializePublish<std_msgs::UInt8>(buffer.data(), buffer.size(), arm_torque_pub);
+      }
+      if (topic == gas_topic)
+      {
+        ROS_INFO("Deserializing and publishing topic %s", topic.c_str());
+        deserializePublish<libelium_waspmote_gas_node::GasMeasure>(buffer.data(), buffer.size(), gas_pub);
       }
     }
   }
