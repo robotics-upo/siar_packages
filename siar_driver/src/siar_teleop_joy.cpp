@@ -64,6 +64,7 @@
 #define REVERSE_BUTTON        0
 #define MED_LIGHT_BUTTON      1
 #define ARM_MODE_BUTTON	      4
+#define ARM_MODE_BUTTON_2     11
 // New buttons ARM and width
 #define WIDTH_AXIS            4
 #define WIDTH_AXIS_2          5
@@ -106,7 +107,7 @@ int maxVelocityButton;
 int front_light_button, rear_light_button;
 int slowButton;
 int auto_button;
-int arm_mode_button;
+int arm_mode_button, arm_mode_button_2;
 
 int arm_pan_tilt_button;
 int arm_nav_forwards_button;
@@ -171,13 +172,16 @@ void interpretLights(const sensor_msgs::Joy::ConstPtr& joy);
 
 void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
   panic = panic | (joy->buttons[panicButton] == 1);
-  if (!ant_arm_button && joy->buttons[arm_mode_button] == 1) {
+  int sec_button = 0;
+  if (joy->buttons.size() > arm_mode_button_2)
+    sec_button = joy->buttons[arm_mode_button_2];
+  if (!ant_arm_button && (joy->buttons[arm_mode_button] == 1 || sec_button == 1) ) {
     arm_mode = !arm_mode;
     std_msgs::Bool msg;
     msg.data = arm_mode?1:0;
     arm_mode_pub.publish(msg);
   }
-  ant_arm_button = joy->buttons[arm_mode_button] == 1;
+  ant_arm_button = joy->buttons[arm_mode_button] == 1 || sec_button == 1;
   if (arm_mode) {
     interpretArm(joy);
   } else {
@@ -464,6 +468,7 @@ int main(int argc, char** argv)
   pn.param<int>("front_light_button", front_light_button, FRONT_LIGHT_BUTTON);
   pn.param<int>("rear_light_button", rear_light_button, REAR_LIGHT_BUTTON);
   pn.param<int>("arm_mode_button", arm_mode_button, ARM_MODE_BUTTON);
+  pn.param<int>("arm_mode_button_2", arm_mode_button_2, ARM_MODE_BUTTON_2);
   
   pn.param<int>("arm_pan_tilt_button", arm_pan_tilt_button, auto_button);
   pn.param<int>("arm_nav_forwards_button", arm_nav_forwards_button, slowButton);
