@@ -137,6 +137,8 @@ public:
     publishDepthTopic = "/publish_depth";
     slowTopic = "/slow_motion";
     
+    gasTopic = "/gas_info";
+    
     // Create publishers
     publish_depth_pub = nh.advertise<std_msgs::Bool>(publishDepthTopic, 1);
     all_cameras_pub = nh.advertise<std_msgs::Bool>(allCamerasTopic, 1);
@@ -176,7 +178,7 @@ public:
     depthCycle_5.init(depthRate);
     rssi_sub = nh.subscribe(rssi_topic, 1, &UDPServer::rssiCallback, this);
     rssiCycle.init(rssiRate);
-    gas_sub = nh.subscribe("gas_info", 1, &UDPServer::gasCallback, this);
+    gas_sub = nh.subscribe(gasTopic, 1, &UDPServer::gasCallback, this);
     siar_status_sub = nh.subscribe(siar_status_topic, 1, &UDPServer::siarStatusCallback, this);
     siarStatusCycle.init(siar_status_rate);
     point_sub = nh.subscribe(point_topic, 1, &UDPServer::pointCallback, this);
@@ -419,7 +421,7 @@ protected:
 
   void gasCallback(const libelium_waspmote_gas_node::GasMeasure::ConstPtr &msg)
   {
-    serializeWrite<libelium_waspmote_gas_node::GasMeasure>("gas_info", *msg);
+    serializeWrite<libelium_waspmote_gas_node::GasMeasure>(gasTopic, *msg);
   }
   
   void siarStatusCallback(const siar_driver::SiarStatus::ConstPtr& msg)
@@ -536,6 +538,7 @@ protected:
     ROS_INFO("New quality %d", jpeg_quality);
     return true;
   }
+  const char* gasTopic;
 };
 
 #endif

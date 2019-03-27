@@ -105,7 +105,7 @@ public:
     if (!lnh.getParam("rssi_topic", rssi_topic))
       rssi_topic = "/rssi_nvip_2400";
       if (!lnh.getParam("gas_topic", gas_topic))
-      rssi_topic = "/gas_info";
+      gas_topic = "/gas_info";
     if (!lnh.getParam("siar_status_topic", siar_status_topic))
       siar_status_topic = "/siar_status";
     if (!lnh.getParam("joy_topic", joyTopic))
