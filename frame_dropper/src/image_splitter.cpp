@@ -1,6 +1,7 @@
 #include <ros/ros.h>
 #include <std_msgs/Bool.h>
 #include <image_transport/image_transport.h>
+#include <sensor_msgs/CameraInfo.h>
 // OpenCV stuff
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -13,19 +14,27 @@ public:
   ImageSplitter(void) : it(nh)
   {  
     // Resolve the camera topic
-    cameraTopic = nh.resolveName("in");
-    imageTopic = cameraTopic+"/rgb/image_raw";
-    depthTopic = cameraTopic + "/depth_registered/image_raw";
-    cameraTopic = nh.resolveName("out");
-    imageOutTopic = cameraTopic+"/rgb/image_raw";
-    depthOutTopic = cameraTopic + "/depth_registered/image_raw";
+    cameraName = nh.resolveName("in");
+    cameraInfoTopic = cameraName+"/rgb/camera_info";
+    imageTopic = cameraName+"/rgb/image_raw";
+    depthTopic = cameraName + "/depth_registered/image_raw";
+    depthInfoTopic = cameraName+"/depth_registered/camera_info";
+    cameraName = nh.resolveName("out");
+    cameraInfoOutTopic = cameraName+"/rgb/camera_info";
+    imageOutTopic = cameraName+"/rgb/image_raw";
+    depthOutTopic = cameraName + "/depth_registered/image_raw";
+    depthInfoOutTopic = cameraName+"/depth_registered/camera_info";
     
-    cameraTopic_2 = nh.resolveName("in_2");
-    imageTopic_2 = cameraTopic_2 +"/rgb/image_raw";
-    depthTopic_2 = cameraTopic_2 + "/depth_registered/image_raw";
-    cameraTopic_2 = nh.resolveName("out_2");
-    imageOutTopic_2 = cameraTopic_2 + "/rgb/image_raw";
-    depthOutTopic_2 = cameraTopic_2 + "/depth_registered/image_raw";
+    cameraName_2 = nh.resolveName("in_2");
+    cameraInfoTopic_2 = cameraName_2 + "/rgb/camera_info";
+    imageTopic_2 = cameraName_2 +"/rgb/image_raw";
+    depthTopic_2 = cameraName_2 + "/depth_registered/image_raw";
+    depthInfoTopic_2  = cameraName_2 + "/depth_registered/camera_info";
+    cameraName_2 = nh.resolveName("out_2");
+    cameraInfoOutTopic_2 = cameraName_2 + "/rgb/camera_info";
+    imageOutTopic_2 = cameraName_2 + "/rgb/image_raw";
+    depthOutTopic_2 = cameraName_2 + "/depth_registered/image_raw";
+    depthInfoOutTopic_2 = cameraName_2 + "/depth_registered/camera_info";
     
     reverseTopic = "/reverse";
     allCamerasTopic = "/all_cameras";
@@ -34,7 +43,7 @@ public:
     // Load parameters
     ros::NodeHandle lnh("~");
     if(!lnh.getParam("frame_skip", frameSkip))
-      frameSkip = 3;     
+      frameSkip = 2;     
     if(!lnh.getParam("use_depth", use_depth)) 
       use_depth = true;
     if(!lnh.getParam("publish_depth", publish_depth)) 
@@ -43,8 +52,8 @@ public:
       scale = 1.0;
     if(!lnh.getParam("publish_all", publish_all))
       publish_all = false;
-    if(!lnh.getParam("downsample_depth", downsample_depth))
-      downsample_depth = true;
+    if(!lnh.getParam("scale_depth", scale_depth))
+      scale_depth = scale * 0.5;
     if(!lnh.getParam("only_depth", only_depth))
       only_depth = false;
     if(!lnh.getParam("flip_1", flip_1))
@@ -53,6 +62,19 @@ public:
       flip_2 = false;
     
     reverse = false;
+
+    // Camera info pubs and subs
+    camera_info_sub = nh.subscribe(cameraInfoTopic, 1, &ImageSplitter::infoCb, this);
+    camera_info_sub_2 = nh.subscribe(cameraInfoTopic_2, 1, &ImageSplitter::infoCb_2, this);
+    depth_info_sub = nh.subscribe(depthInfoTopic, 1, &ImageSplitter::depthInfoCb, this);
+    depth_info_sub_2 = nh.subscribe(depthInfoTopic_2, 1, &ImageSplitter::depthInfoCb_2, this);
+
+    camera_info_pub = nh.advertise<sensor_msgs::CameraInfo>(cameraInfoOutTopic, 1);
+    camera_info_pub_2 = nh.advertise<sensor_msgs::CameraInfo>(cameraInfoOutTopic_2, 1);
+    depth_info_pub = nh.advertise<sensor_msgs::CameraInfo>(depthInfoOutTopic, 1);
+    depth_info_pub_2 = nh.advertise<sensor_msgs::CameraInfo>(depthInfoOutTopic_2, 1);
+    
+
     // Create bool subscribers
     sub_all = nh.subscribe(allCamerasTopic, 1, &ImageSplitter::publishAllCallback, this);
     sub_reverse = nh.subscribe(reverseTopic, 1, &ImageSplitter::reverseCallback, this);
@@ -103,10 +125,14 @@ public:
       cv::flip(dst, dst, -1);
     
     sensor_msgs::ImagePtr pt = img_cv->toImageMsg();
-    if (reverse && publish_all) 
+    if (reverse && publish_all)  {
       pub_2.publish(pt);
-    if (!reverse)
+      camera_info_pub_2.publish(camera_info_1);
+    }
+    if (!reverse) {
       pub.publish(pt);
+      camera_info_pub.publish(camera_info_1);
+    }
   }
   
   void depthCb(const sensor_msgs::ImageConstPtr& msg)
@@ -122,7 +148,7 @@ public:
     {
       cv_bridge::CvImagePtr img_cv = cv_bridge::toCvCopy(msg, "32FC1");
       
-      double scale = downsample_depth?this->scale*0.5:this->scale;
+      double scale = this->scale_depth;
       
       cv::Mat dst(msg->width * scale,msg->height * scale,img_cv->image.type());
       cv::resize(img_cv->image, dst, cv::Size(0,0), scale, scale);
@@ -131,13 +157,17 @@ public:
       sensor_msgs::ImagePtr pt = img_cv->toImageMsg();
     
       
-      if (reverse && publish_all) 
-	depth_pub_2.publish(pt);
-      if (!reverse)
-	depth_pub.publish(pt);
+      if (reverse && publish_all) {
+      	depth_pub_2.publish(pt);
+        depth_info_pub_2.publish(depth_info_2);
+      }
+      if (!reverse) {
+      	depth_pub.publish(pt);
+        depth_info_pub.publish(depth_info_1);
+      }
     }
   }
-  
+ 
   void imageCb_2(const sensor_msgs::ImageConstPtr& msg)
   {
       
@@ -162,10 +192,13 @@ public:
      
     sensor_msgs::ImagePtr pt = img_cv->toImageMsg();
     
-    if (reverse)
+    if (reverse) {
       pub.publish(pt);
-    if (!reverse && publish_all)
+      camera_info_pub.publish(camera_info_2);
+    } else if (publish_all) {
+      camera_info_pub_2.publish(camera_info_2);
       pub_2.publish(pt);
+    }
   }
   
   void depthCb_2(const sensor_msgs::ImageConstPtr& msg)
@@ -182,7 +215,7 @@ public:
     {
       cv_bridge::CvImagePtr img_cv = cv_bridge::toCvCopy(msg, "32FC1");
       
-      double scale = downsample_depth?this->scale*0.5:this->scale;
+      double scale = this->scale_depth;
       
       cv::Mat dst(msg->width * scale,msg->height * scale,img_cv->image.type());
       cv::resize(img_cv->image, dst, cv::Size(0,0), scale, scale);
@@ -190,11 +223,13 @@ public:
     
       sensor_msgs::ImagePtr pt = img_cv->toImageMsg();
     
-      
-      if (!reverse && publish_all) 
-        depth_pub_2.publish(pt);
-      if (reverse)
+      if (reverse) {
         depth_pub.publish(pt);
+        depth_info_pub_2.publish(depth_info_2);
+      } else if (publish_all) {
+        depth_pub_2.publish(pt);
+        depth_info_pub.publish(depth_info_2);
+      }
     }
   }
   
@@ -213,6 +248,75 @@ public:
   {
     publish_depth = msg->data;
   }
+
+
+  void infoCb(const sensor_msgs::CameraInfoConstPtr& msg) {
+    camera_info_1 = *msg;
+
+    for (int i = 0; i < camera_info_1.K.size(); i++) {
+      if (fabs(camera_info_1.K[i] - 1.0) > 1e-6 ) {
+        camera_info_1.K[i] *= scale;
+      }
+    }
+    for (int i = 0; i < camera_info_1.P.size(); i++) {
+      if (fabs(camera_info_1.P[i] - 1.0) > 1e-6 ) {
+        camera_info_1.P[i] *= scale;
+      }
+    }
+    camera_info_sub.shutdown();
+  }
+
+
+  void depthInfoCb(const sensor_msgs::CameraInfoConstPtr& msg) {
+    depth_info_1 = *msg;
+
+    for (int i = 0; i < depth_info_1.K.size(); i++) {
+      if (fabs(depth_info_1.K[i] - 1.0) > 1e-6 ) {
+        depth_info_1.K[i] *= scale;
+      }
+    }
+    for (int i = 0; i < depth_info_1.P.size(); i++) {
+      if (fabs(depth_info_1.P[i] - 1.0) > 1e-6 ) {
+        depth_info_1.P[i] *= scale;
+      }
+    }
+    depth_info_sub.shutdown();
+  }
+
+  void infoCb_2(const sensor_msgs::CameraInfoConstPtr& msg) {
+    camera_info_2 = *msg;
+
+    for (int i = 0; i < camera_info_2.K.size(); i++) {
+      if (fabs(camera_info_2.K[i] - 1.0) > 1e-6 ) {
+        camera_info_2.K[i] *= scale;
+      }
+    }
+    for (int i = 0; i < camera_info_2.P.size(); i++) {
+      if (fabs(camera_info_2.P[i] - 1.0) > 1e-6 ) {
+        camera_info_2.P[i] *= scale;
+      }
+    }
+    camera_info_sub_2.shutdown();
+  }
+
+
+  void depthInfoCb_2(const sensor_msgs::CameraInfoConstPtr& msg) {
+    depth_info_2 = *msg;
+
+    for (int i = 0; i < depth_info_2.K.size(); i++) {
+      if (fabs(depth_info_2.K[i] - 1.0) > 1e-6 ) {
+        depth_info_2.K[i] *= scale;
+      }
+    }
+    for (int i = 0; i < depth_info_2.P.size(); i++) {
+      if (fabs(depth_info_2.P[i] - 1.0) > 1e-6 ) {
+        depth_info_2.P[i] *= scale;
+      }
+    }
+    // Subscribe only once
+    depth_info_sub_2.shutdown();
+  }
+
 protected:
 
   // ROS handler and subscribers
@@ -227,20 +331,25 @@ protected:
   image_transport::Publisher depth_pub_2;
   image_transport::Subscriber depth_sub_2;
   ros::Subscriber sub_reverse, sub_depth, sub_all;
+  ros::Subscriber camera_info_sub, camera_info_sub_2, depth_info_sub, depth_info_sub_2;
+
+  ros::Publisher camera_info_pub, camera_info_pub_2, depth_info_pub, depth_info_pub_2;
   
   // Topics 
-  std::string cameraTopic, imageTopic, imageOutTopic;
-  std::string depthTopic, depthOutTopic;
-  std::string cameraTopic_2, imageTopic_2, imageOutTopic_2;
-  std::string depthTopic_2, depthOutTopic_2;
+  std::string cameraName, imageTopic, imageOutTopic, cameraInfoTopic, cameraInfoOutTopic;
+  std::string depthTopic, depthOutTopic, depthInfoTopic, depthInfoOutTopic;
+  std::string cameraName_2, imageTopic_2, imageOutTopic_2, cameraInfoTopic_2, cameraInfoOutTopic_2;
+  std::string depthTopic_2, depthOutTopic_2, depthInfoTopic_2, depthInfoOutTopic_2;
   std::string publishDepthTopic, allCamerasTopic, reverseTopic;
   
   int frameSkip;
   int imgCount, depthCount;
   int imgCount_2, depthCount_2;
-  double scale; // Scaling in the image
-  bool publish_depth, use_depth, reverse, publish_all, downsample_depth, only_depth;
+  double scale, scale_depth; // Scaling in the image
+  bool publish_depth, use_depth, reverse, publish_all, only_depth;
   bool flip_1, flip_2;
+  sensor_msgs::CameraInfo camera_info_1, depth_info_1;
+  sensor_msgs::CameraInfo camera_info_2, depth_info_2;
 };
 
 int main(int argc, char **argv)
