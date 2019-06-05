@@ -263,6 +263,10 @@ public:
         camera_info_1.P[i] *= scale;
       }
     }
+    
+    camera_info_1.height *= scale;
+    camera_info_1.width *= scale;
+    // Subscribe only once
     camera_info_sub.shutdown();
   }
 
@@ -272,14 +276,16 @@ public:
 
     for (int i = 0; i < depth_info_1.K.size(); i++) {
       if (fabs(depth_info_1.K[i] - 1.0) > 1e-6 ) {
-        depth_info_1.K[i] *= scale;
+        depth_info_1.K[i] *= scale_depth;
       }
     }
     for (int i = 0; i < depth_info_1.P.size(); i++) {
       if (fabs(depth_info_1.P[i] - 1.0) > 1e-6 ) {
-        depth_info_1.P[i] *= scale;
+        depth_info_1.P[i] *= scale_depth;
       }
     }
+    depth_info_1.height *= scale_depth;
+    depth_info_1.width *= scale_depth;
     depth_info_sub.shutdown();
   }
 
@@ -296,6 +302,10 @@ public:
         camera_info_2.P[i] *= scale;
       }
     }
+    
+    camera_info_2.height *= scale;
+    camera_info_2.width *= scale;
+    
     camera_info_sub_2.shutdown();
   }
 
@@ -313,6 +323,10 @@ public:
         depth_info_2.P[i] *= scale;
       }
     }
+    
+    depth_info_2.height *= scale_depth;
+    depth_info_2.width *= scale_depth;
+    
     // Subscribe only once
     depth_info_sub_2.shutdown();
   }
