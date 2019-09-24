@@ -408,12 +408,14 @@ void joyReceived(const sensor_msgs::Joy::ConstPtr& joy)
   
 void sendCmdVel(double linearVelocity, double angularVelocity, ros::Publisher& vel_pub)
 {
-  geometry_msgs::Twist vel;
-  vel.angular.z = angularVelocity;
-  vel.linear.x = linearVelocity;
-  vel.linear.z = 0.0;
-  vel.linear.y = 0.0;
-  vel_pub.publish(vel);
+  if (auto_mode == 0.0 || panic ){
+    geometry_msgs::Twist vel;
+    vel.angular.z = angularVelocity;
+    vel.linear.x = linearVelocity;
+    vel.linear.z = 0.0;
+    vel.linear.y = 0.0;
+    vel_pub.publish(vel);
+  }
 }
 
 void sendSlowCmd(bool slow_mode, ros::Publisher &pub) {

@@ -11,9 +11,9 @@
   </node>
     
   <!-- Launch serial and udp comms  -->
-  <include file="$(find udp_bridge)/launch/udp_server.launch">
+<!--  <include file="$(find udp_bridge)/launch/udp_server.launch">
     <arg name="joy_topic" value="$(arg joy_topic)"/>
-  </include>
+  </include> -->
 <!--   <include file="$(find serialbridge)/launch/serial_comms.launch"/> -->
   <!-- Launch web videoserver -->
  <node pkg="web_video_server" type="web_video_server" name="videoserver_node" output="screen"/>
