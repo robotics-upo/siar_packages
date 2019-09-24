@@ -82,18 +82,24 @@ class SiarArm {
     return checkJointLimits(result);
   }
   
-  void rad2motor(const angle_type &angles, raw_type &commands) {
+  bool rad2motor(const angle_type &angles, raw_type &commands) {
+    bool ret_val = true;
     for (int i = 0; i < n_motors; i++) {
       functions::LinearInterpolator &interpol = *pos_mot_interpol_[i];
       commands[i] = interpol.interpolate(angles[i]);
+      ret_val &= interpol.inRange(angles[i]);
     }
+    return ret_val;
   }
 
-  void motor2rad(const raw_type &commands, angle_type &angles) {
+  bool motor2rad(const raw_type &commands, angle_type &angles) {
+    bool ret_val = true;
     for (int i = 0; i < n_motors; i++) {
       functions::LinearInterpolator &interpol = *mot_pos_interpol_[i];
       angles[i] = interpol.interpolate(commands[i]);
+      ret_val &= interpol.inRange(angles[i]);
     }
+    return ret_val;
   }
   
   void forwardKinematics(const raw_type &joint_values, double &x, double &y, double &z)
