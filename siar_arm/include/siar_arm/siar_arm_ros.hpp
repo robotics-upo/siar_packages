@@ -63,10 +63,14 @@ class SiarArmROS:public SiarArm {
   int max_joint_dist_;
   double timeout_, period_;
   bool enable_server_, enable_marker_;
+
+  int cmd_time_pan_tilt;
   
   // For marker array
   std::string frame_id;
   tf::TransformBroadcaster tfb;
+
+  std::string mot_file, ang_file;
   
   enum ArmNodeStatus {
     NOT_INITIALIZED, PARKED, PAN_AND_TILT, NAVIGATION, MOVING
@@ -78,10 +82,9 @@ class SiarArmROS:public SiarArm {
   
   SiarArmROS(ros::NodeHandle &nh, ros::NodeHandle &pnh):SiarArm(),s_(nh, "move_arm", false),seq_cmd_(0){
     timeout_ = -1.0;
-    std::string mot_file, ang_file;
-    move_pan_ = move_tilt_ = false;
+    cmd_time_pan_tilt = 200;
 
-    s_.registerGoalCallback(boost::bind(&SiarArmROS::goalCb, this));
+    move_pan_ = move_tilt_ = false;
     
     if (!pnh.getParam("motor_file", mot_file) || !pnh.getParam("angular_file", ang_file)) {
       throw SiarArmException("You should give the motor_file and angular_file parameters");
@@ -143,19 +146,25 @@ class SiarArmROS:public SiarArm {
       clearStatusAndActivateMotors();
     }
     
+    
+  }
+
+  virtual void start() {
     // Clear status and activate the motors of the arm
     SiarArm::load_data(mot_file, ang_file);
     ros::Rate r(loop_rate_);
     
     last_status_ = curr_status_ = NOT_INITIALIZED;
     s_.start();
+
+    s_.registerGoalCallback(boost::bind(&SiarArmROS::goalCb, this));
     
     while (ros::ok()) {
       ros::spinOnce();
       r.sleep();
       
       if (enable_server_) {
-	manageServer();
+	      manageServer();
       }
       
       if (enable_marker_) {
@@ -163,6 +172,7 @@ class SiarArmROS:public SiarArm {
       }
     }
     s_.shutdown();
+
   }
   
   virtual void manageServer() {
@@ -233,6 +243,7 @@ class SiarArmROS:public SiarArm {
       move_pan_ = false;
     pan_rate_ = functions::saturate((double)data->data, -1.0, 1.0);
     pan_rate_ *= max_pan_rate_;
+    cmd_time_pan_tilt = 100;
   }
   
   void armTiltReceived(const std_msgs::Float32ConstPtr &data) {
@@ -242,6 +253,7 @@ class SiarArmROS:public SiarArm {
       move_tilt_ = false;
     tilt_rate_ = functions::saturate((double)data->data, -1.0, 1.0);
     tilt_rate_ *= max_tilt_rate_;
+    cmd_time_pan_tilt = 100;
   }
 
   void setPanReceived(const std_msgs::Float32ConstPtr &pan) {
@@ -255,6 +267,7 @@ class SiarArmROS:public SiarArm {
       tilt_rate_ = 0.0;
       curr_cmd_ = motors;
       move_pan_ = true;
+      cmd_time_pan_tilt = 300;
     }
   }
 
@@ -269,6 +282,7 @@ class SiarArmROS:public SiarArm {
       tilt_rate_ = 0.0;
       curr_cmd_ = motors;
       move_tilt_ = true;
+      cmd_time_pan_tilt = 300;
     }
   }
   
@@ -547,11 +561,20 @@ class SiarArmROS:public SiarArm {
     marker.pose.orientation.y = 0.0;
     marker.id = id++;
     model.markers.push_back(marker);
+
+    // Final transforms
     stf.frame_id_ = stf.child_frame_id_;
-    stf.child_frame_id_ = "siar_arm_camera";
+    stf.child_frame_id_ = "siar_arm_final";
     v.setValue(length[4], 0, 0);
     stf.setIdentity();
     stf.setOrigin(v);
+    tfb.sendTransform(stf);
+
+    stf.frame_id_ = stf.child_frame_id_;
+    stf.child_frame_id_ = "siar_arm_camera";
+    stf.setIdentity();
+    q.setRPY(3.1415, 0, 1.57);
+    stf.setRotation(q);
     tfb.sendTransform(stf);
     
     return model;
