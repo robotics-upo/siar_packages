@@ -52,6 +52,7 @@ class SiarArmROS:public SiarArm {
   boost::array<int16_t, 5> curr_cmd_;
   
   ros::Subscriber arm_pan_sub_, arm_tilt_sub_, siar_status_sub_;
+  ros::Subscriber set_pan_sub_, set_tilt_sub_;
   ros::Publisher arm_cmd_pub_, arm_clear_status_pub_, arm_torque_pub_, arm_marker_pub_; // Sends arm commands to SIAR Driver node
   int pan_joint_, tilt_joint_;
   bool move_pan_, move_tilt_;
@@ -134,6 +135,8 @@ class SiarArmROS:public SiarArm {
     if (enable_server_) {
       arm_pan_sub_ = nh.subscribe<std_msgs::Float32>("/arm_pan", 1, &SiarArmROS::armPanReceived, this);
       arm_tilt_sub_ = nh.subscribe<std_msgs::Float32>("/arm_tilt", 1, &SiarArmROS::armTiltReceived, this);
+      set_pan_sub_ = nh.subscribe<std_msgs::Float32>("/set_pan", 1, &SiarArmROS::setPanReceived, this);
+      set_tilt_sub_ = nh.subscribe<std_msgs::Float32>("/set_tilt", 1, &SiarArmROS::setTiltReceived, this);
       arm_cmd_pub_ = nh.advertise<siar_driver::SiarArmCommand>("/arm_cmd", 1);
       arm_clear_status_pub_ = nh.advertise<std_msgs::Bool>("/arm_clear_status", 1);
       arm_torque_pub_ = nh.advertise<std_msgs::UInt8>("/arm_torque", 1);
@@ -214,7 +217,7 @@ class SiarArmROS:public SiarArm {
 	result.executed = false;
 	result.position_servos_final = curr_siar_status_.herculex_position;
 	std::ostringstream message;
-	message <<"SiarArm::loop --> Could not final destination. Returning to previous state.";
+	message <<"SiarArm::loop --> Could not reach the final destination. Returning to previous state.";
 	s_.setSucceeded(result, message.str());
 	curr_status_ = last_status_;
 	clearStatusAndActivateMotors();
@@ -235,11 +238,38 @@ class SiarArmROS:public SiarArm {
   void armTiltReceived(const std_msgs::Float32ConstPtr &data) {
      if (fabs(data->data) > 0.3)
       move_tilt_ = true; 
-    
     else 
       move_tilt_ = false;
     tilt_rate_ = functions::saturate((double)data->data, -1.0, 1.0);
     tilt_rate_ *= max_tilt_rate_;
+  }
+
+  void setPanReceived(const std_msgs::Float32ConstPtr &pan) {
+    angle_type angles;
+    raw_type motors;
+	  motor2rad(curr_siar_status_.herculex_position, angles);
+    angles[pan_joint_] = pan->data;
+    if (rad2motor(angles, motors)) {
+      ROS_INFO("Setting the pan to: %f", pan->data); //, functions::printVector(angles).c_str());
+      pan_rate_ = 0.0;
+      tilt_rate_ = 0.0;
+      curr_cmd_ = motors;
+      move_pan_ = true;
+    }
+  }
+
+  void setTiltReceived(const std_msgs::Float32ConstPtr &pan) {
+    angle_type angles;
+    raw_type motors;
+	  motor2rad(curr_siar_status_.herculex_position, angles);
+    angles[tilt_joint_] = pan->data;
+    if (rad2motor(angles, motors)) {
+      ROS_INFO("Setting the tilt to: %f", pan->data);// functions::printVector(angles).c_str());
+      pan_rate_ = 0.0;
+      tilt_rate_ = 0.0;
+      curr_cmd_ = motors;
+      move_tilt_ = true;
+    }
   }
   
   virtual void goalCb() {
@@ -315,6 +345,8 @@ class SiarArmROS:public SiarArm {
       s_.setAborted(result, "Arm not ready");
     }
   }
+
+
   
   void statusCb(const siar_driver::SiarStatus::ConstPtr& new_status) {
     curr_siar_status_ = *new_status;
