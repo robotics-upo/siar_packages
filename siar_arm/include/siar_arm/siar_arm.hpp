@@ -42,7 +42,6 @@ class SiarArm {
     length.push_back(0.140);
     length.push_back(0.0651);
     length.push_back(0.04297);
-    
   }
   
   ~SiarArm() {

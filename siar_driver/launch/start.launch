@@ -14,7 +14,7 @@
 
   <rosparam command="load" file="$(find siar_driver)/cfg/twist_mux.yaml" ns="twist_mux"/>
   
-  <!-- Bring up the raposa node and the imu if desired -->
+  <!-- Bring up the SIAR node and the imu if desired -->
   <node name="siar_node" pkg="siar_driver" type="siar_node" output="screen" unless="$(arg debug)">
     <param name="siar_device_1" value="$(arg siar_device_1)"/>
     <param name="battery_device" value="$(arg battery_device)"/>
@@ -29,7 +29,6 @@
     <param name="elec_x_file" value="$(find siar_driver)/data/center_x"/>
     <param name="angular_gain" value="1.25"/>
   </node>
-  
   
   <node name="siar_node" pkg="siar_driver" type="siar_node" if="$(arg debug)" launch-prefix="xterm -e gdb --args">
     <param name="siar_device_1" value="$(arg siar_device_1)"/>
@@ -52,6 +51,7 @@
   <node name="siar_joy" pkg="siar_driver" type="siar_teleop_joy" output="screen" if="$(arg joystick)" >
     <remap from="/cmd_vel" to="/user_cmd_vel"/>
   </node>
+
   <node name="joy_node" pkg="joy" type="joy_node" if="$(arg joystick)" />
 
   <!-- MUX for cmd_vel -->
