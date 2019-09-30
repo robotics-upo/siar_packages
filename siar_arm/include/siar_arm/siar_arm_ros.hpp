@@ -1,7 +1,6 @@
 #ifndef _SIAR_ARM_ROS_HPP_
 #define _SIAR_ARM_ROS_HPP_
 
-
 #include "math.h"
 #include <functions/linear_interpolator.hpp>
 #include <functions/functions.h>
@@ -53,6 +52,7 @@ class SiarArmROS:public SiarArm {
   boost::array<int16_t, 5> curr_cmd_;
   
   ros::Subscriber arm_pan_sub_, arm_tilt_sub_, siar_status_sub_;
+  ros::Subscriber set_pan_sub_, set_tilt_sub_;
   ros::Publisher arm_cmd_pub_, arm_clear_status_pub_, arm_torque_pub_, arm_marker_pub_; // Sends arm commands to SIAR Driver node
   int pan_joint_, tilt_joint_;
   bool move_pan_, move_tilt_;
@@ -63,10 +63,14 @@ class SiarArmROS:public SiarArm {
   int max_joint_dist_;
   double timeout_, period_;
   bool enable_server_, enable_marker_;
+
+  int cmd_time_pan_tilt;
   
   // For marker array
   std::string frame_id;
   tf::TransformBroadcaster tfb;
+
+  std::string mot_file, ang_file;
   
   enum ArmNodeStatus {
     NOT_INITIALIZED, PARKED, PAN_AND_TILT, NAVIGATION, MOVING
@@ -78,10 +82,9 @@ class SiarArmROS:public SiarArm {
   
   SiarArmROS(ros::NodeHandle &nh, ros::NodeHandle &pnh):SiarArm(),s_(nh, "move_arm", false),seq_cmd_(0){
     timeout_ = -1.0;
-    std::string mot_file, ang_file;
-    move_pan_ = move_tilt_ = false;
+    cmd_time_pan_tilt = 200;
 
-    s_.registerGoalCallback(boost::bind(&SiarArmROS::goalCb, this));
+    move_pan_ = move_tilt_ = false;
     
     if (!pnh.getParam("motor_file", mot_file) || !pnh.getParam("angular_file", ang_file)) {
       throw SiarArmException("You should give the motor_file and angular_file parameters");
@@ -135,35 +138,44 @@ class SiarArmROS:public SiarArm {
     if (enable_server_) {
       arm_pan_sub_ = nh.subscribe<std_msgs::Float32>("/arm_pan", 1, &SiarArmROS::armPanReceived, this);
       arm_tilt_sub_ = nh.subscribe<std_msgs::Float32>("/arm_tilt", 1, &SiarArmROS::armTiltReceived, this);
+      set_pan_sub_ = nh.subscribe<std_msgs::Float32>("/set_pan", 1, &SiarArmROS::setPanReceived, this);
+      set_tilt_sub_ = nh.subscribe<std_msgs::Float32>("/set_tilt", 1, &SiarArmROS::setTiltReceived, this);
       arm_cmd_pub_ = nh.advertise<siar_driver::SiarArmCommand>("/arm_cmd", 1);
       arm_clear_status_pub_ = nh.advertise<std_msgs::Bool>("/arm_clear_status", 1);
       arm_torque_pub_ = nh.advertise<std_msgs::UInt8>("/arm_torque", 1);
       clearStatusAndActivateMotors();
     }
     
+    
+  }
+
+  virtual void start() {
     // Clear status and activate the motors of the arm
     SiarArm::load_data(mot_file, ang_file);
     ros::Rate r(loop_rate_);
     
     last_status_ = curr_status_ = NOT_INITIALIZED;
     s_.start();
+
+    s_.registerGoalCallback(boost::bind(&SiarArmROS::goalCb, this));
     
     while (ros::ok()) {
       ros::spinOnce();
       r.sleep();
       
       if (enable_server_) {
-	manageServer();
+	      manageServer();
       }
       
       if (enable_marker_) {
-	arm_marker_pub_.publish(getARMMarkerArray());
+	      arm_marker_pub_.publish(getARMMarkerArray());
       }
     }
     s_.shutdown();
+
   }
   
-  void manageServer() {
+  virtual void manageServer() {
     if ( (curr_status_ == PAN_AND_TILT || curr_status_ == SiarArmROS::NAVIGATION) &&
          (move_pan_ || move_tilt_)
       ) {
@@ -179,7 +191,7 @@ class SiarArmROS:public SiarArm {
       bool arrived = true;
       
       for (int i = 0; i < v.size() && arrived; i++) {
-	arrived = fabs(v[i] - v2[i]) < max_joint_dist_;
+	      arrived = fabs(v[i] - v2[i]) < max_joint_dist_;
       }
       
       
@@ -215,7 +227,7 @@ class SiarArmROS:public SiarArm {
 	result.executed = false;
 	result.position_servos_final = curr_siar_status_.herculex_position;
 	std::ostringstream message;
-	message <<"SiarArm::loop --> Could not final destination. Returning to previous state.";
+	message <<"SiarArm::loop --> Could not reach the final destination. Returning to previous state.";
 	s_.setSucceeded(result, message.str());
 	curr_status_ = last_status_;
 	clearStatusAndActivateMotors();
@@ -231,19 +243,50 @@ class SiarArmROS:public SiarArm {
       move_pan_ = false;
     pan_rate_ = functions::saturate((double)data->data, -1.0, 1.0);
     pan_rate_ *= max_pan_rate_;
+    cmd_time_pan_tilt = 100;
   }
   
   void armTiltReceived(const std_msgs::Float32ConstPtr &data) {
      if (fabs(data->data) > 0.3)
       move_tilt_ = true; 
-    
     else 
       move_tilt_ = false;
     tilt_rate_ = functions::saturate((double)data->data, -1.0, 1.0);
     tilt_rate_ *= max_tilt_rate_;
+    cmd_time_pan_tilt = 100;
+  }
+
+  void setPanReceived(const std_msgs::Float32ConstPtr &pan) {
+    angle_type angles;
+    raw_type motors;
+	  motor2rad(curr_siar_status_.herculex_position, angles);
+    angles[pan_joint_] = pan->data;
+    if (rad2motor(angles, motors)) {
+      ROS_INFO("Setting the pan to: %f", pan->data); //, functions::printVector(angles).c_str());
+      pan_rate_ = 0.0;
+      tilt_rate_ = 0.0;
+      curr_cmd_ = motors;
+      move_pan_ = true;
+      cmd_time_pan_tilt = 300;
+    }
+  }
+
+  void setTiltReceived(const std_msgs::Float32ConstPtr &pan) {
+    angle_type angles;
+    raw_type motors;
+	  motor2rad(curr_siar_status_.herculex_position, angles);
+    angles[tilt_joint_] = pan->data;
+    if (rad2motor(angles, motors)) {
+      ROS_INFO("Setting the tilt to: %f", pan->data);// functions::printVector(angles).c_str());
+      pan_rate_ = 0.0;
+      tilt_rate_ = 0.0;
+      curr_cmd_ = motors;
+      move_tilt_ = true;
+      cmd_time_pan_tilt = 300;
+    }
   }
   
-  void goalCb() {
+  virtual void goalCb() {
     auto goal = s_.acceptNewGoal();
     // TODO: Implement it!
     if (curr_status_ == PAN_AND_TILT || curr_status_ == PARKED || curr_status_==NAVIGATION) {
@@ -301,11 +344,11 @@ class SiarArmROS:public SiarArm {
         s_.publishFeedback(curr_feed_);
       } else {
         // Arm not ready or already moving to a destination --> cancel
-	siar_arm::armServosMoveActionResult::_result_type result;
-	result.executed = false;
-	result.position_servos_final = curr_siar_status_.herculex_position;
-	s_.setAborted(result, "Trajectory resource not found");
-	curr_cmd_ = curr_siar_status_.herculex_position;
+        siar_arm::armServosMoveActionResult::_result_type result;
+        result.executed = false;
+        result.position_servos_final = curr_siar_status_.herculex_position;
+        s_.setAborted(result, "Trajectory resource not found");
+        curr_cmd_ = curr_siar_status_.herculex_position;
       }
       
     } else {
@@ -316,6 +359,8 @@ class SiarArmROS:public SiarArm {
       s_.setAborted(result, "Arm not ready");
     }
   }
+
+
   
   void statusCb(const siar_driver::SiarStatus::ConstPtr& new_status) {
     curr_siar_status_ = *new_status;
@@ -338,7 +383,6 @@ class SiarArmROS:public SiarArm {
     cmd.header = getHeader(seq_cmd_++);
     cmd.joint_values = curr_cmd_;
     cmd.command_time = 100;
-    
     
     std::cout << "movePanTilt-->Moving: " << pan_angle << " and " << tilt_angle << " Objective: " << commandToString(cmd) << std::endl;
     arm_cmd_pub_.publish(cmd);
@@ -388,143 +432,152 @@ class SiarArmROS:public SiarArm {
   
   visualization_msgs::MarkerArray getARMMarkerArray() {
     int id = 0;
-	visualization_msgs::MarkerArray model;
-	visualization_msgs::Marker marker;
-	geometry_msgs::Point p;
-	angle_type angles;
-	motor2rad(curr_siar_status_.herculex_position, angles);
-	
-	// First and second rotations
-	// Emit the first transform: siar_arm_1_2
-	tf::Quaternion q;
-	q.setRPY(0, angles[1], angles[0]);
-	tf::StampedTransform stf;
-	stf.stamp_ = ros::Time::now();
-	stf.frame_id_ = frame_id;
-	stf.child_frame_id_ = "siar_arm_rotation_1_2";
-	stf.setRotation(q);
-	tfb.sendTransform(stf);
-	
-	// Add First Link	
-	marker.header.frame_id = stf.child_frame_id_;
-	marker.header.stamp = ros::Time::now();
-	marker.ns = "siar_arm";
-	marker.id = id++;
-	marker.type = visualization_msgs::Marker::CYLINDER;
-	marker.action = visualization_msgs::Marker::ADD;
-	marker.pose.position.x = length[1] * 0.5;
-	marker.pose.position.y = 0;
-	marker.pose.position.z = 0;
-	marker.pose.orientation.w = 0.70711;
-	marker.pose.orientation.x = 0;
-	marker.pose.orientation.y = 0.70711;
-	marker.pose.orientation.z = 0;
-	marker.scale.x = 0.05;
-	marker.scale.y = 0.05;
-	marker.scale.z = length[1];
-	marker.color.a = 1.0; 
-	marker.color.r = 75.0/255.0;
-	marker.color.g = 75.0/255.0;
-	marker.color.b = 75.0/255.0;
-	marker.points.clear();
-	model.markers.push_back(marker);
-	
-	
-	
-	stf.frame_id_ = stf.child_frame_id_;
-	stf.child_frame_id_ = "siar_arm_link_1";
-	tf::Vector3 v(length[1], 0, 0);
-	stf.setIdentity();
-	stf.setOrigin(v);
-	tfb.sendTransform(stf);
-	
-	// Rotation 3
-	stf.frame_id_ = stf.child_frame_id_;
-	stf.child_frame_id_ = "siar_arm_rotation_3";
-	stf.setIdentity();
-	q.setRPY(0, angles[2], 0);
-	stf.setRotation(q);
-	tfb.sendTransform(stf);
-	
-	// Next link
-	marker.scale.z = length[2];
-	marker.header.frame_id = stf.child_frame_id_;
-	marker.color.r = 1.0;
-	marker.color.g = 0;
-	marker.color.b = 0;
-	marker.pose.position.x = length[2] * 0.5;
-	marker.id = id++;
-	model.markers.push_back(marker);
-	stf.frame_id_ = stf.child_frame_id_;
-	stf.child_frame_id_ = "siar_arm_link_2";
-	v.setValue(length[2], 0, 0);
-	stf.setIdentity();
-	stf.setOrigin(v);
-	tfb.sendTransform(stf);
-	
-	// Rotation 4
-	stf.frame_id_ = stf.child_frame_id_;
-	stf.child_frame_id_ = "siar_arm_rotation_4";
-	stf.setIdentity();
-	q.setRPY(0, angles[3], 0);
-	stf.setRotation(q);
-	tfb.sendTransform(stf);
-	
-	// Link 4
-	marker.scale.z = length[3];
-	marker.header.frame_id = stf.child_frame_id_;
-	marker.color.r = 0.0;
-	marker.color.g = 1.0;
-	marker.color.b = 0;
-	marker.pose.position.x = length[3] * 0.5;
-	marker.id = id++;
-	model.markers.push_back(marker);
-	stf.frame_id_ = stf.child_frame_id_;
-	stf.child_frame_id_ = "siar_arm_link_3";
-	v.setValue(length[3], 0, 0);
-	stf.setIdentity();
-	stf.setOrigin(v);
-	tfb.sendTransform(stf);
-	
-        
-        // PreRotation 5
-        stf.frame_id_ = stf.child_frame_id_;
-        stf.child_frame_id_ = "siar_arm_prerotation_5";
-        stf.setIdentity();
-        v.setValue(0.02,0,0);
-        q.setRPY(0, M_PI/2, 0);
-        stf.setRotation(q);
-        stf.setOrigin(v);
-        tfb.sendTransform(stf);
-        
-	// Rotation 5
-	stf.frame_id_ = stf.child_frame_id_;
-	stf.child_frame_id_ = "siar_arm_rotation_5";
-	stf.setIdentity();
-	q.setRPY(0, 0, angles[4]);
-	stf.setRotation(q);
-	tfb.sendTransform(stf);
-	
-	// Link 5
-	marker.type = visualization_msgs::Marker::ARROW;
-	marker.scale.z = length[4];
-	marker.header.frame_id = stf.child_frame_id_;
-	marker.color.r = 0.0;
-	marker.color.g = 0.0;
-	marker.color.b = 0.8;
-	marker.pose.position.x = 0.0;
-	marker.pose.orientation.w = 1.0;
-	marker.pose.orientation.y = 0.0;
-	marker.id = id++;
-	model.markers.push_back(marker);
-	stf.frame_id_ = stf.child_frame_id_;
-	stf.child_frame_id_ = "siar_arm_camera";
-	v.setValue(length[4], 0, 0);
-	stf.setIdentity();
-	stf.setOrigin(v);
-	tfb.sendTransform(stf);
-	
-	return model;
+    visualization_msgs::MarkerArray model;
+    visualization_msgs::Marker marker;
+    geometry_msgs::Point p;
+    angle_type angles;
+    motor2rad(curr_siar_status_.herculex_position, angles);
+    
+    // First and second rotations
+    // Emit the first transform: siar_arm_1_2
+    tf::Quaternion q;
+    q.setRPY(0, angles[1], angles[0]);
+    tf::StampedTransform stf;
+    stf.stamp_ = ros::Time::now();
+    stf.frame_id_ = frame_id;
+    stf.child_frame_id_ = "siar_arm_rotation_1_2";
+    stf.setRotation(q);
+    tfb.sendTransform(stf);
+    
+    // Add First Link	
+    marker.header.frame_id = stf.child_frame_id_;
+    marker.header.stamp = ros::Time::now();
+    marker.ns = "siar_arm";
+    marker.id = id++;
+    marker.type = visualization_msgs::Marker::CYLINDER;
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.pose.position.x = length[1] * 0.5;
+    marker.pose.position.y = 0;
+    marker.pose.position.z = 0;
+    marker.pose.orientation.w = 0.70711;
+    marker.pose.orientation.x = 0;
+    marker.pose.orientation.y = 0.70711;
+    marker.pose.orientation.z = 0;
+    marker.scale.x = 0.05;
+    marker.scale.y = 0.05;
+    marker.scale.z = length[1];
+    marker.color.a = 1.0; 
+    marker.color.r = 75.0/255.0;
+    marker.color.g = 75.0/255.0;
+    marker.color.b = 75.0/255.0;
+    marker.points.clear();
+    model.markers.push_back(marker);
+    
+    
+    
+    stf.frame_id_ = stf.child_frame_id_;
+    stf.child_frame_id_ = "siar_arm_link_1";
+    tf::Vector3 v(length[1], 0, 0);
+    stf.setIdentity();
+    stf.setOrigin(v);
+    tfb.sendTransform(stf);
+    
+    // Rotation 3
+    stf.frame_id_ = stf.child_frame_id_;
+    stf.child_frame_id_ = "siar_arm_rotation_3";
+    stf.setIdentity();
+    q.setRPY(0, angles[2], 0);
+    stf.setRotation(q);
+    tfb.sendTransform(stf);
+    
+    // Next link
+    marker.scale.z = length[2];
+    marker.header.frame_id = stf.child_frame_id_;
+    marker.color.r = 1.0;
+    marker.color.g = 0;
+    marker.color.b = 0;
+    marker.pose.position.x = length[2] * 0.5;
+    marker.id = id++;
+    model.markers.push_back(marker);
+    stf.frame_id_ = stf.child_frame_id_;
+    stf.child_frame_id_ = "siar_arm_link_2";
+    v.setValue(length[2], 0, 0);
+    stf.setIdentity();
+    stf.setOrigin(v);
+    tfb.sendTransform(stf);
+    
+    // Rotation 4
+    stf.frame_id_ = stf.child_frame_id_;
+    stf.child_frame_id_ = "siar_arm_rotation_4";
+    stf.setIdentity();
+    q.setRPY(0, angles[3], 0);
+    stf.setRotation(q);
+    tfb.sendTransform(stf);
+    
+    // Link 4
+    marker.scale.z = length[3];
+    marker.header.frame_id = stf.child_frame_id_;
+    marker.color.r = 0.0;
+    marker.color.g = 1.0;
+    marker.color.b = 0;
+    marker.pose.position.x = length[3] * 0.5;
+    marker.id = id++;
+    model.markers.push_back(marker);
+    stf.frame_id_ = stf.child_frame_id_;
+    stf.child_frame_id_ = "siar_arm_link_3";
+    v.setValue(length[3], 0, 0);
+    stf.setIdentity();
+    stf.setOrigin(v);
+    tfb.sendTransform(stf);
+    
+          
+    // PreRotation 5
+    stf.frame_id_ = stf.child_frame_id_;
+    stf.child_frame_id_ = "siar_arm_prerotation_5";
+    stf.setIdentity();
+    v.setValue(0.02,0,0);
+    q.setRPY(0, M_PI/2, 0);
+    stf.setRotation(q);
+    stf.setOrigin(v);
+    tfb.sendTransform(stf);
+          
+    // Rotation 5
+    stf.frame_id_ = stf.child_frame_id_;
+    stf.child_frame_id_ = "siar_arm_rotation_5";
+    stf.setIdentity();
+    q.setRPY(0, 0, angles[4]);
+    stf.setRotation(q);
+    tfb.sendTransform(stf);
+    
+    // Link 5
+    marker.type = visualization_msgs::Marker::ARROW;
+    marker.scale.z = length[4];
+    marker.header.frame_id = stf.child_frame_id_;
+    marker.color.r = 0.0;
+    marker.color.g = 0.0;
+    marker.color.b = 0.8;
+    marker.pose.position.x = 0.0;
+    marker.pose.orientation.w = 1.0;
+    marker.pose.orientation.y = 0.0;
+    marker.id = id++;
+    model.markers.push_back(marker);
+
+    // Final transforms
+    stf.frame_id_ = stf.child_frame_id_;
+    stf.child_frame_id_ = "siar_arm_final";
+    v.setValue(length[4], 0, 0);
+    stf.setIdentity();
+    stf.setOrigin(v);
+    tfb.sendTransform(stf);
+
+    stf.frame_id_ = stf.child_frame_id_;
+    stf.child_frame_id_ = "siar_arm_camera";
+    stf.setIdentity();
+    q.setRPY(3.1415, 0, 1.57);
+    stf.setRotation(q);
+    tfb.sendTransform(stf);
+    
+    return model;
   }
     
 };

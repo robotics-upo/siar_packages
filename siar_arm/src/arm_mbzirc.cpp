@@ -1,4 +1,4 @@
-#include "siar_arm/siar_arm_ros.hpp"
+#include "siar_arm/siar_arm_ros_mbzirc.hpp"
 #include "ros/ros.h"
 #include <tf/transform_listener.h>
 #include <geometry_msgs/TwistStamped.h>
@@ -14,17 +14,17 @@ int main(int argc, char** argv) {
   ros::NodeHandle nh;
   ros::NodeHandle pnh("~");
   
-  SiarArmROS arm_ros(nh, pnh);
+  SiarArmROSMBZirc arm_ros(nh, pnh);
   arm_ros.start();
   
-  // ros::Rate r(ros::Duration(10));
+  ros::Rate r(ros::Duration(10));
   
-  // geometry_msgs::Twist cmd_vel;
-  // while (ros::ok()) {
-  //   ros::spinOnce();
-  //   r.sleep();
+  geometry_msgs::Twist cmd_vel;
+  while (ros::ok()) {
+    ros::spinOnce();
+    r.sleep();
     
-  // }
+  }
   
   return 0;
   
