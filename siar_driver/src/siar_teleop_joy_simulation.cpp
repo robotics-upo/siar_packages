@@ -488,18 +488,18 @@ int main(int argc, char** argv)
   double max_time_decay;
   pn.param<double>("max_time_decay", max_time_decay, MAX_TIME_DECAY);
 
-  ros::Publisher vel_pub = n.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
-  reverse_pub = n.advertise<std_msgs::Bool>("/reverse", 1);
-  slow_pub = n.advertise<std_msgs::Bool>("/slow_motion", 1);
-  mode_pub = n.advertise<std_msgs::Int8>("/operation_mode", 1 );
+  ros::Publisher vel_pub = n.advertise<geometry_msgs::Twist>("cmd_vel", 1);
+  reverse_pub = n.advertise<std_msgs::Bool>("reverse", 1);
+  slow_pub = n.advertise<std_msgs::Bool>("slow_motion", 1);
+  mode_pub = n.advertise<std_msgs::Int8>("operation_mode", 1 );
   
-  arm_pan_pub = n.advertise<std_msgs::Float32>("/arm_pan", 1); // Publishers for sending velocity commands to pan&tilt
-  arm_tilt_pub = n.advertise<std_msgs::Float32>("/arm_tilt", 1);
+  arm_pan_pub = n.advertise<std_msgs::Float32>("arm_pan", 1); // Publishers for sending velocity commands to pan&tilt
+  arm_tilt_pub = n.advertise<std_msgs::Float32>("arm_tilt", 1);
   
-  arm_torque_pub = n.advertise<std_msgs::UInt8>("/arm_torque", 1); // Publishers for low level arm control
-  arm_clear_pub = n.advertise<std_msgs::Bool>("/arm_clear_status", 1);
+  arm_torque_pub = n.advertise<std_msgs::UInt8>("arm_torque", 1); // Publishers for low level arm control
+  arm_clear_pub = n.advertise<std_msgs::Bool>("arm_clear_status", 1);
   
-  arm_mode_pub = n.advertise<std_msgs::Bool>("/arm_mode", 1);
+  arm_mode_pub = n.advertise<std_msgs::Bool>("arm_mode", 1);
   
   move_arm_client = new MoveArmClient("move_arm");
   
@@ -509,8 +509,8 @@ int main(int argc, char** argv)
   
   // ---------END WIDTH ARM ---
   
-  ros::Subscriber joy_sub = n.subscribe<sensor_msgs::Joy>("/joy", 5, joyReceived);
-  ros::Subscriber remote_joy_sub = n.subscribe<sensor_msgs::Joy>("/remote_joy", 5, remoteJoyReceived);
+  ros::Subscriber joy_sub = n.subscribe<sensor_msgs::Joy>("joy", 5, joyReceived);
+  ros::Subscriber remote_joy_sub = n.subscribe<sensor_msgs::Joy>("remote_joy", 5, remoteJoyReceived);
 
   ros::Rate rate(freq);
   ros::Rate panicRate(panicFreq);
