@@ -14,23 +14,26 @@
   <arg name="node_name" default="image_splitter_web"/>
   <arg name="flip_1" default="false"/>
   <arg name="flip_2" default="false"/>
+  <arg name="namespace"     default=""/>
 
-  <!-- a reproduction of the real images in nice quality is used, so its quality can be modified without disturbing the bag record -->
-  <node pkg="frame_dropper" type="image_splitter_node" name="$(arg node_name)">
-    <remap from="in" to="$(arg camera_1)" />
-    <remap from="out" to="$(arg camera_1)_web" />
-    <remap from="in_2" to="$(arg camera_2)" />
-    <remap from="out_2" to="$(arg camera_2)_web" />
-    <param name="/frame_skip" value="$(arg frame_skip_web)" />
-    <param name="/use_depth" value="true" />
-    <param name="/publish_depth" value="$(arg publish_depth)" />
-    <param name="/publish_all" value="$(arg publish_all)" />
-    <param name="/scale" value="$(arg scale_web)"/>
-    <param name="/downsample_depth" value="$(arg downsample_depth)"/>
-    <param name="/only_depth" value="$(arg only_depth)"/>
-    <param name="/flip_1" value="$(arg flip_1)"/>
-    <param name="/flip_2" value="$(arg flip_2)"/>
-  </node>
+    <group ns="$(arg namespace)">
+      <!-- a reproduction of the real images in nice quality is used, so its quality can be modified without disturbing the bag record -->
+      <node pkg="frame_dropper" type="image_splitter_node" name="$(arg node_name)">
+        <remap from="in" to="$(arg camera_1)" />
+        <remap from="out" to="$(arg camera_1)_web" />
+        <remap from="in_2" to="$(arg camera_2)" />
+        <remap from="out_2" to="$(arg camera_2)_web" />
+        <param name="/frame_skip" value="$(arg frame_skip_web)" />
+        <param name="/use_depth" value="true" />
+        <param name="/publish_depth" value="$(arg publish_depth)" />
+        <param name="/publish_all" value="$(arg publish_all)" />
+        <param name="/scale" value="$(arg scale_web)"/>
+        <param name="/downsample_depth" value="$(arg downsample_depth)"/>
+        <param name="/only_depth" value="$(arg only_depth)"/>
+        <param name="/flip_1" value="$(arg flip_1)"/>
+        <param name="/flip_2" value="$(arg flip_2)"/>
+      </node>
+    </group>
   
 </launch>
 
