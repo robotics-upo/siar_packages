@@ -6,33 +6,35 @@
   <arg name="initial_status" default="1"/>
   <arg name="enable_server" default="true"/>
   <arg name="enable_marker" default="true"/>
+  <arg name="namespace"     default=""/>
 
-<node name="arm_node" type="arm_mbzirc" pkg="siar_arm" output="screen" unless="$(arg debug)">
-  <param name="motor_file" value="$(find siar_arm)/data/pos_"/>
-  <param name="angular_file" value="$(find siar_arm)/data/ang_"/>
-  <param name="resource_folder" value="$(find siar_arm)data/traj"/>
-  <param name="max_joint_distance" value="30"/>
-  <param name="initial_status" value="$(arg initial_status)"/>
-  <param name="max_pan_rate" value="100"/>
-  <param name="max_tilt_rate" value="100"/>
-  <param name="tilt_joint" value="2"/>
-  <param name="pan_joint" value="0"/>
-  <param name="enable_server" value="$(arg enable_server)"/>
-  <param name="enable_marker" value="$(arg enable_marker)"/>
-</node>
-<node name="arm_node" type="arm_mbzirc" pkg="siar_arm" output="screen" if="$(arg debug)" launch-prefix="xterm -e gdb --args">
-  <param name="motor_file" value="$(find siar_arm)/data/pos_"/>
-  <param name="angular_file" value="$(find siar_arm)/data/ang_"/>
-  <param name="resource_folder" value="$(find siar_arm)data/traj"/>
-  <param name="max_joint_distance" value="30"/>
-  <param name="initial_status" value="$(arg initial_status)"/>
-  <param name="max_pan_rate" value="100"/>
-  <param name="max_tilt_rate" value="100"/>
-  <param name="tilt_joint" value="2"/>
-  <param name="pan_joint" value="0"/>
-  <param name="enable_server" value="$(arg enable_server)"/>
-  <param name="enable_marker" value="$(arg enable_marker)"/>
-</node>
-
+    <group ns="$(arg namespace)">
+      <node name="arm_node" type="arm_mbzirc" pkg="siar_arm" output="screen" unless="$(arg debug)">
+        <param name="motor_file" value="$(find siar_arm)/data/pos_"/>
+        <param name="angular_file" value="$(find siar_arm)/data/ang_"/>
+        <param name="resource_folder" value="$(find siar_arm)data/traj"/>
+        <param name="max_joint_distance" value="30"/>
+        <param name="initial_status" value="$(arg initial_status)"/>
+        <param name="max_pan_rate" value="100"/>
+        <param name="max_tilt_rate" value="100"/>
+        <param name="tilt_joint" value="2"/>
+        <param name="pan_joint" value="0"/>
+        <param name="enable_server" value="$(arg enable_server)"/>
+        <param name="enable_marker" value="$(arg enable_marker)"/>
+      </node>
+      <node name="arm_node" type="arm_mbzirc" pkg="siar_arm" output="screen" if="$(arg debug)" launch-prefix="xterm -e gdb --args">
+        <param name="motor_file" value="$(find siar_arm)/data/pos_"/>
+        <param name="angular_file" value="$(find siar_arm)/data/ang_"/>
+        <param name="resource_folder" value="$(find siar_arm)data/traj"/>
+        <param name="max_joint_distance" value="30"/>
+        <param name="initial_status" value="$(arg initial_status)"/>
+        <param name="max_pan_rate" value="100"/>
+        <param name="max_tilt_rate" value="100"/>
+        <param name="tilt_joint" value="2"/>
+        <param name="pan_joint" value="0"/>
+        <param name="enable_server" value="$(arg enable_server)"/>
+        <param name="enable_marker" value="$(arg enable_marker)"/>
+      </node>
+    </group>
 
 </launch>
