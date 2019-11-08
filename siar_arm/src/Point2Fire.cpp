@@ -25,19 +25,7 @@ namespace SIAR
 		fire_cam_info_sub_ = nh.subscribe("/" + robot_name_ + "/thermal_camera/camera_info", 2,  &Point2Fire::CamInfoCallback, this);
 		pointing_fire_pub_ = nh.advertise<std_msgs::Bool>("/" + robot_name_ + "/pointing_fire_pub", 2);
 		arm_pan_pub_ = nh.advertise<std_msgs::Float32>("/" + robot_name_ +"/arm_pan", 2);
-		arm_tilt_pub_ = nh.advertise<std_msgs::Float32>("/" + robot_name_ +"/arm_tilt", 2);			
-		
-		//~ siar_arm_.load_data(siar_arm_.mot_file, siar_arm_.ang_file);	
-		
-		
-		ros::Rate r(ros::Duration(0.1));
-		ROS_INFO("Preloop");
-		
-		while (ros::ok()) {
-			ros::spinOnce();
-			ControlLoop();
-			r.sleep();
-		}		
+		arm_tilt_pub_ = nh.advertise<std_msgs::Float32>("/" + robot_name_ +"/arm_tilt", 2);					
 	}	
 
 	void Point2Fire::FireDetectCallback(const fireawareness_ros::FireDetections2D::ConstPtr& msg)
@@ -55,8 +43,6 @@ namespace SIAR
 				last_fire_detected_ =  Point2D<float>(detection.u, detection.v) - *center_img_; 
 				area_fire_detected_ = area_fire;
 				fire_detected = true;
-					ROS_INFO("Fire detected");
-
 			}
 		}
 		if( !fire_detected )
@@ -69,8 +55,6 @@ namespace SIAR
 	void Point2Fire::CamInfoCallback(const sensor_msgs::CameraInfo::ConstPtr& msg)
 	{
 		center_img_ = Point2D<float>(msg->K[2], msg->K[5]);
-			ROS_INFO("Cam data received");
-
 	}
 	
 	void Point2Fire::ControlLoop( void)
@@ -79,12 +63,9 @@ namespace SIAR
 		{			
 			const auto& current_time  = ros::Time::now();
 			
-			//~ rad2motor(const double &angle, uint16_t &command, uint8_t motor);
 			arm_pan_pub_.publish(ComputePID( pan_control_, pan_ref_ , last_fire_detected_->x,  fire_offset_x_, current_time - last_command_time_ ));
 			arm_tilt_pub_.publish(ComputePID( tilt_control_, tilt_ref_ , last_fire_detected_->y,  fire_offset_y_, current_time - last_command_time_ ));					
 			last_command_time_ = current_time;
-			
-				ROS_INFO("Publishing commands");
 		}
 	}
 	

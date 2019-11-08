@@ -12,9 +12,14 @@ int main(int argc, char** argv) {
 	ros::NodeHandle nh;
 	ros::NodeHandle pnh("~");
 
-	ROS_INFO("TEST");
-
-	SIAR::Point2Fire(nh, pnh);
+	auto siar_arm = SIAR::Point2Fire(nh, pnh);
+	
+	ros::Rate r(ros::Duration(0.1));
+	while (ros::ok()) {
+		ros::spinOnce();
+		siar_arm.ControlLoop();
+		r.sleep();
+	}	
 
 	return 0;
   

@@ -46,7 +46,6 @@ class Point2Fire
 		using Pid = control_toolbox::Pid;
 	
 	public:
-		//~ SiarArmROS siar_arm_;
 		ros::Subscriber fire_detec_sub_;
 		ros::Subscriber fire_cam_info_sub_;
 		ros::Publisher pointing_fire_pub_;
