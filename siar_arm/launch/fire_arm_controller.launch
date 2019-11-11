@@ -3,11 +3,13 @@
 <launch>
 
 <node name="point2fire" type="point2fire" pkg="siar_arm" output="screen">
+  <param name="mot_pan_arm_file" value="$(find siar_arm)/data/pos_1"/>
+  <param name="mot_tilt_arm_file" value="$(find siar_arm)/data/pos_2"/>
   <param name="robot_name" value="siar"/>
-  <param name="kp_pan" value="-0.001"/>
+  <param name="kp_pan" value="0.1"/>
   <param name="ki_pan" value="0.0"/>
   <param name="kd_pan" value="0.0"/>
-  <param name="kp_tilt" value="0.0"/>
+  <param name="kp_tilt" value="0.1"/>
   <param name="ki_tilt" value="0.0"/>
   <param name="fire_offset_x" value="0.0"/>
   <param name="fire_offset_y" value="0.0"/>
