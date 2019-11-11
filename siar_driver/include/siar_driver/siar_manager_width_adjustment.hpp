@@ -379,10 +379,10 @@ width_to_lin_pos(NULL), x_elec_to_lin_pos(NULL), reverse_right(false)
   std::cout << "Connected to the battery board.\n";
   
   ros::NodeHandle pn("~");
-  state_pub = pn.advertise<siar_driver::SiarStatus>("/siar_status", 5);
-  slow_motion_sub = pn.subscribe("/slow_motion", 1, &SiarManagerWidthAdjustment::slowReceived, this);
-  reverse_sub = pn.subscribe("/reverse", 1, &SiarManagerWidthAdjustment::reverseReceived, this);
-  op_sub = pn.subscribe("/operation_mode", 1, &SiarManagerWidthAdjustment::opReceived, this);
+  state_pub = pn.advertise<siar_driver::SiarStatus>("siar_status", 5);
+  slow_motion_sub = pn.subscribe("slow_motion", 1, &SiarManagerWidthAdjustment::slowReceived, this);
+  reverse_sub = pn.subscribe("reverse", 1, &SiarManagerWidthAdjustment::reverseReceived, this);
+  op_sub = pn.subscribe("operation_mode", 1, &SiarManagerWidthAdjustment::opReceived, this);
   
   if (!pn.getParam("lin_mot_file", lin_mot_vec_file)) {
     lin_mot_vec_file = "lin_mot";

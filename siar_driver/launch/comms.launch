@@ -2,10 +2,10 @@
 <launch>
   
   <arg name="nvip_monitor" default="true" />
-  <arg name="joy_topic" default="/joy" />
+  <arg name="joy_topic" default="joy" />
   <arg name="namespace"     default=""/>
 
-    <group ns="$(arg namespace)">
+    <!-- <group ns="$(arg namespace)"> -->
 
       <!-- Launch nVIP2400 RSSI monitoring if enabled -->
       <node pkg="rssi_get" type="get_rssi_nvip_2400.py" name="rssi_get_node" if="$(arg nvip_monitor)">
@@ -55,7 +55,7 @@
         <arg name="publish_depth" value="true"/>
         <arg name="namespace" value="$(arg namespace)"/>
       </include>
-    </group>
+    <!-- </group> -->
  
 </launch>
 
