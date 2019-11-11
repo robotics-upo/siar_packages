@@ -151,7 +151,7 @@ include_directories(include/
 
 
 
-add_executable(arm_node src/arm_node.cpp)
+add_executable(arm_node src/arm_node.cpp src/siar_arm.cpp)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -161,7 +161,7 @@ add_dependencies(arm_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_
 target_link_libraries(arm_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
 
-add_executable(point2fire src/point2fire.cpp src/Point2Fire.cpp)
+add_executable(point2fire src/point2fire.cpp src/Point2Fire.cpp src/siar_arm.cpp)
 add_dependencies(point2fire ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(point2fire ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
@@ -169,7 +169,7 @@ target_link_libraries(point2fire ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-add_executable(arm_mbzirc src/arm_mbzirc.cpp)
+add_executable(arm_mbzirc src/arm_mbzirc.cpp src/siar_arm.cpp)
 add_dependencies(arm_mbzirc ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(arm_mbzirc ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
