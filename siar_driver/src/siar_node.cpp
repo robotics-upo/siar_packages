@@ -149,9 +149,9 @@ int main(int argc, char** argv)
     bool use_imu;
     bool two_boards;
 
-    pn.param<std::string>("base_frame_id", base_frame_id, "/base_link");
-    pn.param<std::string>("base_ticks_id", base_ticks_id, "/base_ticks");
-    pn.param<std::string>("odom_frame_id", odom_frame_id, "/odom");
+    pn.param<std::string>("base_frame_id", base_frame_id, "base_link");
+    pn.param<std::string>("base_ticks_id", base_ticks_id, "base_ticks");
+    pn.param<std::string>("odom_frame_id", odom_frame_id, "odom");
     pn.param<bool>("use_imu", use_imu, true);
     pn.param<double>("vel_timeout", vel_timeout, VEL_TIMEOUT);
 
@@ -168,13 +168,13 @@ int main(int argc, char** argv)
     ros::Publisher odom_pub = pn.advertise<nav_msgs::Odometry>(odom_frame_id, 5);
     
     // New subscribers (arm, widthvel)
-    ros::Subscriber cmd_vel_sub = n.subscribe<geometry_msgs::Twist>("/cmd_vel",1,cmdVelReceived);
-    ros::Subscriber cmd_arm_sub = n.subscribe<SiarArmCommand>("/arm_cmd",1,commandArmReceived);
-    ros::Subscriber torque_arm_sub = n.subscribe<std_msgs::UInt8>("/arm_torque",1,armTorqueReceived);
-    ros::Subscriber clear_arm_sub = n.subscribe<std_msgs::Bool>("/arm_clear_status", 1, armClearStatusReceived);
-    ros::Subscriber elec_x_sub = n.subscribe<std_msgs::Float32>("/set_x_pos", 1, elec_x_received); 
-    ros::Subscriber width_pos_sub = n.subscribe<std_msgs::Float32>("/width_pos", 1, widthNormReceived);
-    ros::Subscriber cmd_light_sub = n.subscribe<SiarLightCommand>("/light_cmd", 1, commandLightReceived);
+    ros::Subscriber cmd_vel_sub = n.subscribe<geometry_msgs::Twist>("cmd_vel",1,cmdVelReceived);
+    ros::Subscriber cmd_arm_sub = n.subscribe<SiarArmCommand>("arm_cmd",1,commandArmReceived);
+    ros::Subscriber torque_arm_sub = n.subscribe<std_msgs::UInt8>("arm_torque",1,armTorqueReceived);
+    ros::Subscriber clear_arm_sub = n.subscribe<std_msgs::Bool>("arm_clear_status", 1, armClearStatusReceived);
+    ros::Subscriber elec_x_sub = n.subscribe<std_msgs::Float32>("set_x_pos", 1, elec_x_received); 
+    ros::Subscriber width_pos_sub = n.subscribe<std_msgs::Float32>("width_pos", 1, widthNormReceived);
+    ros::Subscriber cmd_light_sub = n.subscribe<SiarLightCommand>("light_cmd", 1, commandLightReceived);
     
     ros::Time current_time,last_time; 
     last_time = ros::Time::now();

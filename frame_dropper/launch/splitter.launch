@@ -16,7 +16,7 @@
   <arg name="flip_2" default="false"/>
   <arg name="namespace"     default=""/>
 
-    <group ns="$(arg namespace)">
+    <!-- <group ns="$(arg namespace)"> -->
       <!-- a reproduction of the real images in nice quality is used, so its quality can be modified without disturbing the bag record -->
       <node pkg="frame_dropper" type="image_splitter_node" name="$(arg node_name)">
         <remap from="in" to="$(arg camera_1)" />
@@ -33,7 +33,7 @@
         <param name="/flip_1" value="$(arg flip_1)"/>
         <param name="/flip_2" value="$(arg flip_2)"/>
       </node>
-    </group>
+    <!-- </group> -->
   
 </launch>
 

@@ -131,18 +131,18 @@ class SiarArmROS:public SiarArm {
     }
     
     // Configure communications depending on the flags
-    siar_status_sub_ = nh.subscribe<siar_driver::SiarStatus>("/siar_status", 1, &SiarArmROS::statusCb, this);
+    siar_status_sub_ = nh.subscribe<siar_driver::SiarStatus>("siar_status", 1, &SiarArmROS::statusCb, this);
     if (enable_marker_) {
-      arm_marker_pub_ = nh.advertise<visualization_msgs::MarkerArray>("/arm_marker", 1);
+      arm_marker_pub_ = nh.advertise<visualization_msgs::MarkerArray>("arm_marker", 1);
     }
     if (enable_server_) {
-      arm_pan_sub_ = nh.subscribe<std_msgs::Float32>("/arm_pan", 1, &SiarArmROS::armPanReceived, this);
-      arm_tilt_sub_ = nh.subscribe<std_msgs::Float32>("/arm_tilt", 1, &SiarArmROS::armTiltReceived, this);
-      set_pan_sub_ = nh.subscribe<std_msgs::Float32>("/set_pan", 1, &SiarArmROS::setPanReceived, this);
-      set_tilt_sub_ = nh.subscribe<std_msgs::Float32>("/set_tilt", 1, &SiarArmROS::setTiltReceived, this);
-      arm_cmd_pub_ = nh.advertise<siar_driver::SiarArmCommand>("/arm_cmd", 1);
-      arm_clear_status_pub_ = nh.advertise<std_msgs::Bool>("/arm_clear_status", 1);
-      arm_torque_pub_ = nh.advertise<std_msgs::UInt8>("/arm_torque", 1);
+      arm_pan_sub_ = nh.subscribe<std_msgs::Float32>("arm_pan", 1, &SiarArmROS::armPanReceived, this);
+      arm_tilt_sub_ = nh.subscribe<std_msgs::Float32>("arm_tilt", 1, &SiarArmROS::armTiltReceived, this);
+      set_pan_sub_ = nh.subscribe<std_msgs::Float32>("set_pan", 1, &SiarArmROS::setPanReceived, this);
+      set_tilt_sub_ = nh.subscribe<std_msgs::Float32>("set_tilt", 1, &SiarArmROS::setTiltReceived, this);
+      arm_cmd_pub_ = nh.advertise<siar_driver::SiarArmCommand>("arm_cmd", 1);
+      arm_clear_status_pub_ = nh.advertise<std_msgs::Bool>("arm_clear_status", 1);
+      arm_torque_pub_ = nh.advertise<std_msgs::UInt8>("arm_torque", 1);
       clearStatusAndActivateMotors();
     }
     
