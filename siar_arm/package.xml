@@ -44,6 +44,10 @@
   <run_depend>actionlib_msgs</run_depend>
   <build_depend>cv_bridge</build_depend>
   <run_depend>cv_bridge</run_depend>
+  <build_depend>fireawareness_ros</build_depend>
+  <run_depend>fireawareness_ros</run_depend>
+  <build_depend>control_toolbox</build_depend>
+  <run_depend>control_toolbox</run_depend>
 
   
   <build_depend>image_transport</build_depend>
