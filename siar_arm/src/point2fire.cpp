@@ -14,7 +14,7 @@ int main(int argc, char** argv) {
 
 	auto siar_arm = SIAR::Point2Fire(nh, pnh);
 	
-	ros::Rate r(ros::Duration(0.1));
+	ros::Rate r(ros::Duration(0.05));
 	while (ros::ok()) {
 		ros::spinOnce();
 		siar_arm.ControlLoop();

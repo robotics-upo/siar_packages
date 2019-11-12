@@ -24,7 +24,7 @@ namespace SIAR
 		pan_control_ = control_toolbox::Pid(kp_pan,ki_pan,kd_pan);
 		tilt_control_ = control_toolbox::Pid(kp_tilt,ki_tilt,kd_tilt);
 		
-		load_data(mot_pan_arm_file_, mot_tilt_arm_file_) ;
+		//~ load_data(mot_pan_arm_file_, mot_tilt_arm_file_) ;
 		
 							
 		fire_detec_sub_ = nh.subscribe( "/firedetections2D", 2,  &Point2Fire::FireDetectCallback, this);
@@ -60,19 +60,17 @@ namespace SIAR
 		if (!center_img_) {  last_command_time_ = ros::Time::now(); return;}
 		
 		float area_fire{0.0};
-		
-		bool fire_detected{false};
-		
+				
 		for( auto& detection: msg->detections)
 		{
 			if( detection.moments[0] > area_fire)
 			{
 				last_fire_detected_ =  Point2D<float>(detection.u, detection.v) - *center_img_; 
 				area_fire_detected_ = area_fire;
-				fire_detected = true;
+				detections_updated_ = true;
 			}
 		}
-		if( !fire_detected )
+		if( !detections_updated_ )
 		{
 			pan_ref_ = pan_center_;
 			tilt_ref_ = tilt_center_;
@@ -92,19 +90,32 @@ namespace SIAR
 		{			
 			const auto& current_time  = ros::Time::now();
 			
-			ROS_INFO("ARM PAN %f %f", pan_ref_ , last_fire_detected_->x);
-			ROS_INFO("ARM TILT %f %f", tilt_ref_ , last_fire_detected_->y);
 			arm_pan_pub_.publish(ComputePID( pan_control_, pan_ref_ , last_fire_detected_->x,  fire_offset_x_, current_time - last_command_time_ , pan_min_, pan_max_));
-			arm_tilt_pub_.publish(ComputePID( tilt_control_, tilt_ref_ , last_fire_detected_->y,  fire_offset_y_, current_time - last_command_time_, tilt_min_, tilt_max_ ));					
+			arm_tilt_pub_.publish(ComputePID( tilt_control_, tilt_ref_ , -last_fire_detected_->y,  fire_offset_y_, current_time - last_command_time_, tilt_min_, tilt_max_ ));					
 			last_command_time_ = current_time;
+			
+			if(detections_updated_)
+			{
+				detections_updated_ = false;
+			}	
+			else
+			{	
+				not_detections_++;
+				if( not_detections_ > max_not_detections_)
+				{
+					not_detections_ = 0;
+					last_fire_detected_ = {};
+				}
+			}
+			
 		}
 	}
 	
 	std_msgs::Float32 Point2Fire::ComputePID( Pid& _pid, float& _ref, float _p,  float _offset, const ros::Duration& _t, float _limit_min, float _limit_max )
 	{
 		std_msgs::Float32 force;
-		 _ref += _pid.computeCommand( _p - _offset, _t);
-		 _ref = (((_ref>_limit_max)?_limit_max:_ref)<_limit_min)?_limit_min:_ref;
+		 _ref = _pid.computeCommand( _p - _offset, _t);
+		 _ref = std::max( std::min( _ref, _limit_max), _limit_min);
 		 force.data =_ref ;
 		return force;
 	}
