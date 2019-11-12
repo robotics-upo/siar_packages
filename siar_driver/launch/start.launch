@@ -13,6 +13,8 @@
   <arg name="debug" default="false"/>
 
   <rosparam command="load" file="$(find siar_driver)/cfg/twist_mux.yaml" ns="twist_mux"/>
+  <rosparam command="load" file="$(find siar_driver)/cfg/locks_mux.yaml" ns="twist_mux"/>
+
   
   <!-- Bring up the SIAR node and the imu if desired -->
   <node name="siar_node" pkg="siar_driver" type="siar_node" output="screen" unless="$(arg debug)">

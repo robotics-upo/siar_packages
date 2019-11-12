@@ -149,9 +149,9 @@ int main(int argc, char** argv)
     bool use_imu;
     bool two_boards;
 
-    pn.param<std::string>("base_frame_id", base_frame_id, "base_link");
+    pn.param<std::string>("base_frame_id", base_frame_id, "siar/base_link");
     pn.param<std::string>("base_ticks_id", base_ticks_id, "base_ticks");
-    pn.param<std::string>("odom_frame_id", odom_frame_id, "odom");
+    pn.param<std::string>("odom_frame_id", odom_frame_id, "siar/odom");
     pn.param<bool>("use_imu", use_imu, true);
     pn.param<double>("vel_timeout", vel_timeout, VEL_TIMEOUT);
 
@@ -208,7 +208,7 @@ int main(int argc, char** argv)
     
     
     // Initialize the constant part of electronics trans
-    electronics_trans.child_frame_id = "electronics_center";
+    electronics_trans.child_frame_id = "siar/electronics_center";
     electronics_trans.header.frame_id = base_frame_id;
     electronics_trans.transform.translation.z = 0.35; // TODO: define a constant in siar_config??
     electronics_trans.transform.translation.x = -0.15; // TODO: define a constant in siar_config??

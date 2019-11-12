@@ -121,7 +121,7 @@ class SiarArmROS:public SiarArm {
     }
     
     if (!pnh.getParam("frame_id", frame_id)) {
-      frame_id = "siar_arm";
+      frame_id = "siar/arm";
     }
     if (!pnh.getParam("enable_server", enable_server_)) {
      enable_server_ = true; 
@@ -390,7 +390,7 @@ class SiarArmROS:public SiarArm {
   
   std_msgs::Header getHeader(int seq = 0) {
     std_msgs::Header h;
-    h.frame_id = "siar_arm_link";
+    h.frame_id = "siar/arm_link";
     h.seq = seq;
     h.stamp = ros::Time::now();
     return h;
@@ -445,14 +445,14 @@ class SiarArmROS:public SiarArm {
     tf::StampedTransform stf;
     stf.stamp_ = ros::Time::now();
     stf.frame_id_ = frame_id;
-    stf.child_frame_id_ = "siar_arm_rotation_1_2";
+    stf.child_frame_id_ = "siar/arm_rotation_1_2";
     stf.setRotation(q);
     tfb.sendTransform(stf);
     
     // Add First Link	
     marker.header.frame_id = stf.child_frame_id_;
     marker.header.stamp = ros::Time::now();
-    marker.ns = "siar_arm";
+    marker.ns = "siar/arm";
     marker.id = id++;
     marker.type = visualization_msgs::Marker::CYLINDER;
     marker.action = visualization_msgs::Marker::ADD;
@@ -476,7 +476,7 @@ class SiarArmROS:public SiarArm {
     
     
     stf.frame_id_ = stf.child_frame_id_;
-    stf.child_frame_id_ = "siar_arm_link_1";
+    stf.child_frame_id_ = "siar/arm_link_1";
     tf::Vector3 v(length[1], 0, 0);
     stf.setIdentity();
     stf.setOrigin(v);
@@ -484,7 +484,7 @@ class SiarArmROS:public SiarArm {
     
     // Rotation 3
     stf.frame_id_ = stf.child_frame_id_;
-    stf.child_frame_id_ = "siar_arm_rotation_3";
+    stf.child_frame_id_ = "siar/arm_rotation_3";
     stf.setIdentity();
     q.setRPY(0, angles[2], 0);
     stf.setRotation(q);
@@ -500,7 +500,7 @@ class SiarArmROS:public SiarArm {
     marker.id = id++;
     model.markers.push_back(marker);
     stf.frame_id_ = stf.child_frame_id_;
-    stf.child_frame_id_ = "siar_arm_link_2";
+    stf.child_frame_id_ = "siar/arm_link_2";
     v.setValue(length[2], 0, 0);
     stf.setIdentity();
     stf.setOrigin(v);
@@ -508,7 +508,7 @@ class SiarArmROS:public SiarArm {
     
     // Rotation 4
     stf.frame_id_ = stf.child_frame_id_;
-    stf.child_frame_id_ = "siar_arm_rotation_4";
+    stf.child_frame_id_ = "siar/arm_rotation_4";
     stf.setIdentity();
     q.setRPY(0, angles[3], 0);
     stf.setRotation(q);
@@ -524,7 +524,7 @@ class SiarArmROS:public SiarArm {
     marker.id = id++;
     model.markers.push_back(marker);
     stf.frame_id_ = stf.child_frame_id_;
-    stf.child_frame_id_ = "siar_arm_link_3";
+    stf.child_frame_id_ = "siar/arm_link_3";
     v.setValue(length[3], 0, 0);
     stf.setIdentity();
     stf.setOrigin(v);
@@ -533,7 +533,7 @@ class SiarArmROS:public SiarArm {
           
     // PreRotation 5
     stf.frame_id_ = stf.child_frame_id_;
-    stf.child_frame_id_ = "siar_arm_prerotation_5";
+    stf.child_frame_id_ = "siar/arm_prerotation_5";
     stf.setIdentity();
     v.setValue(0.02,0,0);
     q.setRPY(0, M_PI/2, 0);
@@ -543,7 +543,7 @@ class SiarArmROS:public SiarArm {
           
     // Rotation 5
     stf.frame_id_ = stf.child_frame_id_;
-    stf.child_frame_id_ = "siar_arm_rotation_5";
+    stf.child_frame_id_ = "siar/arm_rotation_5";
     stf.setIdentity();
     q.setRPY(0, 0, angles[4]);
     stf.setRotation(q);
@@ -564,14 +564,14 @@ class SiarArmROS:public SiarArm {
 
     // Final transforms
     stf.frame_id_ = stf.child_frame_id_;
-    stf.child_frame_id_ = "siar_arm_final";
+    stf.child_frame_id_ = "siar/arm_final";
     v.setValue(length[4], 0, 0);
     stf.setIdentity();
     stf.setOrigin(v);
     tfb.sendTransform(stf);
 
     stf.frame_id_ = stf.child_frame_id_;
-    stf.child_frame_id_ = "siar_arm_camera";
+    stf.child_frame_id_ = "siar/arm_camera";
     stf.setIdentity();
     q.setRPY(3.1415, 0, 1.57);
     stf.setRotation(q);
