@@ -67,10 +67,14 @@ class Point2Fire
 		float tilt_ref_{0.0};
 		float pan_center_{0.0};
 		float tilt_center_{0.0};		
-		float pan_min_{0.0};
-		float tilt_min_{0.0};
-		float pan_max_{0.0};
-		float tilt_max_{0.0};
+		float pan_min_{-0.99};
+		float tilt_min_{-0.99};
+		float pan_max_{0.99};
+		float tilt_max_{0.99};
+		
+		int not_detections_ {5};
+		int max_not_detections_ {0};
+		bool detections_updated_ {false};
 		
 		float fire_offset_x_, fire_offset_y_;
 		
