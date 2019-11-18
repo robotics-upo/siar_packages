@@ -12,7 +12,7 @@ namespace SIAR
 		pnh.param<std::string>("mot_tilt_arm_file", mot_tilt_arm_file_, "");
 		
 		pnh.param<std::string>("robot_name", robot_name_,"siar");
-		pnh.param<float>("kp_pan", kp_pan,1.0);
+		pnh.param<float>("kp_pan", kp_pan,0.6);
 		pnh.param<float>("ki_pan", ki_pan,0.0);
 		pnh.param<float>("kd_pan", kd_pan,0.0);
 		pnh.param<float>("kp_tilt", kp_tilt,1.0);
@@ -27,11 +27,13 @@ namespace SIAR
 		//~ load_data(mot_pan_arm_file_, mot_tilt_arm_file_) ;
 		
 							
-		fire_detec_sub_ = nh.subscribe( "/firedetections2D", 2,  &Point2Fire::FireDetectCallback, this);
+		fire_detec_sub_ = nh.subscribe( "firedetections2D", 2,  &Point2Fire::FireDetectCallback, this);
+		fire_detec_3D_sub_ = nh.subscribe( "firedetections3D", 2,  &Point2Fire::FireDetect3DCallback, this);
 		fire_cam_info_sub_ = nh.subscribe("/" + robot_name_ + "/thermal_camera/camera_info", 2,  &Point2Fire::CamInfoCallback, this);
 		pointing_fire_pub_ = nh.advertise<std_msgs::Bool>("/" + robot_name_ + "/pointing_fire_pub", 2);
 		arm_pan_pub_ = nh.advertise<std_msgs::Float32>("/" + robot_name_ +"/arm_pan", 2);
 		arm_tilt_pub_ = nh.advertise<std_msgs::Float32>("/" + robot_name_ +"/arm_tilt", 2);					
+		fire_detected_pub_ = nh.advertise<std_msgs::Bool>("/" + robot_name_ +"/fire_detected", 2);					
 	}	
 
 	void Point2Fire::load_data(const std::string &mot_pan_arm_file, const std::string &mot_tilt_arm_file) 
@@ -77,11 +79,28 @@ namespace SIAR
 			last_command_time_ = ros::Time::now();
 			last_fire_detected_ = {};
 		}
+		
+		std_msgs::Bool is_detected;
+		is_detected.data = last_fire_detected_?true:false;
+
+		fire_detected_pub_.publish(is_detected);
 	}
+
+	void Point2Fire::FireDetect3DCallback(const fireawareness_ros::FireDetections3D::ConstPtr& msg)
+	{
+		detect_fov_.clear();
+		for( auto& p : msg->fov)
+		{
+			detect_fov_.push_back(Point2D<float>( p.x, p.y ));
+		} 
+	}
+
+
 
 	void Point2Fire::CamInfoCallback(const sensor_msgs::CameraInfo::ConstPtr& msg)
 	{
 		center_img_ = Point2D<float>(msg->K[2], msg->K[5]);
+		max_point_img_ = Point2D<float>(msg->width, msg->height);
 	}
 	
 	void Point2Fire::ControlLoop( void)
@@ -89,7 +108,26 @@ namespace SIAR
 		if(last_fire_detected_)
 		{			
 			const auto& current_time  = ros::Time::now();
-			
+
+			if( !detect_fov_.empty() )
+			{
+				Point2D<float> perc_point_detect{ last_fire_detected_->x / max_point_img_.x, last_fire_detected_->y / max_point_img_.y };
+				
+				dist_2_fire_.x = perc_point_detect.x * ( (detect_fov_.at(0).x - detect_fov_.at(1).x) * perc_point_detect.y + 
+									(detect_fov_.at(3).x - detect_fov_.at(2).x) * (1 - perc_point_detect.y)) + 
+									(detect_fov_.at(1).x * perc_point_detect.y + detect_fov_.at(2).x * (1 - perc_point_detect.y));
+
+				dist_2_fire_.y = perc_point_detect.y * ( (detect_fov_.at(0).y - detect_fov_.at(3).y) * perc_point_detect.x + 
+									(detect_fov_.at(1).y - detect_fov_.at(2).y) * (1 - perc_point_detect.x)) + 
+									(detect_fov_.at(3).y * perc_point_detect.x + detect_fov_.at(2).y * (1 - perc_point_detect.x));
+
+				ROS_INFO("fire detected at: %f    %f  ", dist_2_fire_.x, dist_2_fire_.y );
+				std::cout<<"ENTRA"<<std::endl;
+			}
+
+			std::cout<<"ME PASO"<<std::endl;
+
+
 			arm_pan_pub_.publish(ComputePID( pan_control_, pan_ref_ , last_fire_detected_->x,  fire_offset_x_, current_time - last_command_time_ , pan_min_, pan_max_));
 			arm_tilt_pub_.publish(ComputePID( tilt_control_, tilt_ref_ , -last_fire_detected_->y,  fire_offset_y_, current_time - last_command_time_, tilt_min_, tilt_max_ ));					
 			last_command_time_ = current_time;

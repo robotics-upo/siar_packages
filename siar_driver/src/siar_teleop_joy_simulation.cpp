@@ -518,7 +518,8 @@ int main(int argc, char** argv)
   bool start = false;
   bool first_start = true;
   ROS_INFO("Siar teleop node. Press START to have fun. Press BACK at any moment to exit.");
-  while (n.ok()) {
+  while (n.ok()) 
+  {
     if (!start) 
     {
       sendCmdVel(0.0, 0.0, vel_pub);
@@ -531,22 +532,22 @@ int main(int argc, char** argv)
       panicRate.sleep();
       if (!panic_showed) 
       {
-	panic_showed = true;
-	ROS_ERROR("Panic mode ON. Press START to exit panic mode.");
+        panic_showed = true;
+        ROS_ERROR("Panic mode ON. Press START to exit panic mode.");
       }
       if (startPressed) 
       {
-	panic = false;
-	panic_showed = false; // Turn it off for future PANICs
-	ROS_INFO("Panic mode OFF. Entering normal mode (already started)"); 
+        panic = false;
+        panic_showed = false; // Turn it off for future PANICs
+        ROS_INFO("Panic mode OFF. Entering normal mode (already started)"); 
       }
     } 
     else 
     {
       if (first_start) 
       {
-	first_start = false;
-	ROS_INFO("The show has started, please have fun.");
+        first_start = false;
+        ROS_INFO("The show has started, please have fun.");
       }
       if ((ros::Time::now() - last_remote_joy_time).toSec() > max_joy_time &&
         last_remote_joy_time.toSec() > last_joy_time.toSec() )
@@ -562,41 +563,43 @@ int main(int argc, char** argv)
       }
       rate.sleep();
     }
-    ros::spinOnce();
     
     if (backPressed) {
-    ROS_INFO("Back button pressed --> stopping Siar and raposa bag. ");
-    // Before exiting --> stop Siar
-    sendCmdVel(0.0, 0.0, vel_pub);
-    
-    int ret_val;
-    
-    ret_val = system ("rosnode kill /rosbag_raposa");
-    
-    int cont = 0;
-    while (backPressed && cont < 5) {
-      sendCmdVel(0.0, 0.0, vel_pub);
-      ros::spinOnce();
-      sleep(1);
-      cont++;
-    }
-    
-    if (cont >= 5) {
-      ROS_INFO("Killing all ros nodes and shutting down.");
-      ret_val = system("rosnode kill -a");
-      ret_val = system("shutdown now");
-    } else {
+      ROS_INFO("Back button pressed --> stopping Siar and raposa bag. ");
+      // Before exiting --> stop Siar
+      // sendCmdVel(0.0, 0.0, vel_pub);
       
-      pid_t pid = fork();
+      int ret_val;
       
-      if (pid == 0) {
-        //Client
-        ret_val = system("roslaunch siar_driver bag.launch");
-        return 0;
+      ret_val = system ("rosnode kill /rosbag_raposa");
+      
+      int cont = 0;
+      while (backPressed && cont < 5) {
+        sendCmdVel(0.0, 0.0, vel_pub);
+        // ros::spinOnce();
+        sleep(1);
+        cont++;
       }
-      backPressed = false;
+      
+      if (cont >= 5) {
+        ROS_INFO("Killing all ros nodes and shutting down.");
+        ret_val = system("rosnode kill -a");
+        ret_val = system("shutdown now");
+      } else {
+        
+        pid_t pid = fork();
+        
+        if (pid == 0) 
+        {
+          //Client
+          ret_val = system("roslaunch siar_driver bag.launch");
+          return 0;
+        }
+        backPressed = false;
+      }
     }
-  }
+    ros::spinOnce();
+
   }
   
   

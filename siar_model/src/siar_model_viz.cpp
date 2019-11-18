@@ -445,8 +445,8 @@ int main( int argc, char **argv)
 	// Create the publisher and subscribers
 	g_width = 0.6;
 	g_shift = 0.1;
-	pubModel = lnh.advertise<visualization_msgs::MarkerArray>("/siar_model", 0);
-	subStatus = lnh.subscribe("/siar_status", 1, statusCallback);
+	pubModel = lnh.advertise<visualization_msgs::MarkerArray>("siar_model", 0);
+	subStatus = lnh.subscribe("siar_status", 1, statusCallback);
 	
 	// Loop for ever
 	ros::Rate loop_rate(hz);

@@ -15,6 +15,7 @@
 
 #include "siar_arm/siar_arm_ros.hpp"
 #include "fireawareness_ros/FireDetections2D.h"
+#include "fireawareness_ros/FireDetections3D.h"
 
 
 namespace SIAR
@@ -25,6 +26,7 @@ namespace SIAR
 			T x;
 			T y;
 			Point2D( T _x, T _y): x(_x), y(_y) {};
+			Point2D(): x(0.0), y(0.0) {};
 			Point2D operator+(const Point2D &c1)
 			{
 				return Point2D(this->x + c1.x,this->y + c1.y);
@@ -47,10 +49,12 @@ class Point2Fire
 	
 	public:
 		ros::Subscriber fire_detec_sub_;
+		ros::Subscriber fire_detec_3D_sub_;
 		ros::Subscriber fire_cam_info_sub_;
 		ros::Publisher pointing_fire_pub_;
 		ros::Publisher arm_pan_pub_;
 		ros::Publisher arm_tilt_pub_;
+		ros::Publisher fire_detected_pub_;
 		
 		std::string mot_pan_arm_file_{};
 		std::string mot_tilt_arm_file_{};
@@ -77,8 +81,14 @@ class Point2Fire
 		bool detections_updated_ {false};
 		
 		float fire_offset_x_, fire_offset_y_;
+
+		std::vector<Point2D<float>> detect_fov_;
+
+
 		
 		std::experimental::optional<Point2D<float>> center_img_;
+		Point2D<float> max_point_img_;
+		Point2D<float> dist_2_fire_;
 		std::experimental::optional<Point2D<float>> last_fire_detected_;
 		float area_fire_detected_{0.0};
 				
@@ -89,6 +99,7 @@ class Point2Fire
 		
 		
 		void FireDetectCallback(const fireawareness_ros::FireDetections2D::ConstPtr& msg);
+		void FireDetect3DCallback(const fireawareness_ros::FireDetections3D::ConstPtr& msg);
 		void CamInfoCallback(const sensor_msgs::CameraInfo::ConstPtr& msg);
 		void ControlLoop( void);
 		std_msgs::Float32 ComputePID( Pid& _pid, float& _ref, float _p,  float _offset, const ros::Duration& _t, float _limit_min, float _limit_max  );	
