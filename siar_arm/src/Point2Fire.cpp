@@ -122,11 +122,7 @@ namespace SIAR
 									(detect_fov_.at(3).y * perc_point_detect.x + detect_fov_.at(2).y * (1 - perc_point_detect.x));
 
 				ROS_INFO("fire detected at: %f    %f  ", dist_2_fire_.x, dist_2_fire_.y );
-				std::cout<<"ENTRA"<<std::endl;
 			}
-
-			std::cout<<"ME PASO"<<std::endl;
-
 
 			arm_pan_pub_.publish(ComputePID( pan_control_, pan_ref_ , last_fire_detected_->x,  fire_offset_x_, current_time - last_command_time_ , pan_min_, pan_max_));
 			arm_tilt_pub_.publish(ComputePID( tilt_control_, tilt_ref_ , -last_fire_detected_->y,  fire_offset_y_, current_time - last_command_time_, tilt_min_, tilt_max_ ));					
