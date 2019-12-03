@@ -54,11 +54,11 @@ int main(int argc, char** argv)
   
   // -------------- End of ROS stuff -------------------
   
-  std::string siar_port_1("/dev/serial/by-id/usb-FTDI_MM232R_USB_MODULE_board2-if00-port0");
+  std::string siar_port_1("/dev/serial/by-id/usb-FTDI_MM232R_USB_MODULE_FTE48B69-if00-port0");
   std::string joy_port("/dev/serial/by-id/usb-FTDI_MM232R_USB_MODULE_FTGT8JO-if00-port0");
   std::string battery_port;
   
-  pn.param<std::string>("battery_device", battery_port, "/dev/serial/by-id/usb-FTDI_MM232R_USB_MODULE_board1-if00-port0");
+  pn.param<std::string>("battery_device", battery_port, "/dev/serial/by-id/usb-FTDI_MM232R_USB_MODULE_FTE48BAK-if00-port0");
  
   SiarConfig siar_config;
   siar_driver::SiarStatus st;
@@ -69,7 +69,7 @@ int main(int argc, char** argv)
     siar = new SiarManagerWidthAdjustment(siar_port_1, joy_port, battery_port, siar_config);
     ROS_INFO("Connected to Siar OK");
   } catch (exception &e) {
-    ROS_ERROR("Could not connect to Siar. Exiting.\n");
+    ROS_ERROR("Could not connect to Siar. Content: %s Exiting.", e.what());
     return -1;
   }
   
