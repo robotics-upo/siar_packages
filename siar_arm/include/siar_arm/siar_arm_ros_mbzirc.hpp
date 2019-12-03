@@ -94,91 +94,22 @@ class SiarArmROSMBZirc:public SiarArmROS {
   }
   
   virtual void goalCb() {
-    auto goal = s_.acceptNewGoal();
-
-    if (curr_status_ == PAN_AND_TILT || curr_status_ == PARKED || curr_status_== NAVIGATION) {
-      std::vector< std::vector<double> > mat;
-      std::ostringstream os;
-      os << resource_folder_ << "/" << goal->mov_name;
+    
+    ROS_INFO("Goal not supported in MBZIRC");
       
-      last_status_ = curr_status_;
       
-      if (curr_status_== PARKED && goal->mov_name != "pan_tilt") { // From PARKED position we can only reach PAN_AND_TILT
-        // Arm not ready or already moving to a destination --> cancel
-        siar_arm::armServosMoveActionResult::_result_type result;
-        result.executed = false;
-        result.position_servos_final = curr_siar_status_.herculex_position;
-        s_.setAborted(result, "From park status we can only reach pan_tilt state.");
-        curr_cmd_ = curr_siar_status_.herculex_position;
-        ROS_ERROR("Could not do goal: %s. From park status we can only reach pan_tilt state.", goal->mov_name.c_str());
-        return;
-      }
       
-      if (curr_status_ == PAN_AND_TILT && goal->mov_name != "park") {
-        // Arm not ready or already moving to a destination --> cancel
-        siar_arm::armServosMoveActionResult::_result_type result;
-        result.executed = false;
-        result.position_servos_final = curr_siar_status_.herculex_position;
-        s_.setAborted(result, "From park status we can only reach pan_tilt state.");
-        curr_cmd_ = curr_siar_status_.herculex_position;
-        ROS_ERROR("Could not do goal: %s. From park status we can only reach pan_tilt state.", goal->mov_name.c_str());
-        return;
-      }
       
-      os << "_mbzirc.txt";
-      curr_traj_.clear();
-      curr_traj_name_ =goal->mov_name;
-      ROS_INFO("SiarArmROS::goalCb. Command received: %s \t Trying to load file: %s", curr_traj_name_.c_str(), os.str().c_str());
-      if (functions::getMatrixFromFile(os.str(), mat)) {
-        ROS_INFO("Load succeded.");
-	    curr_status_ = MOVING;
-        for (size_t i = 0; i < mat.size(); i++) {
-        siar_driver::SiarArmCommand curr_cmd;
-        if (mat[i].size() < 6)
-            continue;
-        for (int j = 0; j < 5; j++) {
-            curr_cmd.joint_values[j] = mat[i][j];
-        }
-        curr_cmd.command_time = mat[i][5];
-            
-        curr_traj_.push_back(curr_cmd);
-        }
-	
-        curr_feed_.n_movs = curr_traj_.size();
-        curr_feed_.curr_mov = 0;
-      
-        publishCmd(curr_traj_[curr_feed_.curr_mov]);
-	    curr_cmd_ = curr_traj_[curr_feed_.curr_mov].joint_values;
-      
-        s_.publishFeedback(curr_feed_);
-      } else {
-        // Arm not ready or already moving to a destination --> cancel
-        siar_arm::armServosMoveActionResult::_result_type result;
-        result.executed = false;
-        result.position_servos_final = curr_siar_status_.herculex_position;
-        s_.setAborted(result, "Trajectory resource not found");
-        curr_cmd_ = curr_siar_status_.herculex_position;
-      }
-      
-    } else {
-      // Arm not ready or already moving to a destination --> cancel
-      siar_arm::armServosMoveActionResult::_result_type result;
-      result.executed = false;
-      result.position_servos_final = curr_siar_status_.herculex_position;
-      s_.setAborted(result, "Arm not ready");
-    }
   }
   
   void statusCb(const siar_driver::SiarStatus::ConstPtr& new_status) {
     curr_siar_status_ = *new_status;
     if (curr_status_ == NOT_INITIALIZED) {
       curr_cmd_ = curr_siar_status_.herculex_position;
-      last_status_= curr_status_ = initial_status_;
-      if (initial_status_ == PARKED) {
-        ROS_INFO("Received first status. Assuming park STATE");
-      } else if (initial_status_ == PAN_AND_TILT) {
-        ROS_INFO("Received first status. Assuming PAN_AND_TILT");
-      } 
+      last_status_= curr_status_ = PAN_AND_TILT;
+      
+      ROS_INFO("Received first status. Assuming PAN_AND_TILT");
+      
     }
   }
   
