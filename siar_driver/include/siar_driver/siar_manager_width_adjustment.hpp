@@ -385,13 +385,13 @@ width_to_lin_pos(NULL), x_elec_to_lin_pos(NULL), reverse_right(false)
   op_sub = pn.subscribe("operation_mode", 1, &SiarManagerWidthAdjustment::opReceived, this);
   
   if (!pn.getParam("lin_mot_file", lin_mot_vec_file)) {
-    lin_mot_vec_file = "lin_mot";
+    lin_mot_vec_file = "lin_pos";
   }
   if (!pn.getParam("width_file", width_file)) {
-    width_file = "width_file";
+    width_file = "width";
   }
   if (!pn.getParam("elec_x_file", elec_x_file)) {
-    elec_x_file = "elec_x_file";
+    elec_x_file = "center_x";
   }
   int lv;
   if (!pn.getParam("linear_velocity", lv)) {
