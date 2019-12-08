@@ -131,7 +131,7 @@ class SiarArmROS:public SiarArm {
     }
     
     // Configure communications depending on the flags
-    siar_status_sub_ = nh.subscribe<siar_driver::SiarStatus>("siar_status", 1, &SiarArmROS::statusCb, this);
+    siar_status_sub_ = nh.subscribe<siar_driver::SiarStatus>("siar_node/siar_status", 1, &SiarArmROS::statusCb, this);
     if (enable_marker_) {
       arm_marker_pub_ = nh.advertise<visualization_msgs::MarkerArray>("arm_marker", 1);
     }
@@ -194,43 +194,51 @@ class SiarArmROS:public SiarArm {
 	      arrived = fabs(v[i] - v2[i]) < max_joint_dist_;
       }
       
-      
       if (arrived) {
-	curr_feed_.curr_mov++;
-	if (curr_feed_.curr_mov == curr_traj_.size()) {
-	  // Final waypoint has been reached --> send the result
-	  siar_arm::armServosMoveActionResult::_result_type result;
-	  result.executed = true;
-	  result.position_servos_final = curr_siar_status_.herculex_position;
-	  std::ostringstream message;
-	  message <<"SiarArm::loop --> Arm reached the final destination. New state: ";
-	  
-	  if (curr_traj_name_ == "navigation") {
-	    message << "NAVIGATION";
-	    curr_status_ = NAVIGATION;
-	  } else if (curr_traj_name_ == "park") {
-	    message << "PARKED";
-	    curr_status_ = PARKED;
-	  } else {
-	    message << "PAN_AND_TILT";
-	    curr_status_ = SiarArmROS::PAN_AND_TILT;
-	  }
-	  s_.setSucceeded(result, message.str());
-	} else {
-	  s_.publishFeedback(curr_feed_);
-	  publishCmd(curr_traj_[curr_feed_.curr_mov]);
-	  curr_cmd_ = curr_traj_[curr_feed_.curr_mov].joint_values;
-	}
-      } else if (timeout_ < 0.0) {
-	ROS_ERROR("SiarArm::loop --> Timeout detected while following a trajectory. Returning to state: %d", (int)last_status_);
-	siar_arm::armServosMoveActionResult::_result_type result;
-	result.executed = false;
-	result.position_servos_final = curr_siar_status_.herculex_position;
-	std::ostringstream message;
-	message <<"SiarArm::loop --> Could not reach the final destination. Returning to previous state.";
-	s_.setSucceeded(result, message.str());
-	curr_status_ = last_status_;
-	clearStatusAndActivateMotors();
+	      curr_feed_.curr_mov++;
+        if (curr_feed_.curr_mov == curr_traj_.size()) 
+        {
+          // Final waypoint has been reached --> send the result
+          siar_arm::armServosMoveActionResult::_result_type result;
+          result.executed = true;
+          result.position_servos_final = curr_siar_status_.herculex_position;
+          std::ostringstream message;
+          message <<"SiarArm::loop --> Arm reached the final destination. New state: ";
+          
+          if (curr_traj_name_ == "navigation") {
+            message << "NAVIGATION";
+            curr_status_ = NAVIGATION;
+          } 
+          else if (curr_traj_name_ == "park") 
+          {
+            message << "PARKED";
+            curr_status_ = PARKED;
+          } 
+          else 
+          {
+            message << "PAN_AND_TILT";
+            curr_status_ = SiarArmROS::PAN_AND_TILT;
+          }
+          s_.setSucceeded(result, message.str());
+        } 
+        else 
+        {
+          s_.publishFeedback(curr_feed_);
+          publishCmd(curr_traj_[curr_feed_.curr_mov]);
+          curr_cmd_ = curr_traj_[curr_feed_.curr_mov].joint_values;
+        }
+      } 
+      else if (timeout_ < 0.0) 
+      {
+        ROS_ERROR("SiarArm::loop --> Timeout detected while following a trajectory. Returning to state: %d", (int)last_status_);
+        siar_arm::armServosMoveActionResult::_result_type result;
+        result.executed = false;
+        result.position_servos_final = curr_siar_status_.herculex_position;
+        std::ostringstream message;
+        message <<"SiarArm::loop --> Could not reach the final destination. Returning to previous state.";
+        s_.setSucceeded(result, message.str());
+        curr_status_ = last_status_;
+        clearStatusAndActivateMotors();
       }
     }
   }
@@ -241,6 +249,7 @@ class SiarArmROS:public SiarArm {
     
     else 
       move_pan_ = false;
+    
     pan_rate_ = functions::saturate((double)data->data, -1.0, 1.0);
     pan_rate_ *= max_pan_rate_;
     cmd_time_pan_tilt = 100;
@@ -251,6 +260,7 @@ class SiarArmROS:public SiarArm {
       move_tilt_ = true; 
     else 
       move_tilt_ = false;
+    
     tilt_rate_ = functions::saturate((double)data->data, -1.0, 1.0);
     tilt_rate_ *= max_tilt_rate_;
     cmd_time_pan_tilt = 100;
