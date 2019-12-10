@@ -150,11 +150,8 @@ ros::Publisher slow_pub;
 ros::Publisher mode_pub;
 ros::Publisher width_pos_pub;
 ros::Publisher light_cmd_pub;
-ros::Publisher arm_pan_pub, arm_tilt_pub;
+ros::Publisher arm_pan_pub, arm_tilt_pub, arm_torque_pub, arm_mode_pub, arm_clear_pub;
 ros::Publisher water_pub;
-ros::Publisher arm_torque_pub;
-ros::Publisher arm_clear_pub;
-ros::Publisher arm_mode_pub;
 
 MoveArmClient *move_arm_client = NULL;
 
@@ -175,7 +172,7 @@ void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
     if (joy->buttons[auto_button] == 1) {
         goal.mov_name = "pan_tilt";
         move_arm_client->sendGoal(goal);
-        ROS_INFO("Sending pan and tilt arm command.");
+        ROS_INFO("Sending park arm command.");
     }
   }
   ant_arm_button = joy->buttons[arm_mode_button] == 1 || sec_button == 1;

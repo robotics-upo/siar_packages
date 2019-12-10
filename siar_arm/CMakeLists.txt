@@ -173,6 +173,10 @@ add_executable(arm_mbzirc src/arm_mbzirc.cpp src/siar_arm.cpp)
 add_dependencies(arm_mbzirc ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(arm_mbzirc ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
+add_executable(arm_fire_AS src/arm_fire_AS.cpp)
+add_dependencies(arm_fire_AS ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(arm_fire_AS ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+
 #############
 ## Install ##
 #############
