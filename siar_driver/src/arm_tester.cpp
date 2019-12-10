@@ -53,8 +53,8 @@ int main(int argc, char **argv) {
   // ROS stuff
   ros::init(argc, argv, "arm_tester");
   ros::NodeHandle n;
-  ros::Publisher arm_pub = n.advertise<SiarArmCommand>("/arm_cmd", 1);
-  ros::Publisher arm_torque_pub = n.advertise<std_msgs::UInt8>("/arm_torque", 1);
+  ros::Publisher arm_pub = n.advertise<SiarArmCommand>("siar/arm_cmd", 1);
+  ros::Publisher arm_torque_pub = n.advertise<std_msgs::UInt8>("siar/arm_torque", 1);
   
   sleep(1);
   

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(siar_arm)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11)
+add_compile_options(-std=c++14)
 set(CMAKE_BUILD_TYPE Debug)
 
 ## Find catkin macros and libraries
@@ -14,6 +14,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   functions
+  fireawareness_ros
   message_generation
   std_msgs
   nav_msgs
@@ -26,6 +27,7 @@ find_package(catkin REQUIRED COMPONENTS
   actionlib
   image_transport 
   cv_bridge
+  control_toolbox 
 )
 
 ## System dependencies are found with CMake's conventions
@@ -126,7 +128,7 @@ generate_messages(
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  LIBRARIES siar_driver
- CATKIN_DEPENDS roscpp rospy functions std_msgs message_generation message_runtime nav_msgs robot_state_publisher sensor_msgs tf 
+ CATKIN_DEPENDS roscpp rospy functions fireawareness_ros std_msgs message_generation message_runtime nav_msgs robot_state_publisher sensor_msgs tf 
 
 #  DEPENDS system_lib
 )
@@ -149,7 +151,7 @@ include_directories(include/
 
 
 
-add_executable(arm_node src/arm_node.cpp)
+add_executable(arm_node src/arm_node.cpp src/siar_arm.cpp)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -157,6 +159,23 @@ add_executable(arm_node src/arm_node.cpp)
 add_dependencies(arm_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 target_link_libraries(arm_node ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+
+
+add_executable(point2fire src/point2fire.cpp src/Point2Fire.cpp src/siar_arm.cpp)
+add_dependencies(point2fire ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(point2fire ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+
+
+## Add cmake target dependencies of the library
+## as an example, code may need to be generated before libraries
+## either from message generation or dynamic reconfigure
+add_executable(arm_mbzirc src/arm_mbzirc.cpp src/siar_arm.cpp)
+add_dependencies(arm_mbzirc ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(arm_mbzirc ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+
+add_executable(arm_fire_AS src/arm_fire_AS.cpp)
+add_dependencies(arm_fire_AS ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(arm_fire_AS ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
 #############
 ## Install ##

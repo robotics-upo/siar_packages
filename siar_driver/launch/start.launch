@@ -4,7 +4,7 @@
   <arg name="joystick" default="true"/>
   <arg name="use_imu" default="true"/>
   <arg name="imu_device" default="/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A603UZCU-if00-port0"/>
-  <arg name="imu_topic" default="/arduimu_v3/imu"/>
+  <arg name="imu_topic" default="arduimu_v3/imu"/>
   <arg name="yaw_mixer" default="Bias"/>
   <arg name="siar_device_1" default="/dev/serial/by-id/usb-FTDI_MM232R_USB_MODULE_FTE48B69-if00-port0"/>
   <arg name="battery_device" default="/dev/serial/by-id/usb-FTDI_MM232R_USB_MODULE_FTE48BAK-if00-port0"/>
@@ -13,8 +13,10 @@
   <arg name="debug" default="false"/>
 
   <rosparam command="load" file="$(find siar_driver)/cfg/twist_mux.yaml" ns="twist_mux"/>
+  <rosparam command="load" file="$(find siar_driver)/cfg/locks_mux.yaml" ns="twist_mux"/>
+
   
-  <!-- Bring up the raposa node and the imu if desired -->
+  <!-- Bring up the SIAR node and the imu if desired -->
   <node name="siar_node" pkg="siar_driver" type="siar_node" output="screen" unless="$(arg debug)">
     <param name="siar_device_1" value="$(arg siar_device_1)"/>
     <param name="battery_device" value="$(arg battery_device)"/>
@@ -29,7 +31,6 @@
     <param name="elec_x_file" value="$(find siar_driver)/data/center_x"/>
     <param name="angular_gain" value="1.25"/>
   </node>
-  
   
   <node name="siar_node" pkg="siar_driver" type="siar_node" if="$(arg debug)" launch-prefix="xterm -e gdb --args">
     <param name="siar_device_1" value="$(arg siar_device_1)"/>
@@ -50,13 +51,14 @@
   </include>
   
   <node name="siar_joy" pkg="siar_driver" type="siar_teleop_joy" output="screen" if="$(arg joystick)" >
-    <remap from="/cmd_vel" to="/user_cmd_vel"/>
+    <remap from="cmd_vel" to="user_cmd_vel"/>
   </node>
+
   <node name="joy_node" pkg="joy" type="joy_node" if="$(arg joystick)" />
 
   <!-- MUX for cmd_vel -->
     <node pkg="twist_mux" type="twist_mux" name="twist_mux">
-        <remap from="/cmd_vel_out" to="/cmd_vel"/>
+        <remap from="cmd_vel_out" to="cmd_vel"/>
     </node>
   
 </launch>
