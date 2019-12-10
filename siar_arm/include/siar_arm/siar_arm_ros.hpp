@@ -130,12 +130,22 @@ class SiarArmROS:public SiarArm {
       enable_marker_ = true;
     }
     
+    
+    
+    
+    
+  }
+
+  virtual void start() {
+    ros::NodeHandle nh;
     // Configure communications depending on the flags
-    siar_status_sub_ = nh.subscribe<siar_driver::SiarStatus>("siar_node/siar_status", 1, &SiarArmROS::statusCb, this);
     if (enable_marker_) {
       arm_marker_pub_ = nh.advertise<visualization_msgs::MarkerArray>("arm_marker", 1);
     }
-    if (enable_server_) {
+
+    siar_status_sub_ = nh.subscribe<siar_driver::SiarStatus>("siar_node/siar_status", 1, &SiarArmROS::statusCb, this);
+     if (enable_server_) {
+
       arm_pan_sub_ = nh.subscribe<std_msgs::Float32>("arm_pan", 1, &SiarArmROS::armPanReceived, this);
       arm_tilt_sub_ = nh.subscribe<std_msgs::Float32>("arm_tilt", 1, &SiarArmROS::armTiltReceived, this);
       set_pan_sub_ = nh.subscribe<std_msgs::Float32>("set_pan", 1, &SiarArmROS::setPanReceived, this);
@@ -145,11 +155,8 @@ class SiarArmROS:public SiarArm {
       arm_torque_pub_ = nh.advertise<std_msgs::UInt8>("arm_torque", 1);
       clearStatusAndActivateMotors();
     }
-    
-    
-  }
 
-  virtual void start() {
+
     // Clear status and activate the motors of the arm
     SiarArm::load_data(mot_file, ang_file);
     ros::Rate r(loop_rate_);
@@ -424,16 +431,27 @@ class SiarArmROS:public SiarArm {
   
   bool clearStatusAndActivateMotors() const {
     bool ret_val = true;
-    ROS_INFO("Clearing status of the herculex and turning on the torque");
+
     std_msgs::UInt8 msg2;
-    msg2.data = 2; // 2 for turning on the motors
+    msg2.data = 0; // 1 for turning off the motors
     arm_torque_pub_.publish(msg2);
     usleep(50000);
+
     std_msgs::Bool msg;
     msg.data = 1;
     arm_clear_status_pub_.publish(msg);
     usleep(50000);
+
+    ROS_INFO("Clearing status of the herculex and turning on the torque");
+    msg2.data = 1; // 1 for turning on the motors
     arm_torque_pub_.publish(msg2);
+    usleep(50000);
+    
+    msg.data = 1;
+    arm_clear_status_pub_.publish(msg);
+    usleep(50000);
+    msg2.data = 2; // 2 for turning on the motors
+    arm_torque_pub_.publish(msg2); 
     
     return ret_val;
   }
