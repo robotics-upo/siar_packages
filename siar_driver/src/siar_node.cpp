@@ -51,6 +51,7 @@ ros::Time cmd_vel_time;
 double vel_timeout;
 siar_driver::SiarStatus siar_state; // State of SIAR
 SiarConfig siar_config;
+int first_active_joint = 3;
 
 // -------------- New commands ARM & width -------------------------------//
 
@@ -93,15 +94,19 @@ void armTorqueReceived(const std_msgs::UInt8::ConstPtr &val) {
     default:  // ON
       new_state = 0x60;
   }
-  for (int i = 0; i < 3; i++) {
-    if (siar->setHerculexTorque(i, 0x40)) {
+  for (int i = 0; i < first_active_joint; i++) {
+    uint8_t state_filtered = new_state;
+    if (state_filtered == 0x60) {
+      state_filtered = 0x40;
+    }
+    if (siar->setHerculexTorque(i, state_filtered)) {
       // ROS_INFO("Siar Node --> Torque changed successfully to: %u", new_state);
     } else {
       // ROS_ERROR("Siar Node --> Could not change torque");
     }
   }
 
-  for (int i = 3; i < N_HERCULEX; i++) {
+  for (int i = first_active_joint; i < N_HERCULEX; i++) {
     if (siar->setHerculexTorque(i, new_state)) {
       // ROS_INFO("Siar Node --> Torque changed successfully to: %u", new_state);
     } else {
@@ -150,6 +155,7 @@ int main(int argc, char** argv)
     pn.param<std::string>("joy_device", joy_port, "/dev/serial/by-id/usb-FTDI_FT232R_USB_UART_A602XIGF-if00-port0");
     pn.param<bool>("reverse_right", reverse_right, false);
     pn.param<double>("angular_gain", angular_gain, 1.0);
+    pn.param<int>("first_active_joint", first_active_joint, 3); // By default only joints 3 and 4 can move
 
     std::string base_frame_id;
     std::string base_ticks_id;
