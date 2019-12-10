@@ -3,7 +3,7 @@
 <launch>
   
   <arg name="debug" default="false"/>
-  <arg name="initial_status" default="1"/>
+  <arg name="initial_status" default="2"/>
   <arg name="enable_server" default="true"/>
   <arg name="enable_marker" default="true"/>
   <arg name="namespace"     default=""/>
