@@ -5,7 +5,7 @@
 
 class SiarArmROSMBZirc:public SiarArmROS {
   public:
-  SiarArmROSMBZirc(ros::NodeHandle &nh, ros::NodeHandle &pnh):SiarArmROS(nh, pnh) {
+  SiarArmROSMBZirc(ros::NodeHandle &nh, ros::NodeHandle &pnh):SiarArmROS(nh, pnh),status_cont(0) {
    
   }
 
@@ -23,7 +23,7 @@ class SiarArmROSMBZirc:public SiarArmROS {
       ros::spinOnce();
       r.sleep();
       
-      if (enable_server_) {
+      if (enable_server_) { // Enable server got from parameter in siar_arm_ros.hpp Defaults to true
 	      manageServer();
       }
       
@@ -44,62 +44,22 @@ class SiarArmROSMBZirc:public SiarArmROS {
       pan_rate_ = tilt_rate_ = 0.0;
     }
 
+    if (status_cont > 10) {
+      clearStatusAndActivateMotors();
+      status_cont = 0;
+    } else {
+      status_cont++;
+    }
+
     if (curr_status_ == MOVING) {
-      timeout_ -= period_;
-      siar_driver::SiarArmCommand curr_com = curr_traj_[curr_feed_.curr_mov];
-      auto v = curr_com.joint_values;
-      auto v2 = curr_siar_status_.herculex_position;
-      bool arrived = true;
-      
-      for (int i = 0; i < v.size() && arrived; i++) {
-	    arrived = fabs(v[i] - v2[i]) < max_joint_dist_;
-      }
-      
-      
-      if (arrived) {
-	    curr_feed_.curr_mov++;
-	    if (curr_feed_.curr_mov == curr_traj_.size()) {
-            // Final waypoint has been reached --> send the result
-            siar_arm::armServosMoveActionResult::_result_type result;
-            result.executed = true;
-            result.position_servos_final = curr_siar_status_.herculex_position;
-            std::ostringstream message;
-            message <<"SiarArm::loop --> Arm reached the final destination. New state: ";
-            
-            if (curr_traj_name_ == "park") {
-                message << "PARKED";
-                curr_status_ = PARKED;
-            } else {
-                message << "PAN_AND_TILT";
-                curr_status_ = SiarArmROS::PAN_AND_TILT;
-            }
-            s_.setSucceeded(result, message.str());
-            } else {
-                s_.publishFeedback(curr_feed_);
-                publishCmd(curr_traj_[curr_feed_.curr_mov]);
-                curr_cmd_ = curr_traj_[curr_feed_.curr_mov].joint_values;
-            }
-      } else if (timeout_ < 0.0) {
-	    ROS_ERROR("SiarArm::loop --> Timeout detected while following a trajectory. Returning to state: %d", (int)last_status_);
-	    siar_arm::armServosMoveActionResult::_result_type result;
-	    result.executed = false;
-	    result.position_servos_final = curr_siar_status_.herculex_position;
-	    std::ostringstream message;
-	    message <<"SiarArm::loop --> Could not final destination. Returning to previous state.";
-	    s_.setSucceeded(result, message.str());
-	    curr_status_ = last_status_;
-	    clearStatusAndActivateMotors();
-      }
+      curr_status_ = PAN_AND_TILT;
+      ROS_INFO("Moving status not considered in MBZIRC");
+	    
     }
   }
   
   virtual void goalCb() {
-    
     ROS_INFO("Goal not supported in MBZIRC");
-      
-      
-      
-      
   }
   
   void statusCb(const siar_driver::SiarStatus::ConstPtr& new_status) {
@@ -109,9 +69,12 @@ class SiarArmROSMBZirc:public SiarArmROS {
       last_status_= curr_status_ = PAN_AND_TILT;
       
       ROS_INFO("Received first status. Assuming PAN_AND_TILT");
-      
     }
   }
+
+  protected:
+  int status_cont;
+
   
 };
 #endif /* _SIAR_ARM_H_ */
