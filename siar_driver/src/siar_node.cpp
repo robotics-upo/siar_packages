@@ -66,7 +66,7 @@ void cmdVelReceived(const geometry_msgs::Twist::ConstPtr& cmd_vel)
 void commandArmReceived(const siar_driver::SiarArmCommand::ConstPtr& arm_cmd) {
   // Then check the remaining stuff
   ArmFirewall::checkJointLimits(arm_cmd->joint_values);
-  for (int i = 0; i < N_HERCULEX; i++) {
+  for (int i = 3; i < N_HERCULEX; i++) {
     siar->setHerculexPosition(i, arm_cmd->joint_values[i], arm_cmd->command_time);
   }
 }
@@ -93,11 +93,19 @@ void armTorqueReceived(const std_msgs::UInt8::ConstPtr &val) {
     default:  // ON
       new_state = 0x60;
   }
-  for (int i = 0; i < N_HERCULEX; i++) {
-    if (siar->setHerculexTorque(i, new_state)) {
-      ROS_INFO("Siar Node --> Torque changed successfully to: %u", new_state);
+  for (int i = 0; i < 3; i++) {
+    if (siar->setHerculexTorque(i, 0x40)) {
+      // ROS_INFO("Siar Node --> Torque changed successfully to: %u", new_state);
     } else {
-      ROS_ERROR("Siar Node --> Could not change torque");
+      // ROS_ERROR("Siar Node --> Could not change torque");
+    }
+  }
+
+  for (int i = 3; i < N_HERCULEX; i++) {
+    if (siar->setHerculexTorque(i, new_state)) {
+      // ROS_INFO("Siar Node --> Torque changed successfully to: %u", new_state);
+    } else {
+      // ROS_ERROR("Siar Node --> Could not change torque");
     }
   }
 }

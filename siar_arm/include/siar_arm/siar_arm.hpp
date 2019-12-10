@@ -48,6 +48,8 @@ class SiarArm {
 		bool inverseKinematics(double x, double y, double z, angle_type &result, bool erase_remaining);
 
 		bool rad2motor(const angle_type &angles, raw_type &commands);
+		bool rad2motor(const angle_type &angles, raw_type &commands, int &num_motor);
+
 
 		bool motor2rad(const raw_type &commands, angle_type &angles);
 

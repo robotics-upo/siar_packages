@@ -1,5 +1,6 @@
 
 #include "siar_arm/siar_arm.hpp"
+#include "ros/ros.h"
   
 using angle_type = boost::array<double, ARM_JOINTS>;
 using raw_type = boost::array<int16_t, ARM_JOINTS>;  
@@ -45,11 +46,26 @@ bool SiarArm::rad2motor(const angle_type &angles, raw_type &commands) {
 	bool ret_val = true;
 	for (int i = 0; i < n_motors; i++) {
 		functions::LinearInterpolator &interpol = *pos_mot_interpol_[i];
+		functions::LinearInterpolator &interpol_2 = *mot_pos_interpol_[i];
 		commands[i] = interpol.interpolate(angles[i]);
-		ret_val &= interpol.inRange(angles[i]);
+		ret_val &= interpol_2.inRange(commands[i]);
 	}
+
 	return ret_val;
 }
+
+
+bool SiarArm::rad2motor(const angle_type &angles, raw_type &commands, int &num_motor) {
+	bool ret_val = true;
+	
+	functions::LinearInterpolator &interpol = *pos_mot_interpol_[num_motor];
+	ret_val &= interpol.inRange(angles[num_motor]);
+	ROS_ERROR("value rad2motor: %i", ret_val);
+
+		return ret_val;
+	
+}
+
 
 bool SiarArm::motor2rad(const raw_type &commands, angle_type &angles) {
 	bool ret_val = true;
@@ -58,6 +74,7 @@ bool SiarArm::motor2rad(const raw_type &commands, angle_type &angles) {
 		angles[i] = interpol.interpolate(commands[i]);
 		ret_val &= interpol.inRange(angles[i]);
 	}
+	
 	return ret_val;
 }
   
@@ -73,17 +90,17 @@ void SiarArm::forwardKinematics(const raw_type &joint_values, double &x, double 
 	SiarArm::forwardKinematics(angles, x, y ,z);
 }
 
-	void SiarArm::forwardKinematics(const angle_type &angles, double &x, double &y, double &z) {
-		double a1 = angles[0];
-		double a2 = angles[1];
-		double a3 = angles[2];
-		double L1 = length[0];
-		double L2 = length[1];
-		double L3 = length[2];
-		x = cos(a1) * (L2*sin(a2) + L3*sin(a2 + a3));
-		y = L1 + L2*cos(a2) + L3*cos(a2 + a3);
-		z = -sin(a1) * (L2*sin(a2) + L3*sin(a2 + a3));
-	}
+void SiarArm::forwardKinematics(const angle_type &angles, double &x, double &y, double &z) {
+	double a1 = angles[0];
+	double a2 = angles[1];
+	double a3 = angles[2];
+	double L1 = length[0];
+	double L2 = length[1];
+	double L3 = length[2];
+	x = cos(a1) * (L2*sin(a2) + L3*sin(a2 + a3));
+	y = L1 + L2*cos(a2) + L3*cos(a2 + a3);
+	z = -sin(a1) * (L2*sin(a2) + L3*sin(a2 + a3));
+}
 
 std::vector<raw_type> SiarArm::straightInterpol(double x, double y, double z, uint8_t n_points, const raw_type &curr_pos)
 {

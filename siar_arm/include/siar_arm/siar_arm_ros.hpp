@@ -176,13 +176,14 @@ class SiarArmROS:public SiarArm {
   }
   
   virtual void manageServer() {
-    if ( (curr_status_ == PAN_AND_TILT || curr_status_ == SiarArmROS::NAVIGATION) &&
-         (move_pan_ || move_tilt_)
-      ) {
+    if ( (curr_status_ == PAN_AND_TILT || curr_status_ == SiarArmROS::NAVIGATION) && (move_pan_ || move_tilt_)) 
+    {
       movePanTilt(pan_rate_/loop_rate_, tilt_rate_/loop_rate_);
-    } else {
+    } 
+    else {
       pan_rate_ = tilt_rate_ = 0.0;
     }
+    
     if (curr_status_ == MOVING) {
       timeout_ -= period_;
       siar_driver::SiarArmCommand curr_com = curr_traj_[curr_feed_.curr_mov];
@@ -271,28 +272,29 @@ class SiarArmROS:public SiarArm {
     raw_type motors;
 	  motor2rad(curr_siar_status_.herculex_position, angles);
     angles[pan_joint_] = pan->data;
-    if (rad2motor(angles, motors)) {
+
+    if (rad2motor(angles, motors, pan_joint_)) {
       ROS_INFO("Setting the pan to: %f", pan->data); //, functions::printVector(angles).c_str());
       pan_rate_ = 0.0;
       tilt_rate_ = 0.0;
       curr_cmd_ = motors;
       move_pan_ = true;
-      cmd_time_pan_tilt = 300;
+      cmd_time_pan_tilt = 100;
     }
   }
 
-  void setTiltReceived(const std_msgs::Float32ConstPtr &pan) {
+  void setTiltReceived(const std_msgs::Float32ConstPtr &tilt) {
     angle_type angles;
     raw_type motors;
 	  motor2rad(curr_siar_status_.herculex_position, angles);
-    angles[tilt_joint_] = pan->data;
+    angles[tilt_joint_] = tilt->data;
     if (rad2motor(angles, motors)) {
-      ROS_INFO("Setting the tilt to: %f", pan->data);// functions::printVector(angles).c_str());
+      ROS_INFO("Setting the tilt to: %f", tilt->data);// functions::printVector(angles).c_str());
       pan_rate_ = 0.0;
       tilt_rate_ = 0.0;
       curr_cmd_ = motors;
       move_tilt_ = true;
-      cmd_time_pan_tilt = 300;
+      cmd_time_pan_tilt = 100;
     }
   }
   
@@ -330,29 +332,33 @@ class SiarArmROS:public SiarArm {
       curr_traj_.clear();
       curr_traj_name_ =goal->mov_name;
       ROS_INFO("SiarArmROS::goalCb. Command received: %s \t Trying to load file: %s", curr_traj_name_.c_str(), os.str().c_str());
+
       if (functions::getMatrixFromFile(os.str(), mat)) {
         ROS_INFO("Load succeded.");
-	curr_status_ = MOVING;
-	for (size_t i = 0; i < mat.size(); i++) {
-	  siar_driver::SiarArmCommand curr_cmd;
-	  if (mat[i].size() < 6)
-	    continue;
-	  for (int j = 0; j < 5; j++) {
-	    curr_cmd.joint_values[j] = mat[i][j];
-	  }
-	  curr_cmd.command_time = mat[i][5];
-        
-	  curr_traj_.push_back(curr_cmd);
-	}
-	
+	      curr_status_ = MOVING;
+        for (size_t i = 0; i < mat.size(); i++) 
+        {
+          siar_driver::SiarArmCommand curr_cmd;
+          if (mat[i].size() < 6)
+            continue;
+          for (int j = 0; j < 5; j++) {
+            curr_cmd.joint_values[j] = mat[i][j];
+          }
+          curr_cmd.command_time = mat[i][5];
+              
+          curr_traj_.push_back(curr_cmd);
+        }
+      
         curr_feed_.n_movs = curr_traj_.size();
         curr_feed_.curr_mov = 0;
-      
+          
         publishCmd(curr_traj_[curr_feed_.curr_mov]);
-	curr_cmd_ = curr_traj_[curr_feed_.curr_mov].joint_values;
-      
+        curr_cmd_ = curr_traj_[curr_feed_.curr_mov].joint_values;
+          
         s_.publishFeedback(curr_feed_);
-      } else {
+      } 
+      else 
+      {
         // Arm not ready or already moving to a destination --> cancel
         siar_arm::armServosMoveActionResult::_result_type result;
         result.executed = false;
@@ -361,7 +367,9 @@ class SiarArmROS:public SiarArm {
         curr_cmd_ = curr_siar_status_.herculex_position;
       }
       
-    } else {
+    }
+    else 
+    {
       // Arm not ready or already moving to a destination --> cancel
       siar_arm::armServosMoveActionResult::_result_type result;
       result.executed = false;
