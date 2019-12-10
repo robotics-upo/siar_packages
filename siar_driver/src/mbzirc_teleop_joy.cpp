@@ -2,7 +2,7 @@
 /**                                                                    */
 /** siar_teleop_joy.h                                                  */
 /**                                                                    */
-/** Copyright (c) 2015, Service Robotics Lab.                          */ 
+/** Copyright (c) 2015, Service Robotics Lab.                          */
 /**                     http://robotics.upo.es                         */
 /**                                                                    */
 /** All rights reserved.                                               */
@@ -15,7 +15,7 @@
 /** Fernando Caballero                                                 */
 /** Jesus Capitan                                                      */
 /** Luis Merino                                                        */
-/**                                                                    */   
+/**                                                                    */
 /** This software may be modified and distributed under the terms      */
 /** of the BSD license. See the LICENSE file for details.              */
 /**                                                                    */
@@ -45,7 +45,7 @@
 // Logitech wireless pad controller              //
 
 #define STOP_EXIT	      0
-#define FREQ                100 
+#define FREQ                100
 #define PANIC_FREQ          300
 
 // axes
@@ -110,6 +110,7 @@ int auto_button;
 int arm_mode_button, arm_mode_button_2;
 int arm_pan_tilt_button;
 int water_button;
+int arm_torque = 0;
 
 // Arm and width buttons and axes
 int width_pos_axis, width_pos_axis_2;
@@ -150,7 +151,7 @@ ros::Publisher slow_pub;
 ros::Publisher mode_pub;
 ros::Publisher width_pos_pub;
 ros::Publisher light_cmd_pub;
-ros::Publisher arm_pan_pub, arm_tilt_pub, arm_torque_pub, arm_mode_pub, arm_clear_pub;
+ros::Publisher arm_pan_pub, arm_tilt_pub, arm_torque_pub, arm_clear_pub;
 ros::Publisher water_pub;
 
 MoveArmClient *move_arm_client = NULL;
@@ -163,31 +164,37 @@ void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
   static bool ant_sec_button = false;
   panic = panic | (joy->buttons[panicButton] == 1);
 
-  // ARM pan_tilt command stuff
+  // ARM torque and clear status stuff
   int sec_button = 0;
   if (joy->buttons.size() > arm_mode_button_2)
     sec_button = joy->buttons[arm_mode_button_2];
   if (!ant_arm_button && (joy->buttons[arm_mode_button] == 1 || sec_button == 1) ) {
-    siar_arm::armServosMoveGoal goal;
-    if (joy->buttons[auto_button] == 1) {
-        goal.mov_name = "pan_tilt";
-        move_arm_client->sendGoal(goal);
-        ROS_INFO("Sending park arm command.");
+    std_msgs::UInt8 msg;
+    ROS_INFO("Changed to arm mode and clearing status: %d", arm_torque);
+    msg.data = arm_torque++;
+    if (arm_torque > 2) {
+	    arm_torque = 0;
     }
+    arm_torque_pub.publish(msg);
+    usleep(1000);
+    std_msgs::Bool msg2;
+    msg2.data = 0;
+    arm_clear_pub.publish(msg2);
   }
   ant_arm_button = joy->buttons[arm_mode_button] == 1 || sec_button == 1;
+
   startPressed = joy->buttons[startButton] == 1;
   backPressed = joy->buttons[backButton] == 1;
   if (!ant_auto_button && joy->buttons[auto_button] == 1) {
     // Request for mode change
-    if (auto_mode > 0) 
+    if (auto_mode > 0)
 	  auto_mode = 0;
         else
 	  auto_mode = 1;
     setAutomaticMode(auto_mode);
   }
   ant_auto_button = joy->buttons[auto_button] == 1;
-    
+
   if (!ant_reverse_but && joy->buttons[reverseButton] == 1) {
     backwards = !backwards;
     std_msgs::Bool msg;
@@ -198,7 +205,7 @@ void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
   {
     currentLinearVelocity = 0.0;
     currentAngularVelocity = 0.0;
-  } 
+  }
   else
   {
     // Calculate the maximum velocity
@@ -206,7 +213,7 @@ void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
     if (slow_mode) {
         multiplier *= slow_multiplier;
     }
-      
+
     // A positive angular velocity will rotate the reference frame to the left
     // While a positive axes value means that the stick is to the right --> change sign
     currentAngularVelocity = maxAngularVelocity * multiplier * joy->axes[angularVelocityAxis];
@@ -217,11 +224,11 @@ void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
 	    publishSlow = true;
       }
       last_slow = joy->buttons[slowButton] == 1;
-      
+
       // Width position
-      double width_pos = joy->axes[width_pos_axis]; 
+      double width_pos = joy->axes[width_pos_axis];
       double width_pos_2 = joy->axes[width_pos_axis_2];
-      if (width_pos > 0.95 && fabs(width_pos_2) < 0.05) { 
+      if (width_pos > 0.95 && fabs(width_pos_2) < 0.05) {
         // Maximum width
 	    std_msgs::Float32 msg;
 	    msg.data = 0.0;
@@ -243,7 +250,7 @@ void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
             width_pos_pub.publish(msg);
             last_change_width = true;
     	}
-	
+
       } else {
 	    last_change_width = false;
       }
@@ -270,13 +277,13 @@ void interpretLights(const sensor_msgs::Joy::ConstPtr& joy) {
   if (joy->buttons[front_light_button] == 1 && !last_front_button) {
     front_light = !front_light;
     publishLight();
-    
+
   }
   last_front_button = joy->buttons[front_light_button];
   if (joy->buttons[rear_light_button] == 1 && !last_rear_button) {
     rear_light = !rear_light;
     publishLight();
-    
+
   }
   last_rear_button = joy->buttons[rear_light_button];
   if (joy->buttons[med_light_button] == 1 && last_med_light_button == 0) {
@@ -300,7 +307,7 @@ void joyReceived(const sensor_msgs::Joy::ConstPtr& joy)
   last_joy_time = ros::Time::now();
   interpretJoy(joy);
 }
-  
+
 void sendCmdVel(double linearVelocity, double angularVelocity, ros::Publisher& vel_pub)
 {
   if (auto_mode == 0 || panic ){
@@ -333,30 +340,30 @@ int main(int argc, char** argv)
   ros::init(argc, argv, "SiarTeleopJoy");
   ros::NodeHandle n;
   ros::NodeHandle pn("~");
-  
+
   bool stopExit;
   pn.param<bool>("stop_on_exit",stopExit, STOP_EXIT);
-  
+
   double freq;
   pn.param<double>("freq",freq,FREQ);
   double panicFreq;
   pn.param<double>("panic_freq",panicFreq,PANIC_FREQ);
-  
+
   pn.param<int>("panic_button", panicButton, PANIC_BUTTON);
   pn.param<int>("start_button", startButton, START_BUTTON);
   pn.param<int>("back_button", backButton, BACK_BUTTON);
   pn.param<int>("reverse_button", reverseButton, REVERSE_BUTTON);
-  
+
   pn.param<int>("linear_velocity_axis",linearVelocityAxis,LINEAR_VELOCITY_AXIS);
   pn.param<int>("angular_velocity_axis",angularVelocityAxis,ANGULAR_VELOCITY_AXIS);
-  
-  pn.param<int>("arm_pan_axis", pan_axis, angularVelocityAxis);
-  pn.param<int>("arm_tilt_axis", tilt_axis, linearVelocityAxis);
-  
+
+  pn.param<int>("arm_pan_axis", pan_axis, PAN_AXIS);
+  pn.param<int>("arm_tilt_axis", tilt_axis, TILT_AXIS);
+
   pn.param<int>("auto_button", auto_button, AUTO_BUTTON);
   pn.param<int>("slow_button", slowButton, SLOW_BUTTON);
   pn.param<int>("water_button", water_button, WATER_BUTTON);
-  
+
   pn.param<int>("width_pos_axis", width_pos_axis, WIDTH_AXIS);
   pn.param<int>("width_pos_axis_2", width_pos_axis_2, WIDTH_AXIS_2);
   pn.param<int>("med_light_button", med_light_button, MED_LIGHT_BUTTON);
@@ -364,7 +371,7 @@ int main(int argc, char** argv)
   pn.param<int>("rear_light_button", rear_light_button, REAR_LIGHT_BUTTON);
   pn.param<int>("arm_mode_button", arm_mode_button, ARM_MODE_BUTTON);
   pn.param<int>("arm_mode_button_2", arm_mode_button_2, ARM_MODE_BUTTON_2);
-  
+
   pn.param<double>("max_linear_velocity",maxLinearVelocity,MAX_LINEAR_VELOCITY);
   pn.param<double>("max_angular_velocity",maxAngularVelocity,MAX_ANGULAR_VELOCITY);
 
@@ -372,7 +379,7 @@ int main(int argc, char** argv)
   pn.param<double>("max_joy_time", max_joy_time, MAX_JOY_TIME);
   pn.param<double>("joy_priority_time", joy_priority_time, JOY_PRIORITY_TIME);
   pn.param<double>("slow_multipier", slow_multiplier, SLOW_MULTIPLIER);
-  
+
   pn.param<int>("max_auto_mode", max_auto_mode, MAX_AUTO_MODE);
   double max_time_decay;
   pn.param<double>("max_time_decay", max_time_decay, MAX_TIME_DECAY);
@@ -385,14 +392,13 @@ int main(int argc, char** argv)
   arm_tilt_pub = n.advertise<std_msgs::Float32>("arm_tilt", 1);
   arm_torque_pub = n.advertise<std_msgs::UInt8>("arm_torque", 1); // Publishers for low level arm control
   arm_clear_pub = n.advertise<std_msgs::Bool>("arm_clear_status", 1);
-  arm_mode_pub = n.advertise<std_msgs::Bool>("arm_mode", 1);
   water_pub = n. advertise<std_msgs::Bool>("pump_state", 1);
   move_arm_client = new MoveArmClient("move_arm");
-  
+
   // Width, costmap, light
   width_pos_pub = n.advertise<std_msgs::Float32>("width_pos", 1);
   light_cmd_pub = n.advertise<siar_driver::SiarLightCommand>("light_cmd", 1);
-  
+
   // ---------END WIDTH ARM ---
   ros::Subscriber joy_sub = n.subscribe<sensor_msgs::Joy>("joy", 5, joyReceived);
   ros::Subscriber remote_joy_sub = n.subscribe<sensor_msgs::Joy>("remote_joy", 5, remoteJoyReceived);
@@ -402,40 +408,44 @@ int main(int argc, char** argv)
   bool start = false;
   ROS_INFO("Siar teleop node. Press START to have fun. Press BACK at any moment to exit.");
   while (n.ok()) {
-    if (!start) 
+    if (!start)
     {
       sendCmdVel(0.0, 0.0, vel_pub);
       start = startPressed;
       rate.sleep();
     }
-    else if (panic) 
+    else if (panic)
     {
       sendCmdVel(0.0, 0.0, vel_pub);
       panicRate.sleep();
-      if (!panic_showed) 
-      {
+      if (!panic_showed)
+      { 
+        std_msgs::UInt8 msg;
+        ROS_INFO("Panic: Changing to arm mode to unpowered.");
+        msg.data = 0;
+        arm_torque_pub.publish(msg);
         panic_showed = true;
         ROS_ERROR("Panic mode ON. Press START to exit panic mode.");
       }
-      if (startPressed) 
+      if (startPressed)
       {
         panic = false;
         panic_showed = false; // Turn it off for future PANICs
-        ROS_INFO("Panic mode OFF. Entering normal mode (already started)"); 
+        ROS_INFO("Panic mode OFF. Entering normal mode (already started)");
       }
-    } 
-    else 
+    }
+    else
     {
-      ROS_INFO_ONCE("The show has started, please have fun.");
-      
+      ROS_INFO_ONCE("The show has started, please have fun. MBZIRC mode");
+
       if ((ros::Time::now() - last_remote_joy_time).toSec() > max_joy_time &&
         last_remote_joy_time.toSec() > last_joy_time.toSec() )
       {
         currentAngularVelocity *= max_time_decay;
         currentLinearVelocity *= max_time_decay;
-      } 
+      }
       sendCmdVel(currentLinearVelocity, currentAngularVelocity, vel_pub);
-      
+
       if (publishSlow) {
         sendSlowCmd(slow_mode, slow_pub);
         publishSlow = false;
@@ -443,15 +453,15 @@ int main(int argc, char** argv)
       rate.sleep();
     }
     ros::spinOnce();
-    
+
     if (backPressed) {
         ROS_INFO("Back button pressed --> stopping Siar and bag. ");
         // Before exiting --> stop Siar
         sendCmdVel(0.0, 0.0, vel_pub);
-        
-        int ret_val;  
+
+        int ret_val;
         ret_val = system ("rosnode kill /rosbag_raposa");
-        
+
         int cont = 0;
         while (backPressed && cont < 5) {
             sendCmdVel(0.0, 0.0, vel_pub);
@@ -459,15 +469,15 @@ int main(int argc, char** argv)
             sleep(1);
             cont++;
         }
-        
+
         if (cont >= 5) {
             ROS_INFO("Killing all ros nodes and shutting down.");
             ret_val = system("rosnode kill -a");
             ret_val = system("shutdown now");
         } else {
-        
+
             pid_t pid = fork();
-            
+
             if (pid == 0) {
                 //Client
                 ret_val = system("roslaunch siar_driver bag.launch");
@@ -480,12 +490,12 @@ int main(int argc, char** argv)
   // Before exiting --> stop Siar
   sendCmdVel(0.0, 0.0, vel_pub);
   delete move_arm_client;
-  
+
   return 0;
 }
 
 
-bool setAutomaticMode(int new_mode) 
+bool setAutomaticMode(int new_mode)
 {
   std_msgs::Int8 msg;
   msg.data = new_mode;
