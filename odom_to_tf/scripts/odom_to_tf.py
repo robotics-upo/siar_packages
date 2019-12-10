@@ -12,7 +12,7 @@ def odometryCb(msg):
     br = tf2_ros.TransformBroadcaster()
     print base_link
     t = geometry_msgs.msg.TransformStamped()
-    t.header.stamp = rospy.Time.now() + rospy.Duration(0.5)
+    t.header.stamp = rospy.Time.now() + rospy.Duration(0.2)
     t.header.frame_id = odometry_frame
     t.child_frame_id = base_link
     t.transform.translation.x = msg.pose.pose.position.x
