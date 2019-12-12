@@ -264,7 +264,7 @@ void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
 
     // Water related stuff
     static bool water = false;
-    if (joy->buttons[water_button] == 0) {
+    if (joy->buttons[water_button] == 1) {
         water = !water;
         std_msgs::Bool msg;
         msg.data = water?1:0;
