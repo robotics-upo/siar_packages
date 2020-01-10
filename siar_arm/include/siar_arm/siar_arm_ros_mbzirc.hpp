@@ -23,9 +23,12 @@ class SiarArmROSMBZirc:public SiarArmROS {
       arm_tilt_sub_ = nh.subscribe<std_msgs::Float32>("arm_tilt", 1, &SiarArmROS::armTiltReceived, dynamic_cast<SiarArmROS *>(this));
       set_pan_sub_ = nh.subscribe<std_msgs::Float32>("set_pan", 1, &SiarArmROS::setPanReceived, dynamic_cast<SiarArmROS *>(this));
       set_tilt_sub_ = nh.subscribe<std_msgs::Float32>("set_tilt", 1, &SiarArmROS::setTiltReceived, dynamic_cast<SiarArmROS *>(this));
+      
       arm_cmd_pub_ = nh.advertise<siar_driver::SiarArmCommand>("arm_cmd", 1);
       arm_clear_status_pub_ = nh.advertise<std_msgs::Bool>("arm_clear_status", 1);
       arm_torque_pub_ = nh.advertise<std_msgs::UInt8>("arm_torque", 1);
+      arm_ang_rad_pan_pub_ = nh.advertise<std_msgs::Float32>("arm_ang_rad_pan", 1);
+      arm_ang_rad_tilt_pub_ = nh.advertise<std_msgs::Float32>("arm_ang_rad_tilt", 1);
       clearStatusAndActivateMotors();
     }
 

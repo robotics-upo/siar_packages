@@ -43,7 +43,8 @@ public:
    std::string desc;
 };
 
-class SiarArmROS:public SiarArm {
+class SiarArmROS:public SiarArm 
+{
   public:
   Server s_;
   double pan_rate_, tilt_rate_, loop_rate_;
@@ -54,6 +55,7 @@ class SiarArmROS:public SiarArm {
   ros::Subscriber arm_pan_sub_, arm_tilt_sub_, siar_status_sub_;
   ros::Subscriber set_pan_sub_, set_tilt_sub_;
   ros::Publisher arm_cmd_pub_, arm_clear_status_pub_, arm_torque_pub_, arm_marker_pub_; // Sends arm commands to SIAR Driver node
+  ros::Publisher arm_ang_rad_pan_pub_, arm_ang_rad_tilt_pub_;
   int pan_joint_, tilt_joint_;
   bool move_pan_, move_tilt_;
   int seq_cmd_;
@@ -63,6 +65,10 @@ class SiarArmROS:public SiarArm {
   int max_joint_dist_;
   double timeout_, period_;
   bool enable_server_, enable_marker_;
+  double threshold_mov_arm {0.3};
+  float arm_ang_rad_tilt {0.0};
+  float arm_ang_rad_pan {0.0};
+
 
   int cmd_time_pan_tilt;
   
@@ -80,7 +86,8 @@ class SiarArmROS:public SiarArm {
   siar_arm::armServosMoveActionFeedback::_feedback_type curr_feed_;
   
   
-  SiarArmROS(ros::NodeHandle &nh, ros::NodeHandle &pnh):SiarArm(),s_(nh, "move_arm", false),seq_cmd_(0){
+  SiarArmROS(ros::NodeHandle &nh, ros::NodeHandle &pnh):SiarArm(),s_(nh, "move_arm", false),seq_cmd_(0)
+  {
     timeout_ = -1.0;
     cmd_time_pan_tilt = 200;
 
@@ -130,10 +137,6 @@ class SiarArmROS:public SiarArm {
       enable_marker_ = true;
     }
     
-    
-    
-    
-    
   }
 
   virtual void start() {
@@ -150,9 +153,13 @@ class SiarArmROS:public SiarArm {
       arm_tilt_sub_ = nh.subscribe<std_msgs::Float32>("arm_tilt", 1, &SiarArmROS::armTiltReceived, this);
       set_pan_sub_ = nh.subscribe<std_msgs::Float32>("set_pan", 1, &SiarArmROS::setPanReceived, this);
       set_tilt_sub_ = nh.subscribe<std_msgs::Float32>("set_tilt", 1, &SiarArmROS::setTiltReceived, this);
+
       arm_cmd_pub_ = nh.advertise<siar_driver::SiarArmCommand>("arm_cmd", 1);
       arm_clear_status_pub_ = nh.advertise<std_msgs::Bool>("arm_clear_status", 1);
       arm_torque_pub_ = nh.advertise<std_msgs::UInt8>("arm_torque", 1);
+      arm_ang_rad_pan_pub_ = nh.advertise<std_msgs::Float32>("arm_ang_rad_pan", 1);
+      arm_ang_rad_tilt_pub_ = nh.advertise<std_msgs::Float32>("arm_ang_rad_tilt", 1);
+
       clearStatusAndActivateMotors();
     }
 
@@ -252,7 +259,7 @@ class SiarArmROS:public SiarArm {
   }
   
   void armPanReceived(const std_msgs::Float32ConstPtr &data) {
-    if (fabs(data->data) > 0.3)
+    if (fabs(data->data) > threshold_mov_arm)
       move_pan_ = true; 
     
     else 
@@ -264,7 +271,7 @@ class SiarArmROS:public SiarArm {
   }
   
   void armTiltReceived(const std_msgs::Float32ConstPtr &data) {
-     if (fabs(data->data) > 0.3)
+     if (fabs(data->data) > threshold_mov_arm)
       move_tilt_ = true; 
     else 
       move_tilt_ = false;
@@ -411,6 +418,9 @@ class SiarArmROS:public SiarArm {
     
     std::cout << "movePanTilt-->Moving: " << pan_angle << " and " << tilt_angle << " Objective: " << commandToString(cmd) << std::endl;
     arm_cmd_pub_.publish(cmd);
+
+    publishRadStateArm();
+
   }
   
   std_msgs::Header getHeader(int seq = 0) {
@@ -427,8 +437,25 @@ class SiarArmROS:public SiarArm {
     timeout_ = cmd.command_time / 50.0;
     cmd.header = getHeader(seq_cmd_++);
     arm_cmd_pub_.publish(cmd);
+    publishRadStateArm();
+
   }
   
+  void publishRadStateArm()
+  {
+    angle_type angles;
+    raw_type motors;
+    std_msgs::Float32 arm_ang_rad_tilt_msg , arm_ang_rad_pan_msg;
+	  motor2rad(curr_siar_status_.herculex_position, angles);
+    arm_ang_rad_tilt_msg.data = angles[3];
+    arm_ang_rad_pan_msg.data = angles[4];
+    arm_ang_rad_pan_pub_.publish(arm_ang_rad_pan_msg);
+    arm_ang_rad_tilt_pub_.publish(arm_ang_rad_tilt_msg);
+
+    ROS_INFO("pan= %f  ,  tilt= %f",arm_ang_rad_tilt_msg.data,arm_ang_rad_pan_msg.data);
+
+  }
+
   bool clearStatusAndActivateMotors() const {
     bool ret_val = true;
 
