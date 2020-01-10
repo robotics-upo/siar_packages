@@ -16,6 +16,7 @@ int main(int argc, char** argv) {
   
   SiarArmROSMBZirc arm_ros(nh, pnh);
   arm_ros.start();
+  arm_ros.publishRadStateArm();
   
   ros::Rate r(ros::Duration(10));
   

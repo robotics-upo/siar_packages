@@ -230,8 +230,9 @@ class Point2Fire
             float speed_arm_pan = 1.5;
             bool turn_complete_1 = false;
             bool turn_complete_2 = false;
+            bool turn_complete = false;
             std_msgs::Float32 arm_pan_pub;
-            ros::Rate rt_(ros::Duration(0.05));
+            ros::Rate rt_(ros::Duration(0.10));
 
             if (exe_goal)
             {
@@ -253,9 +254,9 @@ class Point2Fire
                             mov_pan_arm_ = speed_arm_pan;
                             if(arm_ang_rad_pan_> limit_turn-0.011)
                             { 
-                                // ROS_INFO("Entro 1");
                                 turn_arm_ = true;
                                 turn_complete_1 = true;
+                                ROS_INFO("Entro 1");
                             }
                             // ROS_INFO("I am in FOR 1");
                         }
@@ -280,17 +281,21 @@ class Point2Fire
                         }
                         if (arm_ang_rad_pan_<= 0.0 && arm_ang_rad_pan_> -limit_turn && !turn_arm_)
                         {
+                            turn_arm_ = false;
                             mov_pan_arm_ = speed_arm_pan;
-                            if(arm_ang_rad_pan_<= 0.0 && arm_ang_rad_pan_>= 0.0 - 0.01)
-                            { 
-                                // ROS_INFO("Entro 2");
-                                turn_arm_ = false;
-                                if (turn_complete_1)
-                                    turn_complete_2 = true;
-                            }
+                            if (turn_complete_1)
+                                turn_complete_2 = true;
                             // ROS_INFO("I am in FOR 4");
                         }
-                        if (turn_complete_1 && turn_complete_2)
+
+                        //This Condition stop finish the arm movement once the route through from pi/2 to -pi/2 and 0.   
+                        if(arm_ang_rad_pan_>= 0.0 && turn_complete_2) 
+                        { 
+                            turn_complete = true;
+                            ROS_INFO("Entro 2");
+                        }
+
+                        if (turn_complete)
                         {
                             ROS_ERROR("Fire Not Detected !!");
                             goal->fire_centered == false;
@@ -334,7 +339,7 @@ class Point2Fire
                     else
                     {
                         success = true;
-                        if (turn_complete_1 && turn_complete_2)
+                        if (turn_complete)
                             ROS_INFO("Fire Detection without success !!");
                         else
                             ROS_INFO("Fire in the center of the Image detected");        
@@ -344,7 +349,7 @@ class Point2Fire
                 {
                     result_.fire_finded == true;
 
-                    if (turn_complete_1 && turn_complete_2)
+                    if (turn_complete)
                         ROS_INFO("%s: Unsucceeded", action_name_.c_str());
                     else
                         ROS_INFO("%s: Succeeded", action_name_.c_str());

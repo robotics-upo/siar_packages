@@ -65,7 +65,7 @@ class SiarArmROS:public SiarArm
   int max_joint_dist_;
   double timeout_, period_;
   bool enable_server_, enable_marker_;
-  double threshold_mov_arm {0.3};
+  double threshold_mov_arm {0.01};
   float arm_ang_rad_tilt {0.0};
   float arm_ang_rad_pan {0.0};
 
@@ -452,7 +452,7 @@ class SiarArmROS:public SiarArm
     arm_ang_rad_pan_pub_.publish(arm_ang_rad_pan_msg);
     arm_ang_rad_tilt_pub_.publish(arm_ang_rad_tilt_msg);
 
-    ROS_INFO("pan= %f  ,  tilt= %f",arm_ang_rad_tilt_msg.data,arm_ang_rad_pan_msg.data);
+    // ROS_INFO("pan= %f  ,  tilt= %f",arm_ang_rad_tilt_msg.data,arm_ang_rad_pan_msg.data);
 
   }
 
