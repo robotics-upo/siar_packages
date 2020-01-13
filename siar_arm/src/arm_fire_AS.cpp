@@ -454,8 +454,8 @@ class Point2Fire
                     // ROS_INFO("fire detected at:  x=%f   y=%f  ", dist_2_fire_.x, dist_2_fire_.y );
                 }
 
-                arm_pan_pub_.publish(ComputePID( pan_control_, pan_ref_ , last_fire_detected_->x,  fire_offset_x_, current_time - last_command_time_ , pan_min_, pan_max_));
-			    arm_tilt_pub_.publish(ComputePID( tilt_control_, tilt_ref_ , -last_fire_detected_->y,  fire_offset_y_, current_time - last_command_time_, tilt_min_, tilt_max_));				
+                arm_pan_pub_.publish(ComputePID( pan_control_, pan_ref_ , -last_fire_detected_->x,  fire_offset_x_, current_time - last_command_time_ , pan_min_, pan_max_));
+			    arm_tilt_pub_.publish(ComputePID( tilt_control_, tilt_ref_ , last_fire_detected_->y,  fire_offset_y_, current_time - last_command_time_, tilt_min_, tilt_max_));				
                 last_command_time_ = current_time;
 
                 // ROS_INFO("valor de last en X= %f   Y=%f",last_fire_detected_->x, last_fire_detected_->y);
