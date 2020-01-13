@@ -85,10 +85,10 @@ class Point2Fire
 		float tilt_ref_{0.0};
 		float pan_center_{0.0};
 		float tilt_center_{0.0};		
-		float pan_min_{-0.99};
-		float tilt_min_{-0.99};
-		float pan_max_{0.99};
-		float tilt_max_{0.99};
+		float pan_min_{-0.1};
+		float tilt_min_{-0.1};
+		float pan_max_{0.2};
+		float tilt_max_{0.2};
 		
 		int not_detections_= 0;
 		int max_not_detections_{4};
@@ -231,6 +231,7 @@ class Point2Fire
             bool turn_complete_1 = false;
             bool turn_complete_2 = false;
             bool turn_complete = false;
+            bool aux_detected = false;
             std_msgs::Float32 arm_pan_pub;
             ros::Rate rt_(ros::Duration(0.10));
 
@@ -246,7 +247,7 @@ class Point2Fire
                 while (!success)
                 {
                 
-                    while (!is_detected.data)
+                    while (!is_detected.data && !aux_detected)
                     {
                         // ROS_INFO("I am in second while");
                         if (arm_ang_rad_pan_< limit_turn && arm_ang_rad_pan_>= 0.0 && !turn_arm_)
@@ -304,7 +305,10 @@ class Point2Fire
                         }
 
                         if (is_detected.data)
+                        {
+                            aux_detected = true;    
                             break;
+                        }
 
                         arm_pan_pub.data = mov_pan_arm_;
                         arm_pan_pub_.publish(arm_pan_pub);
@@ -434,6 +438,7 @@ class Point2Fire
 		
         void Point2Fire::ControlLoop(void)
         {	
+            ros::Rate rtcl_(ros::Duration(0.1));
             // ROS_INFO("Control Loop");
             if(last_fire_detected_)
             {			
@@ -457,6 +462,7 @@ class Point2Fire
                 arm_pan_pub_.publish(ComputePID( pan_control_, pan_ref_ , -last_fire_detected_->x,  fire_offset_x_, current_time - last_command_time_ , pan_min_, pan_max_));
 			    arm_tilt_pub_.publish(ComputePID( tilt_control_, tilt_ref_ , last_fire_detected_->y,  fire_offset_y_, current_time - last_command_time_, tilt_min_, tilt_max_));				
                 last_command_time_ = current_time;
+                rtcl_.sleep();
 
                 // ROS_INFO("valor de last en X= %f   Y=%f",last_fire_detected_->x, last_fire_detected_->y);
                 

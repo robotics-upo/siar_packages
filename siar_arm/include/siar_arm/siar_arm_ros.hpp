@@ -414,7 +414,7 @@ class SiarArmROS:public SiarArm
     siar_driver::SiarArmCommand cmd;
     cmd.header = getHeader(seq_cmd_++);
     cmd.joint_values = curr_cmd_;
-    cmd.command_time = 100;
+    cmd.command_time = 10;
     
     std::cout << "movePanTilt-->Moving: " << pan_angle << " and " << tilt_angle << " Objective: " << commandToString(cmd) << std::endl;
     arm_cmd_pub_.publish(cmd);
