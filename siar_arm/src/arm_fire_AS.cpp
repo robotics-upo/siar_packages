@@ -246,7 +246,6 @@ class Point2Fire
                 ROS_INFO("Init actionCb centering fire");
                 while (!success)
                 {
-                
                     while (!is_detected.data && !aux_detected)
                     {
                         // ROS_INFO("I am in second while");
@@ -306,10 +305,10 @@ class Point2Fire
 
                         if (is_detected.data)
                         {
-                            aux_detected = true;    
+                            aux_detected = true;
+                            ROS_INFO("aux_detected = %d", aux_detected);    
                             break;
                         }
-
                         arm_pan_pub.data = mov_pan_arm_;
                         arm_pan_pub_.publish(arm_pan_pub);
                         rt_.sleep();
