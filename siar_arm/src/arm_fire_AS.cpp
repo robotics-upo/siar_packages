@@ -79,16 +79,26 @@ class Point2Fire
 		
 		Pid pan_control_;
 		Pid tilt_control_;
+        Pid pan_origin_control_;
+		Pid tilt_origin_control_;
 		
 		
 		float pan_ref_{0.0};
 		float tilt_ref_{0.0};
 		float pan_center_{0.0};
 		float tilt_center_{0.0};		
-		float pan_min_{-0.1};
-		float tilt_min_{-0.1};
-		float pan_max_{0.2};
-		float tilt_max_{0.2};
+		float pan_min_;
+		float tilt_min_;
+		float pan_max_;
+		float tilt_max_;
+
+        float origin_pan_ref_{0.0};
+		float origin_tilt_ref_{0.0};
+        float pan_origin_min_;
+		float tilt_origin_min_;
+		float pan_origin_max_;
+		float tilt_origin_max_;
+        
 		
 		int not_detections_= 0;
 		int max_not_detections_{4};
@@ -97,8 +107,10 @@ class Point2Fire
 		float fire_offset_x_, fire_offset_y_;
 
         float pos2D_u_fire, pos2D_v_fire;
-        float pos2Dmax_u_fire_, pos2Dmin_u_fire_;
-        float pos2Dmax_v_fire_, pos2Dmin_v_fire_;
+        float threshold_max_u_fire_, threshold_min_u_fire_;
+        float threshold_max_v_fire_, threshold_min_v_fire_;
+        float threshold_center_arm;
+
 		
         std::vector<Point2D<float>> detect_fov_;
 		
@@ -140,6 +152,9 @@ class Point2Fire
 		
             float kp_tilt,ki_tilt,kd_tilt;
             float kp_pan,ki_pan,kd_pan;
+
+            float kp_origin_tilt,ki_origin_tilt,kd_origin_tilt;
+            float kp_origin_pan,ki_origin_pan,kd_origin_pan;
             
             
             pnh.param<std::string>("mot_pan_arm_file", mot_pan_arm_file_, "");
@@ -151,21 +166,36 @@ class Point2Fire
             pnh.param<float>("kd_pan", kd_pan,0.0);
             pnh.param<float>("kp_tilt", kp_tilt,1.0);
             pnh.param<float>("ki_tilt", ki_tilt,0.0);
-            pnh.param<float>("kd_tilt", kd_tilt,0.0);
             pnh.param<float>("fire_offset_x", fire_offset_x_,0.0);
             pnh.param<float>("fire_offset_x", fire_offset_y_,0.0);
-            // pnh.param<float>("pos2Dmax_u_fire", pos2Dmax_u_fire_,94.0);
-            // pnh.param<float>("pos2Dmin_u_fire", pos2Dmin_u_fire_,91.0);
-            // pnh.param<float>("pos2Dmax_v_fire", pos2Dmax_v_fire_,53.);
-            // pnh.param<float>("pos2Dmin_v_fire", pos2Dmin_v_fire_,51.0);
-            pnh.param<float>("pos2Dmax_u_fire", pos2Dmax_u_fire_,0.1);
-            pnh.param<float>("pos2Dmin_u_fire", pos2Dmin_u_fire_,-0.1);
-            pnh.param<float>("pos2Dmax_v_fire", pos2Dmax_v_fire_,0.5);
-            pnh.param<float>("pos2Dmin_v_fire", pos2Dmin_v_fire_,-0.5);
+            pnh.param<float>("pan_min_", pan_min_,-0.1);
+            pnh.param<float>("pan_max_", pan_max_,0.1);
+            pnh.param<float>("tilt_min_", tilt_min_,-0.1);
+            pnh.param<float>("tilt_max_", tilt_max_,0.1);
+            pnh.param<float>("threshold_max_u_fire", threshold_max_u_fire_,0.1);
+            pnh.param<float>("threshold_min_u_fire", threshold_min_u_fire_,-0.1);
+            pnh.param<float>("threshold_max_v_fire", threshold_max_v_fire_,0.5);
+            pnh.param<float>("threshold_min_v_fire", threshold_min_v_fire_,-0.5);
+
+            pnh.param<float>("kp_origin_pan",  kp_origin_pan,1.5);
+            pnh.param<float>("ki_origin_pan",  ki_origin_pan,0.0);
+            pnh.param<float>("kd_origin_pan",  kd_origin_pan,0.0);
+            pnh.param<float>("kp_origin_tilt", kp_origin_tilt,2.2);
+            pnh.param<float>("ki_origin_tilt", ki_origin_tilt,0.0);
+            pnh.param<float>("kd_origin_tilt", kd_origin_tilt,0.0);
+
+            pnh.param<float>("pan_origin_min_", pan_origin_min_,-0.5);
+            pnh.param<float>("pan_origin_max_", pan_origin_max_,0.5);
+            pnh.param<float>("tilt_origin_min_", tilt_origin_min_,-0.5);
+            pnh.param<float>("tilt_origin_max_", tilt_origin_max_,0.5);
+
+            pnh.param<float>("threshold_center_arm", threshold_center_arm,0.1);
             
             pan_control_ = control_toolbox::Pid(kp_pan,ki_pan,kd_pan);
             tilt_control_ = control_toolbox::Pid(kp_tilt,ki_tilt,kd_tilt);
-            
+            pan_origin_control_ = control_toolbox::Pid(kp_origin_pan,ki_origin_pan,kd_origin_pan);
+            tilt_origin_control_ = control_toolbox::Pid(kp_origin_tilt,ki_origin_tilt,kd_origin_tilt);
+
             //~ load_data(mot_pan_arm_file_, mot_tilt_arm_file_) ;
             is_detected.data = false;
             initializePublishers(nh);
@@ -203,8 +233,6 @@ class Point2Fire
 		    fire_cam_info_sub_ = nh.subscribe("/" + robot_name_ + "/thermal_camera/camera_info", 2,  &Point2Fire::CamInfoCallback, this);
 		    arm_ang_rad_pan_sub_ = nh.subscribe( "arm_ang_rad_pan", 2,  &Point2Fire::armPanCallback, this);
 		    arm_ang_rad_tilt_sub_ = nh.subscribe( "arm_ang_rad_tilt", 2,  &Point2Fire::armTiltCallback, this);
-
-
 		    ROS_INFO("Subscribers Initialized node Point2Fire");
 	    }
 		
@@ -237,11 +265,26 @@ class Point2Fire
 
             if (exe_goal)
             {
-                // ROS_INFO("Moving to origin Position");
-                // while (origin)
-                // {
-                
-                // }
+                ROS_INFO("Moving to origin Position");
+                while (origin)
+                {
+                    const auto& current_time  = ros::Time::now();
+                    ros::Rate rto_(ros::Duration(0.1));
+
+
+                    arm_pan_pub_.publish(ComputePID( pan_origin_control_, origin_pan_ref_ , -arm_ang_rad_pan_,  fire_offset_x_, current_time - last_command_time_ , pan_origin_min_, pan_origin_max_));
+			        arm_tilt_pub_.publish(ComputePID( tilt_origin_control_, origin_tilt_ref_ , -arm_ang_rad_tilt_,  fire_offset_y_, current_time - last_command_time_, tilt_origin_min_, tilt_origin_max_));				
+                    last_command_time_ = current_time;
+                    rto_.sleep();
+
+                    if ( ((arm_ang_rad_tilt_ < threshold_center_arm) && (arm_ang_rad_tilt_ > -threshold_center_arm)) && 
+                         ((arm_ang_rad_pan_ < threshold_center_arm) && (arm_ang_rad_pan_ > -threshold_center_arm)) )
+                    {
+                        origin = false;
+                        ROS_INFO("Robotics Arm Centered !!");
+                    }     
+
+                }
                 
                 ROS_INFO("Init actionCb centering fire");
                 while (!success)
@@ -317,10 +360,9 @@ class Point2Fire
                     if (is_detected.data)
                         ControlLoop();
                     
-                    // if ( ((pos2D_u_fire > pos2Dmax_u_fire_) || (pos2D_u_fire < pos2Dmin_u_fire_)) || 
-                    //      ((pos2D_v_fire > pos2Dmax_v_fire_) || (pos2D_v_fire < pos2Dmin_v_fire_)) )
-                    if ( ((last_fire_detected_->x < pos2Dmin_u_fire_) || (last_fire_detected_->x > pos2Dmax_u_fire_)) || 
-                         ((last_fire_detected_->y < pos2Dmin_v_fire_) || (last_fire_detected_->y > pos2Dmax_v_fire_)) )
+                    
+                    if ( ((last_fire_detected_->x < threshold_min_u_fire_) || (last_fire_detected_->x > threshold_max_u_fire_)) || 
+                         ((last_fire_detected_->y < threshold_min_v_fire_) || (last_fire_detected_->y > threshold_max_v_fire_)) )
                     {
                         feedback_.pos_x_fire = pos2D_u_fire;
                         feedback_.pos_y_fire = pos2D_v_fire;

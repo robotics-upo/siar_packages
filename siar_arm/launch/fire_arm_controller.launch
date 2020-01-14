@@ -2,20 +2,40 @@
  
 <launch>
 
-<node name="point2fire" type="point2fire" pkg="siar_arm" output="screen">
-  <param name="mot_pan_arm_file" value="$(find siar_arm)/data/pos_1"/>
-  <param name="mot_tilt_arm_file" value="$(find siar_arm)/data/pos_2"/>
-  <param name="robot_name" value="siar"/>
-  <param name="kp_pan" value="0.02"/>
-  <param name="ki_pan" value="0.002"/>
-  <param name="kd_pan" value="0.002"/>
-  <param name="kp_tilt" value="0.025"/>
-  <param name="ki_tilt" value="0.0025"/>
-  <param name="kd_tilt" value="0.0025"/>
-  <param name="fire_offset_x" value="0.0"/>
-  <param name="fire_offset_y" value="0.0"/>
+  <node name="point2fire" type="point2fire" pkg="siar_arm" output="screen">
+    <param name="mot_pan_arm_file" value="$(find siar_arm)/data/pos_1"/>
+    <param name="mot_tilt_arm_file" value="$(find siar_arm)/data/pos_2"/>
+    
+    <!-- Parameter for Centering Fire Image Control -->
+    <param name="robot_name" value="siar"/>
+    <param name="kp_pan" value="0.02"/>
+    <param name="ki_pan" value="0.002"/>
+    <param name="kd_pan" value="0.002"/>
+    <param name="kp_tilt" value="0.025"/>
+    <param name="ki_tilt" value="0.0025"/>
+    <param name="kd_tilt" value="0.0025"/>
+    <param name="fire_offset_x" value="0.0"/>
+    <param name="fire_offset_y" value="0.0"/>
+    
+    <param name="pan_min_" value="-0.1"/>
+    <param name="tilt_min_" value="0.1"/>
+    <param name="pan_max_" value="-0.1"/>
+    <param name="tilt_max_" value="0.1"/>
+    
+    <!-- Parameters for Centering Arm Control -->
+    <param name="kp_origin_pan"  value="1.5"/>
+    <param name="ki_origin_pan"  value="0.0"/>
+    <param name="kd_origin_pan"  value="0.0"/>
+    <param name="kp_origin_tilt" value="2.2"/>
+    <param name="ki_origin_tilt" value="0.0"/>
+    <param name="kd_origin_tilt" value="0.0"/>
+    <param name="threshold_center_arm" value="0.1"/>
 
+    <param name="pan_origin_min_" value="-0.5"/>
+    <param name="pan_origin_max_" value="0.5"/>
+    <param name="tilt_origin_min_" value="-0.5"/>
+    <param name="tilt_origin_max_" value="0.5"/>
 
-</node>
+  </node>
 
 </launch>
