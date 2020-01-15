@@ -82,6 +82,7 @@ class Point2Fire
         Pid pan_origin_control_;
 		Pid tilt_origin_control_;
 		
+        float speed_arm_pan;
 		
 		float pan_ref_{0.0};
 		float tilt_ref_{0.0};
@@ -93,7 +94,7 @@ class Point2Fire
 		float tilt_max_;
 
         float origin_pan_ref_{0.0};
-		float origin_tilt_ref_{0.0};
+		float origin_tilt_ref_{-0.3};
         float pan_origin_min_;
 		float tilt_origin_min_;
 		float pan_origin_max_;
@@ -109,9 +110,9 @@ class Point2Fire
         float pos2D_u_fire, pos2D_v_fire;
         float threshold_max_u_fire_, threshold_min_u_fire_;
         float threshold_max_v_fire_, threshold_min_v_fire_;
-        float threshold_center_arm;
+        float threshold_center_arm_pan;
+        float threshold_center_arm_tilt;
 
-		
         std::vector<Point2D<float>> detect_fov_;
 		
 		std::experimental::optional<Point2D<float>> center_img_;
@@ -124,6 +125,8 @@ class Point2Fire
         float mov_pan_arm_ = 0;
         float arm_ang_rad_pan_;
         float arm_ang_rad_tilt_;
+        float aux_arm_ang_rad_pan_;
+        float aux_arm_ang_rad_tilt_;
 
 
         Point2Fire(ros::NodeHandle nh,ros::NodeHandle pnh,std::string name);
@@ -141,9 +144,9 @@ class Point2Fire
         void armPanCallback(const std_msgs::Float32::ConstPtr& msg);
         void armTiltCallback(const std_msgs::Float32::ConstPtr& msg);
 		void ControlLoop(void);
-        void originArmPosition(void);
+        void cleanPubArm(void);
 		std_msgs::Float32 ComputePID(Pid& _pid, float& _ref, float _p,  float _offset, const ros::Duration& _t, float _limit_min, float _limit_max);
-			
+		std_msgs::Float32 clean_pub_;
 };	
 
 		Point2Fire::Point2Fire(ros::NodeHandle nh, ros::NodeHandle pnh, std::string name):
@@ -156,11 +159,12 @@ class Point2Fire
             float kp_origin_tilt,ki_origin_tilt,kd_origin_tilt;
             float kp_origin_pan,ki_origin_pan,kd_origin_pan;
             
-            
             pnh.param<std::string>("mot_pan_arm_file", mot_pan_arm_file_, "");
             pnh.param<std::string>("mot_tilt_arm_file", mot_tilt_arm_file_, "");
             
             pnh.param<std::string>("robot_name", robot_name_,"siar");
+            pnh.param<float>("speed_arm_pan", speed_arm_pan,0.8);
+
             pnh.param<float>("kp_pan", kp_pan,0.6);
             pnh.param<float>("ki_pan", ki_pan,0.0);
             pnh.param<float>("kd_pan", kd_pan,0.0);
@@ -189,12 +193,15 @@ class Point2Fire
             pnh.param<float>("tilt_origin_min_", tilt_origin_min_,-0.5);
             pnh.param<float>("tilt_origin_max_", tilt_origin_max_,0.5);
 
-            pnh.param<float>("threshold_center_arm", threshold_center_arm,0.1);
+            pnh.param<float>("threshold_center_arm_pan", threshold_center_arm_pan,0.1);
+            pnh.param<float>("threshold_center_arm_tilt", threshold_center_arm_tilt,0.1);
             
             pan_control_ = control_toolbox::Pid(kp_pan,ki_pan,kd_pan);
             tilt_control_ = control_toolbox::Pid(kp_tilt,ki_tilt,kd_tilt);
             pan_origin_control_ = control_toolbox::Pid(kp_origin_pan,ki_origin_pan,kd_origin_pan);
             tilt_origin_control_ = control_toolbox::Pid(kp_origin_tilt,ki_origin_tilt,kd_origin_tilt);
+
+            clean_pub_.data = 0.0;
 
             //~ load_data(mot_pan_arm_file_, mot_tilt_arm_file_) ;
             is_detected.data = false;
@@ -255,37 +262,38 @@ class Point2Fire
             exe_goal = goal->fire_centered;
             bool turn_arm_ = false; // false = rigth  true = left
             float limit_turn = 1.57;
-            float speed_arm_pan = 1.5;
+            
             bool turn_complete_1 = false;
             bool turn_complete_2 = false;
             bool turn_complete = false;
             bool aux_detected = false;
+            bool finish_control = false;
+            bool aux_setpoint_arm = true;
             std_msgs::Float32 arm_pan_pub;
             ros::Rate rt_(ros::Duration(0.10));
 
             if (exe_goal)
             {
+                cleanPubArm();
                 ROS_INFO("Moving to origin Position");
                 while (origin)
                 {
                     const auto& current_time  = ros::Time::now();
                     ros::Rate rto_(ros::Duration(0.1));
 
-
                     arm_pan_pub_.publish(ComputePID( pan_origin_control_, origin_pan_ref_ , -arm_ang_rad_pan_,  fire_offset_x_, current_time - last_command_time_ , pan_origin_min_, pan_origin_max_));
 			        arm_tilt_pub_.publish(ComputePID( tilt_origin_control_, origin_tilt_ref_ , -arm_ang_rad_tilt_,  fire_offset_y_, current_time - last_command_time_, tilt_origin_min_, tilt_origin_max_));				
                     last_command_time_ = current_time;
                     rto_.sleep();
-
-                    if ( ((arm_ang_rad_tilt_ < threshold_center_arm) && (arm_ang_rad_tilt_ > -threshold_center_arm)) && 
-                         ((arm_ang_rad_pan_ < threshold_center_arm) && (arm_ang_rad_pan_ > -threshold_center_arm)) )
+                    // Stop condition around the value of origin_tilt_ref_ +/- threshold_center_arm
+                    if ( ((arm_ang_rad_tilt_ < (origin_tilt_ref_ + threshold_center_arm_tilt)) && (arm_ang_rad_tilt_ > (origin_tilt_ref_ - threshold_center_arm_tilt))) && 
+                         ((arm_ang_rad_pan_ < (origin_pan_ref_ + threshold_center_arm_pan)) && (arm_ang_rad_pan_ > (origin_pan_ref_ - threshold_center_arm_pan))) )
                     {
                         origin = false;
                         ROS_INFO("Robotics Arm Centered !!");
                     }     
-
                 }
-                
+                cleanPubArm();
                 ROS_INFO("Init actionCb centering fire");
                 while (!success)
                 {
@@ -299,7 +307,7 @@ class Point2Fire
                             { 
                                 turn_arm_ = true;
                                 turn_complete_1 = true;
-                                ROS_INFO("Entro 1");
+                                ROS_INFO("Looking for Fire 1");
                             }
                             // ROS_INFO("I am in FOR 1");
                         }
@@ -331,23 +339,27 @@ class Point2Fire
                             // ROS_INFO("I am in FOR 4");
                         }
 
-                        //This Condition stop finish the arm movement once the route through from pi/2 to -pi/2 and 0.   
+                        //This Condition finish the arm movement once the route through from pi/2 to -pi/2 and 0.   
                         if(arm_ang_rad_pan_>= 0.0 && turn_complete_2) 
                         { 
                             turn_complete = true;
-                            ROS_INFO("Entro 2");
+                            ROS_INFO("Looking for Fire 2");
                         }
 
                         if (turn_complete)
                         {
-                            ROS_ERROR("Fire Not Detected !!");
+                            cleanPubArm(); 
                             goal->fire_centered == false;
                             result_.fire_finded == false;
+                            aux_detected = true;
+                            finish_control = true;
+                            ROS_ERROR("Fire Not Detected !!   finish_control = %d", finish_control);
                             break;
                         }
 
                         if (is_detected.data)
                         {
+                            cleanPubArm(); 
                             aux_detected = true;
                             ROS_INFO("aux_detected = %d", aux_detected);    
                             break;
@@ -357,9 +369,27 @@ class Point2Fire
                         rt_.sleep();
                     }
                     
+                    
+
                     if (is_detected.data)
                         ControlLoop();
                     
+                    if (!is_detected.data && aux_detected && !finish_control)
+                    {   
+                        if(aux_setpoint_arm)
+                        {
+                            aux_arm_ang_rad_pan_= arm_ang_rad_pan_;
+                            aux_arm_ang_rad_tilt_= arm_ang_rad_tilt_;
+                            aux_setpoint_arm = false;
+                        }
+                        ROS_INFO("aux_arm_ang_rad_pan_ = %f  ,  aux_arm_ang_rad_tilt_ = %f",aux_arm_ang_rad_pan_,aux_arm_ang_rad_tilt_);
+                        ros::Rate rtcl_(ros::Duration(0.1));
+                        const auto& current_time  = ros::Time::now();
+                        arm_pan_pub_.publish(ComputePID( pan_control_, aux_arm_ang_rad_pan_ , -arm_ang_rad_pan_,  fire_offset_x_, current_time - last_command_time_ , pan_origin_min_, pan_origin_max_));
+			            arm_tilt_pub_.publish(ComputePID( tilt_control_, aux_arm_ang_rad_tilt_ , arm_ang_rad_tilt_,  fire_offset_y_, current_time - last_command_time_, tilt_origin_min_, tilt_origin_max_));				
+                        last_command_time_ = current_time;
+                        rtcl_.sleep();
+                    }
                     
                     if ( ((last_fire_detected_->x < threshold_min_u_fire_) || (last_fire_detected_->x > threshold_max_u_fire_)) || 
                          ((last_fire_detected_->y < threshold_min_v_fire_) || (last_fire_detected_->y > threshold_max_v_fire_)) )
@@ -372,39 +402,32 @@ class Point2Fire
                         {
                             goal->fire_centered == false;
                             ROS_INFO("%s: Preempted", action_name_.c_str());
-                            // set the action state to preempted
+                            // Set the action state to preempted
                             fire_detection_action_server_.setPreempted();
                             result_.fire_finded == false;
-
                             break;
-                            
                         }
                         rate.sleep();
                     }
-                    else
+
+                    if (finish_control)
                     {
                         success = true;
                         if (turn_complete)
                             ROS_INFO("Fire Detection without success !!");
                         else
-                            ROS_INFO("Fire in the center of the Image detected");        
+                            ROS_INFO("Fire in the center of the Image detected");  
                     }
                 }             
                 if(success)
                 {
                     result_.fire_finded == true;
-
                     if (turn_complete)
                         ROS_INFO("%s: Unsucceeded", action_name_.c_str());
                     else
                         ROS_INFO("%s: Succeeded", action_name_.c_str());
-                    
-                    // set the action state to succeeded
+                    // Set the action state to succeeded
                     fire_detection_action_server_.setSucceeded(result_);
-                    std_msgs::Float32 clean_pub_;
-                    clean_pub_.data = 0.0;
-                    arm_pan_pub_.publish(clean_pub_);
-                    arm_tilt_pub_.publish(clean_pub_);
                 }
             }
         }
@@ -523,11 +546,6 @@ class Point2Fire
             }
         }
 
-        // void Point2Fire::originArmPosition()
-        // {
-        
-        // }
-
         std_msgs::Float32 Point2Fire::ComputePID( Pid& _pid, float& _ref, float _p,  float _offset, const ros::Duration& _t, float _limit_min, float _limit_max )
         {
             std_msgs::Float32 force;
@@ -535,6 +553,14 @@ class Point2Fire
             _ref = std::max( std::min( _ref, _limit_max), _limit_min);
             force.data =_ref ;
             return force;
+        }
+
+        void Point2Fire::cleanPubArm(void)
+        {
+            ros::Rate rtcp_(ros::Duration(0.5));
+            arm_pan_pub_.publish(clean_pub_);
+            arm_tilt_pub_.publish(clean_pub_);
+            rtcp_.sleep();
         }
 
 

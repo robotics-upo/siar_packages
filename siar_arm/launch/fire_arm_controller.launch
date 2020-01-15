@@ -8,6 +8,9 @@
     
     <!-- Parameter for Centering Fire Image Control -->
     <param name="robot_name" value="siar"/>
+
+    <param name="speed_arm_pan" value="0.7"/>
+
     <param name="kp_pan" value="0.02"/>
     <param name="ki_pan" value="0.002"/>
     <param name="kd_pan" value="0.002"/>
@@ -29,7 +32,8 @@
     <param name="kp_origin_tilt" value="2.2"/>
     <param name="ki_origin_tilt" value="0.0"/>
     <param name="kd_origin_tilt" value="0.0"/>
-    <param name="threshold_center_arm" value="0.1"/>
+    <param name="threshold_center_arm_pan" value="0.08"/>
+    <param name="threshold_center_arm_tilt" value="0.08"/>
 
     <param name="pan_origin_min_" value="-0.5"/>
     <param name="pan_origin_max_" value="0.5"/>
