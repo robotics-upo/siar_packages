@@ -500,20 +500,26 @@ class SiarArmROS:public SiarArm
     geometry_msgs::Point p;
     angle_type angles;
     motor2rad(curr_siar_status_.herculex_position, angles);
-    
+    tf::StampedTransform stf;
+    tf::Quaternion q;
+
     // First and second rotations
     // Emit the first transform: siar_arm_1_2
-    tf::Quaternion q;
-    q.setRPY(0, angles[1], angles[0]);
-    tf::StampedTransform stf;
-    stf.stamp_ = ros::Time::now();
-    stf.frame_id_ = frame_id;
-    stf.child_frame_id_ = "siar/arm_rotation_1_2";
-    stf.setRotation(q);
-    tfb.sendTransform(stf);
+
+    // New in MBZIRC: First two joints no longer exist
+
+    
+    // q.setRPY(0, angles[1], angles[0]); Old arm, SIAR
+    // q.setRPY(0.0, 0.0, angles[2]);
+    
+    // stf.stamp_ = ros::Time::now();
+    // stf.frame_id_ = frame_id;
+    // stf.child_frame_id_ = "siar/arm_rotation_1_2";
+    // stf.setRotation(q);
+    // tfb.sendTransform(stf);
     
     // Add First Link	
-    marker.header.frame_id = stf.child_frame_id_;
+    marker.header.frame_id = frame_id;
     marker.header.stamp = ros::Time::now();
     marker.ns = "siar/arm";
     marker.id = id++;
@@ -537,19 +543,18 @@ class SiarArmROS:public SiarArm
     model.markers.push_back(marker);
     
     
-    
-    stf.frame_id_ = stf.child_frame_id_;
+    stf.frame_id_ = frame_id;
     stf.child_frame_id_ = "siar/arm_link_1";
     tf::Vector3 v(length[1], 0, 0);
     stf.setIdentity();
     stf.setOrigin(v);
     tfb.sendTransform(stf);
     
-    // Rotation 3
+    // Rotation 3. Not necessary in MBZIRC
     stf.frame_id_ = stf.child_frame_id_;
     stf.child_frame_id_ = "siar/arm_rotation_3";
     stf.setIdentity();
-    q.setRPY(0, angles[2], 0);
+    q.setRPY(0, 0, angles[2]);
     stf.setRotation(q);
     tfb.sendTransform(stf);
     
