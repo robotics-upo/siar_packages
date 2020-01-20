@@ -66,7 +66,7 @@ class SiarArmROSMBZirc:public SiarArmROS {
       pan_rate_ = tilt_rate_ = 0.0;
     }
 
-    if (status_cont > 50) {
+    if (status_cont > 10) {
       clearStatusAndActivateMotors();
       status_cont = 0;
     } else {
@@ -86,6 +86,7 @@ class SiarArmROSMBZirc:public SiarArmROS {
   
   void statusCb(const siar_driver::SiarStatus::ConstPtr& new_status) {
     curr_siar_status_ = *new_status;
+    status_cont = 0;
     if (curr_status_ == NOT_INITIALIZED) {
       curr_cmd_ = curr_siar_status_.herculex_position;
       last_status_= curr_status_ = PAN_AND_TILT;
