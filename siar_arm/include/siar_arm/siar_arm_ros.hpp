@@ -462,21 +462,21 @@ class SiarArmROS:public SiarArm
     std_msgs::UInt8 msg2;
     msg2.data = 0; // 1 for turning off the motors
     arm_torque_pub_.publish(msg2);
-    usleep(50000);
+    // usleep(50000);
 
     std_msgs::Bool msg;
     msg.data = 1;
     arm_clear_status_pub_.publish(msg);
-    usleep(50000);
+    // usleep(50000);
 
     ROS_INFO("Clearing status of the herculex and turning on the torque");
     msg2.data = 1; // 1 for turning on the motors
     arm_torque_pub_.publish(msg2);
-    usleep(50000);
+    // usleep(50000);
     
     msg.data = 1;
     arm_clear_status_pub_.publish(msg);
-    usleep(50000);
+    // usleep(50000);
     msg2.data = 2; // 2 for turning on the motors
     arm_torque_pub_.publish(msg2); 
     
