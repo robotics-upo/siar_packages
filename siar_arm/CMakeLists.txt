@@ -177,6 +177,11 @@ add_executable(arm_fire_AS src/arm_fire_AS.cpp)
 add_dependencies(arm_fire_AS ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(arm_fire_AS ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
+add_executable(arm_arduino src/arm_arduino_node.cpp)
+add_dependencies(arm_arduino ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(arm_arduino ${catkin_LIBRARIES})
+
+
 #############
 ## Install ##
 #############
