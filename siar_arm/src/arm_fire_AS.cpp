@@ -10,14 +10,13 @@
 #include <std_msgs/Float32.h>
 #include <sensor_msgs/CameraInfo.h>
 
-#include "siar_arm/siar_arm_ros.hpp"
 #include "fireawareness_ros/FireDetections2D.h"
 #include "fireawareness_ros/FireDetections3D.h"
 
 #include "actionlib/server/simple_action_server.h"
 #include "upo_actions/FireDetectionAction.h"
 
-
+#include <fstream>
 
 template<class T>
 class Point2D{
