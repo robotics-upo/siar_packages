@@ -3,6 +3,7 @@
 #include <tf/transform_broadcaster.h>
 #include <std_msgs/Float32.h>
 #include <std_msgs/Int32.h>
+#include <functions/MedianFilter.h>
 
 using namespace std;
 
@@ -23,10 +24,18 @@ std::unique_ptr<ArmArduino> arm_arduino;
 std::string frame_id;
 std::unique_ptr<tf::TransformBroadcaster> tfb;
 
-ros::Publisher pan_vel_pub, tilt_vel_pub;
+ros::Publisher pan_vel_pub, tilt_vel_pub, marker_pub;
+
+MedianFilter<int,5> tilt_filter, pan_filter;
 
 void panPosCb(const std_msgs::Int32ConstPtr &pan) {
-    curr_pan = pan->data;
+    if (pan->data == 0)
+        return;
+    if (pan_init) {
+        pan_filter.addSample(pan->data);
+        curr_pan = pan_filter.getMedian();
+    }
+        
     if (!pan_init) {
         raw_type motor_pos;
         motor_pos[0] = pan->data;
@@ -40,7 +49,13 @@ void panPosCb(const std_msgs::Int32ConstPtr &pan) {
 }
 
 void tiltPosCb(const std_msgs::Int32ConstPtr &tilt) {
-    curr_tilt = tilt->data;
+    if (tilt->data == 0) 
+        return;
+    
+    if (tilt_init ) {
+        tilt_filter.addSample(tilt->data);
+        curr_tilt = tilt_filter.getMedian();
+    }
     if (!tilt_init) {
         raw_type motor_pos;
         motor_pos[0] = curr_pan;
@@ -75,6 +90,9 @@ void managePan() {
     
     if (!arm_arduino->rad2motor(angles, motor_cmd) ) {
         arm_arduino->correctJointLimits(motor_cmd);
+        arm_arduino->motor2rad(motor_cmd, angles);
+        curr_pan_cmd = angles[0];
+        curr_tilt_cmd = angles[1];
     }
 
     std_msgs::Int32 msg;
@@ -106,7 +124,7 @@ void manageTilt() {
     tilt_vel_pub.publish(msg);
 }
 
-visualization_msgs::MarkerArray getARMMarkerArray(raw_type) {
+visualization_msgs::MarkerArray getARMMarkerArray() {
     int id = 0;
     visualization_msgs::MarkerArray model;
     visualization_msgs::Marker marker;
@@ -119,6 +137,7 @@ visualization_msgs::MarkerArray getARMMarkerArray(raw_type) {
 
     arm_arduino->motor2rad(herculex_position, angles);
     tf::StampedTransform stf;
+    stf.stamp_ = ros::Time::now();
     tf::Quaternion q;
 
     // First and second rotations
@@ -133,12 +152,30 @@ visualization_msgs::MarkerArray getARMMarkerArray(raw_type) {
     marker.id = id++;
     marker.type = visualization_msgs::Marker::CYLINDER;
     marker.action = visualization_msgs::Marker::ADD;
-    marker.pose.position.x = arm_arduino->length[0] * 0.5;
+    marker.pose.position.z = arm_arduino->length[0] * 0.5;
     marker.pose.position.y = 0;
-    marker.pose.position.z = 0;
+    marker.pose.position.x = 0;
     marker.pose.orientation.w = 0.70711;
     marker.pose.orientation.x = 0;
     marker.pose.orientation.y = 0.70711;
+    marker.pose.orientation.z = 0;
+    marker.scale.x = 0.05;
+    marker.scale.y = 0.05;
+    marker.scale.z = arm_arduino->length[0];
+    marker.color.a = 1.0; 
+    marker.color.r = 75.0/255.0;
+    marker.color.g = 75.0/255.0;
+    marker.header.stamp = ros::Time::now();
+    marker.ns = "siar/arm";
+    marker.id = id++;
+    marker.type = visualization_msgs::Marker::CYLINDER;
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.pose.position.z = arm_arduino->length[0] * 0.5;
+    marker.pose.position.y = 0;
+    marker.pose.position.x = 0;
+    marker.pose.orientation.w = 0;
+    marker.pose.orientation.x = 0;
+    marker.pose.orientation.y = 0;
     marker.pose.orientation.z = 0;
     marker.scale.x = 0.05;
     marker.scale.y = 0.05;
@@ -160,9 +197,9 @@ visualization_msgs::MarkerArray getARMMarkerArray(raw_type) {
     
     // Rotation 3. Not necessary in MBZIRC
     stf.frame_id_ = stf.child_frame_id_;
-    stf.child_frame_id_ = "siar/arm_pan";
+    stf.child_frame_id_ = "siar/arm_pan_tilt";
     stf.setIdentity();
-    q.setRPY(0, 0, angles[0]);
+    q.setRPY(0, angles[1], angles[0]);
     stf.setRotation(q);
     tfb->sendTransform(stf);
     
@@ -173,35 +210,15 @@ visualization_msgs::MarkerArray getARMMarkerArray(raw_type) {
     marker.color.g = 0;
     marker.color.b = 0;
     marker.pose.position.x = arm_arduino->length[1] * 0.5;
-    marker.id = id++;
-    model.markers.push_back(marker);
-    stf.frame_id_ = stf.child_frame_id_;
-    stf.child_frame_id_ = "siar/arm_link_2";
-    v.setValue(arm_arduino->length[1], 0, 0);
-    stf.setIdentity();
-    stf.setOrigin(v);
-    tfb->sendTransform(stf);
-    
-    // Rotation Tilt
-    stf.frame_id_ = stf.child_frame_id_;
-    stf.child_frame_id_ = "siar/arm_tilt";
-    stf.setIdentity();
-    q.setRPY(0, angles[2], 0);
-    stf.setRotation(q);
-    tfb->sendTransform(stf);
-    
-    // Link 4
-    marker.scale.z = arm_arduino->length[2];
-    marker.header.frame_id = stf.child_frame_id_;
-    marker.color.r = 0.0;
-    marker.color.g = 1.0;
-    marker.color.b = 0;
-    marker.pose.position.x = arm_arduino->length[2] * 0.5;
+    marker.pose.orientation.w = 0.70711;
+    marker.pose.orientation.x = 0;
+    marker.pose.orientation.y = 0.70711;
+    marker.pose.orientation.z = 0;
     marker.id = id++;
     model.markers.push_back(marker);
     stf.frame_id_ = stf.child_frame_id_;
     stf.child_frame_id_ = "siar/arm_camera";
-    v.setValue(arm_arduino->length[2], 0, 0);
+    v.setValue(arm_arduino->length[1], -0.01, 0);
     stf.setIdentity();
     stf.setOrigin(v);
     tfb->sendTransform(stf);
@@ -223,7 +240,7 @@ int main(int argc, char** argv) {
   
   // Definimos pub y sub
   pan_vel_pub = nh.advertise<std_msgs::Int32>("arm_pan_cmd_arduino", 3);
-  tilt_vel_pub = nh.advertise<std_msgs::Int32>("tilt_pan_cmd_arduino",3);
+  tilt_vel_pub = nh.advertise<std_msgs::Int32>("arm_tilt_cmd_arduino",3);
 
   ros::Subscriber pan_vel_sub, tilt_vel_sub;
   ros::Subscriber pan_pos_sub, tilt_pos_sub;
@@ -234,7 +251,7 @@ int main(int argc, char** argv) {
   pan_vel_sub = nh.subscribe("arm_pan", 1, panVelCb);
   tilt_vel_sub = nh.subscribe("arm_tilt", 1, tiltVelCb);
 
-  
+  marker_pub = nh.advertise<visualization_msgs::MarkerArray>("arm_marker", 3);
 
 
   // Get parameters from ROS parameter server  
@@ -260,6 +277,9 @@ int main(int argc, char** argv) {
     }
     if (tilt_init) {
         manageTilt();
+    }
+    if (pan_init && tilt_init) {
+        marker_pub.publish(getARMMarkerArray());
     }
     ROS_INFO("New command: pan = %f tilt= %f", curr_pan_cmd, curr_tilt_cmd);
   }

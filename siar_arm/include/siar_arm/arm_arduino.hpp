@@ -23,7 +23,7 @@ class ArmArduino {
 	public:
 		// Linear interpolators data
 		std::vector<functions::LinearInterpolator *> pos_mot_interpol_, mot_pos_interpol_;
-		std::array<double, 3> length{{0.05, 0.055, 0}};
+		std::array<double, 3> length{{0.11, 0.04}};
 		const size_t n_motors = ARM_JOINTS;
 
 		ArmArduino() {}
@@ -73,7 +73,7 @@ bool ArmArduino::rad2motor(const angle_type &angles, raw_type &commands) {
 		functions::LinearInterpolator &interpol = *pos_mot_interpol_[i];
 		functions::LinearInterpolator &interpol_2 = *mot_pos_interpol_[i];
 		commands[i] = interpol.interpolate(angles[i]);
-		ret_val &= interpol_2.inRange(commands[i]);
+		ret_val &= interpol.inRange(angles[i]);
 	}
 
 	return ret_val;
@@ -129,11 +129,11 @@ void ArmArduino::correctJointLimits(raw_type &joint_values)
 	for (int i = 0; i < n_motors; i++) {
 		functions::LinearInterpolator &curr_inter = *(mot_pos_interpol_[i]);
 		auto min = static_cast<int16_t>(curr_inter.upper_bound(0)->first);
-		auto it = curr_inter.lower_bound(2000) ;
+		auto it = curr_inter.lower_bound(2500) ;
 		it--;
 		auto max = static_cast<int16_t>(it->first); // Usually the commands are in the [0, 2000] range
 
-		// std::cout << "Trying to saturate between: " << min << " and " << max << std::endl;
+		std::cout << "Trying to saturate between: " << min << " and " << max << std::endl;
 		
 		joint_values[i] = functions::saturate(joint_values[i], min, max); 
 	}
