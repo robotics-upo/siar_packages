@@ -14,7 +14,7 @@
 #include "fireawareness_ros/FireDetections3D.h"
 
 #include "actionlib/server/simple_action_server.h"
-#include "upo_actions/FireDetectionAction.h"
+#include "upo_actions/FireExtinguishAction.h"
 
 #include <fstream>
 
@@ -50,10 +50,10 @@ class Point2Fire
 	
 	public:
 
-		actionlib::SimpleActionServer<upo_actions::FireDetectionAction> fire_detection_action_server_;
+		actionlib::SimpleActionServer<upo_actions::FireExtinguishAction> fire_detection_action_server_;
 
-        upo_actions::FireDetectionFeedback feedback_; //variable stores the feedback/intermediate results
-        upo_actions::FireDetectionResult result_; //variable stores the final output
+        upo_actions::FireExtinguishFeedback feedback_; //variable stores the feedback/intermediate results
+        upo_actions::FireExtinguishResult result_; //variable stores the final output
 
 		ros::Subscriber fire_detec_sub_;
 		ros::Subscriber fire_detec_3D_sub_;
@@ -135,7 +135,7 @@ class Point2Fire
 		
 		void initializeSubscribers(ros::NodeHandle &nh);
 		void initializePublishers(ros::NodeHandle &nh);
-		void actionCb(const upo_actions::FireDetectionGoalConstPtr &goal);
+		void actionCb(const upo_actions::FireExtinguishGoalConstPtr &goal);
 		void FireDetectCallback(const fireawareness_ros::FireDetections2D::ConstPtr& msg);
 		void FireDetect3DCallback(const fireawareness_ros::FireDetections3D::ConstPtr& msg);
         void updateFireDetect();
@@ -251,7 +251,7 @@ class Point2Fire
             ROS_INFO("Publishers Initialized node Point2Fire");
         }
 
-        void Point2Fire::actionCb(const upo_actions::FireDetectionGoalConstPtr &goal)
+        void Point2Fire::actionCb(const upo_actions::FireExtinguishGoalConstPtr &goal)
         {
             ros::Rate rate(50);
             bool exe_goal;
