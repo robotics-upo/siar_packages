@@ -25,7 +25,7 @@ class SiarArm {
 	public:
 		// Linear interpolators data
 		std::vector<functions::LinearInterpolator *> pos_mot_interpol_, mot_pos_interpol_;
-		std::vector<double> length{ 0, 0.05, 0.07,  0.0651, 0.04297};
+		std::vector<double> length{ 0, 0.05, 0.055,  0.035, 0.0};
 		size_t n_motors{ length.size() };
 
 		SiarArm() {}

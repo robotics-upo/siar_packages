@@ -404,6 +404,8 @@ width_to_lin_pos(NULL), x_elec_to_lin_pos(NULL), reverse_right(false)
   x_inter = new functions::LinearInterpolator(lin_mot_vec_file, elec_x_file);
   width_to_lin_pos = new functions::LinearInterpolator(width_file, lin_mot_vec_file); // TODO: not invertible!!
   x_elec_to_lin_pos = new functions::LinearInterpolator(elec_x_file, lin_mot_vec_file);
+
+  setLights(false,false, true);
   
   // Stop robot
   setVelocity(0.0f, 0.0f);
@@ -1215,6 +1217,7 @@ bool SiarManagerWidthAdjustment::setLights(bool front_light, bool rear_light, bo
   state.front_light = front_light?1:0;
   state.rear_light = rear_light?1:0;
   state.middle_light = middle_light?1:0;
+
   
   ret_val = battery_serial.write(command, 2);
   battery_serial.flush();

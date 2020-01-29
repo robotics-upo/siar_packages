@@ -217,7 +217,7 @@ visualization_msgs::MarkerArray getARMMarkerArray() {
     marker.id = id++;
     model.markers.push_back(marker);
     stf.frame_id_ = stf.child_frame_id_;
-    stf.child_frame_id_ = "siar/arm_camera";
+    stf.child_frame_id_ = "siar/thermal_camera";
     v.setValue(arm_arduino->length[1], -0.01, 0);
     stf.setIdentity();
     stf.setOrigin(v);

@@ -94,7 +94,9 @@ void commandArmReceived(const siar_driver::SiarArmCommand::ConstPtr &arm_cmd)
 
 void commandLightReceived(const siar_driver::SiarLightCommand::ConstPtr &light_cmd)
 {
-  siar->setLights(light_cmd->front, light_cmd->rear, light_cmd->middle);
+  // siar->setLights(light_cmd->front, light_cmd->rear, light_cmd->middle);
+  siar->setLights(light_cmd->front, light_cmd->rear, true);// Turn on constantly the middle light to connect hokuyo sensor 
+
 }
 
 // void publishArmTF(const siar_driver::SiarStatus &st, tf::TransformBroadcaster &tf_broad); TODO: Necessary or in gonzalo's module?

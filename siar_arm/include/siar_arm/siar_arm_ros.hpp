@@ -422,6 +422,27 @@ class SiarArmROS:public SiarArm
     publishRadStateArm();
 
   }
+
+    virtual void manageServerArduino() {
+
+      movePanTiltArduino(pan_rate_/loop_rate_, tilt_rate_/loop_rate_);
+    
+    }
+
+    void movePanTiltArduino(double pan_angle, double tilt_angle) {
+      ROS_INFO("I am movePanTiltArduino");
+    curr_cmd_[pan_joint_] += pan_angle;
+    curr_cmd_[tilt_joint_] += tilt_angle;
+    correctJointLimits(curr_cmd_);
+    siar_driver::SiarArmCommand cmd;
+    cmd.header = getHeader(seq_cmd_++);
+    cmd.joint_values = curr_cmd_;
+    cmd.command_time = 10;
+    
+    std::cout << "movePanTilt-->Moving: " << pan_angle << " and " << tilt_angle << " Objective: " << commandToString(cmd) << std::endl;
+    arm_cmd_pub_.publish(cmd);
+
+  }
   
   std_msgs::Header getHeader(int seq = 0) {
     std_msgs::Header h;
