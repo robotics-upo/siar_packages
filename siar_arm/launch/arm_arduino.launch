@@ -3,11 +3,11 @@
 <launch>
   
   <arg name="debug" default="false"/>
-  <!-- <arg name="namespace"     default=" "/> -->
-  <arg name="frame_id" default="arm_arduino"/>
+  <arg name="namespace"     default="siar"/>
+  <arg name="frame_id" default="$(arg namespace)/arm_arduino"/>
 
-   <!-- <group ns="$(arg namespace)"> -->
-      <node name="arm_arduino_node" type="arm_arduino" pkg="siar_arm" output="screen" unless="$(arg debug)">
+   <group ns="$(arg namespace)">
+      <node name="arm_arduino_node" type="arm_arduino" pkg="siar_arm" unless="$(arg debug)">
         <param name="motor_file" value="$(find siar_arm)/cfg/mot_"/>
         <param name="angle_file" value="$(find siar_arm)/cfg/ang_"/>
         <param name="max_pan_rate" value="1"/>
@@ -23,6 +23,6 @@
         <param name="rate" value="10"/>
         <param name="frame_id" value="$(arg frame_id"/>
       </node>
-    <!-- </group> -->
+    </group>
 
 </launch>
