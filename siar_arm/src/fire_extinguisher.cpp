@@ -122,13 +122,15 @@ class Point2Fire
 		float area_fire_detected_{0.0};
         fireawareness_ros::FireDetections2D firedetected_msg_;
         std_msgs::Bool is_detected;
-        std_msgs::Bool throw_water_msg;
-        bool throw_water_flag;
         float mov_pan_arm_ = 0;
         float arm_ang_rad_pan_;
         float arm_ang_rad_tilt_;
         float aux_arm_ang_rad_pan_;
         float aux_arm_ang_rad_tilt_;
+
+        std_msgs::Bool throw_water_msg;
+        bool throw_water_flag;
+        float throw_water_time;
 
 
         Point2Fire(ros::NodeHandle nh,ros::NodeHandle pnh,std::string name);
@@ -198,7 +200,9 @@ class Point2Fire
 
             pnh.param<float>("threshold_center_arm_pan", threshold_center_arm_pan,0.1);
             pnh.param<float>("threshold_center_arm_tilt", threshold_center_arm_tilt,0.1);
+            
             pnh.param<bool>("throw_water_flag", throw_water_flag, false);
+            pnh.param<float>("throw_water_time", throw_water_time, 5);
             
             pan_control_ = control_toolbox::Pid(kp_pan,ki_pan,kd_pan);
             tilt_control_ = control_toolbox::Pid(kp_tilt,ki_tilt,kd_tilt);
@@ -592,7 +596,7 @@ class Point2Fire
 
         void Point2Fire::throw_water(){
             
-            ros::Rate rtcw_(ros::Duration(10.0));
+            ros::Rate rtcw_(ros::Duration(throw_water_time));
             throw_water_pub_.publish(throw_water_msg);
             rtcw_.sleep();
             throw_water_flag = false;
