@@ -221,6 +221,8 @@ visualization_msgs::MarkerArray getARMMarkerArray() {
     v.setValue(arm_arduino->length[1], -0.01, 0);
     stf.setIdentity();
     stf.setOrigin(v);
+    q.setRPY(1.57,0,1.57 );
+    stf.setRotation(q);
     tfb->sendTransform(stf);
     
     return model;

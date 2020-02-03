@@ -212,7 +212,7 @@ int main(int argc, char **argv)
     ROS_INFO("Freq = %f", freq);
     pn.param<double>("freq_imu", freq_imu, FREQ_IMU);
 
-    pn.param<bool>("publish_tf", publish_tf, false);
+    pn.param<bool>("publish_tf", publish_tf, true);
     //     pn.param<bool>("publish_arm_tf", publish_arm_tf, true);
 
     dt = 1.0 / freq; // Do not forget the dt :)
