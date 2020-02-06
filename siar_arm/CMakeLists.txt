@@ -182,6 +182,10 @@ add_executable(drone_fire_extinguisher_outside src/drone_fire_extinguisher_outsi
 add_dependencies(drone_fire_extinguisher_outside ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(drone_fire_extinguisher_outside ${catkin_LIBRARIES} ${Boost_LIBRARIES})
 
+add_executable(drone_fire_extinguisher_inside src/drone_fire_extinguisher_inside.cpp)
+add_dependencies(drone_fire_extinguisher_inside ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(drone_fire_extinguisher_inside ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+
 add_executable(arm_arduino src/arm_arduino_node.cpp)
 add_dependencies(arm_arduino ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(arm_arduino ${catkin_LIBRARIES})

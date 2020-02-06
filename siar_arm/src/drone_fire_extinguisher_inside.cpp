@@ -67,19 +67,15 @@ class Point2Fire
 
         //Velocities output message
         sensor_msgs::Joy target_vel_msg;
-        double target_vel_y{0.0};
-        double target_vel_z{0.0};
+        double target_yaw_rate{0.0};
 
         //Pid objects and gains
-        Pid Pid_local_vel_z;
-        Pid Pid_local_vel_y;
-        float kp_vel_z, ki_vel_z, kd_vel_z;
-        float kp_vel_y, ki_vel_y, kd_vel_y;
+        Pid Pid_local_yaw_rate;
+        float kp_yaw_rate, ki_yaw_rate, kd_yaw_rate;
 
         //Search fire params
-        double search_square_size; //size of square for searching fire pixel
-        double search_vel_y;
-        double search_vel_z;
+        double search_yaw_angle; //rotation angle for searching fire pixel
+        double search_yaw_rate; //in radians
 
         bool action_goal_handle_started{false};
 
@@ -103,11 +99,10 @@ class Point2Fire
         std::experimental::optional<Point2D<float>> last_fire_detected_; //last fire detected position
 
         float threshold_max_u_fire_, threshold_min_u_fire_;
-        float threshold_max_v_fire_, threshold_min_v_fire_;
 
         float fire_offset_u_, fire_offset_v_;
 
-        double target_vel_y_upper_limit, target_vel_z_upper_limit, target_vel_y_lower_limit, target_vel_z_lower_limit;
+        double target_yaw_rate_upper_limit, target_yaw_rate_lower_limit;
 
         std_msgs::Bool throw_water_msg;
         bool throw_water_flag;
@@ -122,7 +117,7 @@ class Point2Fire
 
         void updateFireDetect();
         void actionCb(const upo_actions::FireExtinguishGoalConstPtr &goal);
-        void find_in_square(double search_square_size_);
+        void find_in_angle(double yaw_angle_);
         double executePIDs();
 
 		std::string robot_name_{}; 
@@ -149,37 +144,29 @@ class Point2Fire
             target_vel_msg.axes[3] = 0.0; //yaw_rate
 
             //Pid gains
-            pnh.param<float>("kp_vel_z", kp_vel_z, 0.001); //set these
-            pnh.param<float>("ki_vel_z", ki_vel_z, 0.0);
-            pnh.param<float>("kd_vel_z", kd_vel_z, 0.0);
-            pnh.param<float>("kp_vel_y", kp_vel_y, 0.001);
-            pnh.param<float>("ki_vel_y", ki_vel_y, 0.0);
-            pnh.param<float>("kd_vel_y", kd_vel_y, 0.0);
+            pnh.param<float>("kp_yaw_rate", kp_yaw_rate, 0.001); //set these
+            pnh.param<float>("ki_yaw_rate", ki_yaw_rate, 0.0);
+            pnh.param<float>("kd_yaw_rate", kd_yaw_rate, 0.0001);
+            
 
             //Initialize PIDs
-            Pid_local_vel_y = control_toolbox::Pid(kp_vel_y, ki_vel_y, kd_vel_y);
-            Pid_local_vel_z = control_toolbox::Pid(kp_vel_z, ki_vel_z, kd_vel_z);
+            Pid_local_yaw_rate = control_toolbox::Pid(kp_yaw_rate, ki_yaw_rate, kd_yaw_rate);
 
             //U-V coordinates where we want to center the fire
             pnh.param<float>("fire_offset_u", fire_offset_u_, 0.0);
-            pnh.param<float>("fire_offset_v", fire_offset_v_, 0.0);
             
             //Search parameters
-            pnh.param<double>("search_square_size", search_square_size, 1.0);
-            pnh.param<double>("search_vel_y", search_vel_y, 0.4); //set these
-            pnh.param<double>("search_vel_z", search_vel_z, 0.4);
+            pnh.param<double>("search_yaw_angle", search_yaw_angle, 360.0);
+            pnh.param<double>("search_yaw_rate", search_yaw_rate, 0.4); //set these
 
             //Thresholds for considering a centered fire
-            pnh.param<float>("threshold_max_u_fire", threshold_max_u_fire_, 0.1);
-            pnh.param<float>("threshold_max_v_fire", threshold_max_v_fire_, 0.5);
+            pnh.param<float>("threshold_max_u_fire", threshold_max_u_fire_, 0.05);
             pnh.param<float>("threshold_min_u_fire", threshold_min_u_fire_, -threshold_max_u_fire_); 
-            pnh.param<float>("threshold_min_v_fire", threshold_min_v_fire_, -threshold_max_v_fire_);
+           
 
             //Set Saturation limits
-            pnh.param<double>("target_vel_y_upper_limit", target_vel_y_upper_limit, 0.2);
-            pnh.param<double>("target_vel_z_upper_limit", target_vel_z_upper_limit, 0.2);
-            pnh.param<double>("target_vel_y_lower_limit", target_vel_y_lower_limit, -target_vel_y_upper_limit);
-            pnh.param<double>("target_vel_z_lower_limit", target_vel_z_lower_limit, -target_vel_z_upper_limit);
+            pnh.param<double>("target_yaw_rate_upper_limit", target_yaw_rate_upper_limit, 0.2);
+            pnh.param<double>("target_yaw_rate_lower_limit", target_yaw_rate_lower_limit, -target_yaw_rate_upper_limit);
             
             //Set extinguisher parameters
             pnh.param<bool>("throw_water_flag", throw_water_flag, false);
@@ -209,7 +196,7 @@ class Point2Fire
 		
         void Point2Fire::initializePublishers(ros::NodeHandle &nh)
         {	
-            local_vel_pub_ = nh.advertise<sensor_msgs::Joy>("/dji_sdk/flight_control_setpoint_generic", 2);	// si se pone '/' al principio, coge el namespace?? o es como en los SDF??
+            local_vel_pub_ = nh.advertise<sensor_msgs::Joy>("/dji_sdk/flight_control_setpoint_generic", 2);	
             throw_water_pub_ = nh.advertise<std_msgs::Bool>("state_pump", 2);
             ROS_INFO("Publishers Initialized for class Point2Fire");
         }
@@ -251,11 +238,10 @@ class Point2Fire
                 if (fire_detection_action_server_.isPreemptRequested() || !ros::ok())
                 {
                     //Stop drone
-                    target_vel_msg.axes[1] = 0.0;
-                    target_vel_msg.axes[2] = 0.0;
+                    target_vel_msg.axes[3] = 0.0;
                     target_vel_msg.header.stamp = ros::Time::now();
                     local_vel_pub_.publish(target_vel_msg);
-                    rt_.sleep();
+                    rt_.sleep(); 
 
                     ROS_INFO("%s: Preempted", action_name_.c_str());
                     result_.fire_finded = false;
@@ -288,7 +274,7 @@ class Point2Fire
                 //Check if fire is already on image. If not, try to find it
                 if(!fire_detected){
                     ROS_INFO("No fire on image, Starting fire centering"); 
-                    find_in_square(search_square_size);
+                    find_in_angle(search_yaw_angle);
                 }
                 else{
                     ROS_INFO("Fire already on image"); 
@@ -309,8 +295,7 @@ class Point2Fire
                         executePIDs();
 
                         //Check Centering
-                        if ( ((last_fire_detected_->x > threshold_min_u_fire_) && (last_fire_detected_->x < threshold_max_u_fire_)) &&
-                            ((last_fire_detected_->y > threshold_min_v_fire_) && (last_fire_detected_->y < threshold_max_v_fire_)) )
+                        if ( ((last_fire_detected_->x > threshold_min_u_fire_) && (last_fire_detected_->x < threshold_max_u_fire_)))
                         {
                             fire_is_centered = true;
                             continue;
@@ -321,8 +306,7 @@ class Point2Fire
                 }   
 
                 //Stop movement
-                target_vel_msg.axes[1] = 0.0;
-                target_vel_msg.axes[2] = 0.0;
+                target_vel_msg.axes[3] = 0.0;
                 target_vel_msg.header.stamp = ros::Time::now();
                 local_vel_pub_.publish(target_vel_msg);
                 rt_.sleep();   
@@ -338,7 +322,7 @@ class Point2Fire
                     fire_detection_action_server_.setAborted(result_);
                 }
                 else if(fire_is_centered){
-                    ROS_INFO("Fire was centered, starting to throw water");
+                    ROS_INFO("Fire was centered in the horizontal, starting to throw water");
                     throw_water_flag = true;
                     throw_water_msg.data = throw_water_flag;
                     throw_water();
@@ -357,137 +341,47 @@ class Point2Fire
             }
         }
 
-        void Point2Fire::find_in_square(double search_square_size_){
+        void Point2Fire::find_in_angle(double search_yaw_angle_){
+
+                //With search_yaw_rate and search_yaw_angle set rotation time
+                double yaw_angle_in_radians = search_yaw_angle_ * M_PI / 180.0;
+                ros::Duration rotation_time = ros::Duration(search_yaw_angle_/search_yaw_rate); //esto esta en segundos??
+
+                ros::Time movement_start_time = ros::Time::now();
+                ros::Time movement_current_time = ros::Time::now();
+                ros::Duration movement_time_elapsed = ros::Duration(0.0);
             
-            //With search_vel and square_size set times
-            double side_time = search_square_size/search_vel_y; //in case vel_z = vel_y
-            ros::Duration short_side_time = ros::Duration(side_time/2); //esto esta en segundos??
-            ros::Duration large_side_time = ros::Duration(side_time); 
+                //1. First and only movement, rotation to left
+                ROS_INFO("1. Doing rotation to left");
+                //Set vels
+                target_vel_msg.axes[3] = search_yaw_rate; 
+                while(!fire_detected && (movement_time_elapsed <= rotation_time)){ 
+                    //publish vel
+                    target_vel_msg.header.stamp = ros::Time::now();
+                    local_vel_pub_.publish(target_vel_msg); //ojo, rellenar los otros campos del mensaje
+                    rt_.sleep();
+                    movement_current_time = ros::Time::now();
+                    movement_time_elapsed = movement_current_time - movement_start_time;
+                }
 
-            ros::Time movement_start_time = ros::Time::now();
-            ros::Time movement_current_time = ros::Time::now();
-            ros::Duration movement_time_elapsed = ros::Duration(0.0);
-        
-            //1. first movement to left short
-            ROS_INFO("1. first movement to left short");
-            //Set vels
-            target_vel_msg.axes[1] = search_vel_y; //vel_y
-            target_vel_msg.axes[2] = 0.0; //vel_z
-            while(!fire_detected && (movement_time_elapsed <= short_side_time)){ //meter aqui un cancel por stop del action???
-                //publish vel
-                target_vel_msg.header.stamp = ros::Time::now();
-                local_vel_pub_.publish(target_vel_msg); //ojo, rellenar los otros campos del mensaje
-                rt_.sleep();
-                movement_current_time = ros::Time::now();
-                movement_time_elapsed = movement_current_time - movement_start_time;
-            }
-
-            //2. first movement up short
-            ROS_INFO("2. first movement up short");
-            target_vel_msg.axes[1] = 0.0; 
-            target_vel_msg.axes[2] = search_vel_z; 
-            movement_start_time = ros::Time::now();
-            movement_current_time = ros::Time::now();
-            movement_time_elapsed = ros::Duration(0.0);
-            while(!fire_detected && (movement_time_elapsed <= short_side_time)){
+                //Stop movement (fire was found or search movement finished) 
+                target_vel_msg.axes[3] = 0.0; 
                 target_vel_msg.header.stamp = ros::Time::now();
                 local_vel_pub_.publish(target_vel_msg);
                 rt_.sleep();
-                movement_current_time = ros::Time::now();
-                movement_time_elapsed = movement_current_time - movement_start_time;
-            }
 
-            //3. first movement to right large
-            ROS_INFO("3. first movement to right large");
-            target_vel_msg.axes[1] = -search_vel_y; 
-            target_vel_msg.axes[2] = 0.0; 
-            movement_start_time = ros::Time::now();
-            movement_current_time = ros::Time::now();
-            movement_time_elapsed = ros::Duration(0.0);
-            while(!fire_detected && (movement_time_elapsed <= large_side_time)){
-                target_vel_msg.header.stamp = ros::Time::now();
-                local_vel_pub_.publish(target_vel_msg);
-                rt_.sleep();
-                movement_current_time = ros::Time::now();
-                movement_time_elapsed = movement_current_time - movement_start_time;
-            }
-
-            //4. first movement down large
-            ROS_INFO("4. first movement down large");
-            target_vel_msg.axes[1] = 0.0; 
-            target_vel_msg.axes[2] = -search_vel_z; 
-            movement_start_time = ros::Time::now();
-            movement_current_time = ros::Time::now();
-            movement_time_elapsed = ros::Duration(0.0);
-            while(!fire_detected && (movement_time_elapsed <= large_side_time)){
-                target_vel_msg.header.stamp = ros::Time::now();
-                local_vel_pub_.publish(target_vel_msg);
-                rt_.sleep();
-                movement_current_time = ros::Time::now();
-                movement_time_elapsed = movement_current_time - movement_start_time;
-            }
-
-            //5. second movement left large
-            ROS_INFO("5. second movement left large");
-            target_vel_msg.axes[1] = search_vel_y; 
-            target_vel_msg.axes[2] = 0.0; 
-            movement_start_time = ros::Time::now();
-            movement_current_time = ros::Time::now();
-            movement_time_elapsed = ros::Duration(0.0);
-            while(!fire_detected && (movement_time_elapsed <= large_side_time)){
-                local_vel_pub_.publish(target_vel_msg);
-                rt_.sleep();
-                movement_current_time = ros::Time::now();
-                movement_time_elapsed = movement_current_time - movement_start_time;
-            }
-
-            //6. second movement up short
-            ROS_INFO("6. second movement up short");
-            target_vel_msg.axes[1] = 0.0; 
-            target_vel_msg.axes[2] = search_vel_z; 
-            movement_start_time = ros::Time::now();
-            movement_current_time = ros::Time::now();
-            movement_time_elapsed = ros::Duration(0.0);
-            while(!fire_detected && (movement_time_elapsed <= short_side_time)){
-                local_vel_pub_.publish(target_vel_msg);
-                rt_.sleep();
-                movement_current_time = ros::Time::now();
-                movement_time_elapsed = movement_current_time - movement_start_time;
-            }
-
-            //7. return to origin (right) short
-            ROS_INFO("7. return to origin (right) short");
-            target_vel_msg.axes[1] = -search_vel_y; 
-            target_vel_msg.axes[2] = 0.0; 
-            movement_start_time = ros::Time::now();
-            movement_current_time = ros::Time::now();
-            movement_time_elapsed = ros::Duration(0.0);
-            while(!fire_detected && (movement_time_elapsed <= short_side_time)){
-                target_vel_msg.header.stamp = ros::Time::now();
-                local_vel_pub_.publish(target_vel_msg);
-                rt_.sleep();
-                movement_current_time = ros::Time::now();
-                movement_time_elapsed = movement_current_time - movement_start_time;
-            }
-
-            //Stop movement (fire was found or movement got back to initial pose)
-            target_vel_msg.axes[1] = 0.0; 
-            target_vel_msg.axes[2] = 0.0; 
-            target_vel_msg.header.stamp = ros::Time::now();
-            local_vel_pub_.publish(target_vel_msg);
-            rt_.sleep();
-
-            ROS_INFO("Search finished");
-            if (fire_detected){
-                ROS_INFO("Found pixel of fire");  
-                return;
-            }
-            else{
-                ROS_INFO("Did't find any fire"); 
-                fire_not_found = true;  
-            }
+                ROS_INFO("Search finished");
+                if (fire_detected){
+                    ROS_INFO("Found pixel of fire");  
+                    return;
+                }
+                else{
+                    ROS_INFO("Did't find any fire"); 
+                    fire_not_found = true;  
+                }
 
         }
+
 
         
 
@@ -514,24 +408,17 @@ class Point2Fire
 
             //Incremental control
             //mirar signos de last_fire y del control incremental
-            target_vel_y += Pid_local_vel_y.computeCommand( last_fire_detected_->x - fire_offset_u_, current_time - last_command_time_); 
-            target_vel_z += Pid_local_vel_z.computeCommand( last_fire_detected_->y - fire_offset_v_, current_time - last_command_time_);				
+            target_yaw_rate += Pid_local_yaw_rate.computeCommand( last_fire_detected_->x - fire_offset_u_, current_time - last_command_time_); 				
             last_command_time_ = current_time;
 
             // //Apply saturation limits to y_vel- Commented until setting PID gains
-            // if (target_vel_y > target_vel_y_upper_limit)
-            //   target_vel_y = target_vel_y_upper_limit;
-            // else if (target_vel_y < target_vel_y_lower_limit_)
-            //   target_vel_y = target_vel_y_lower_limit_;
+            // if (target_yaw_rate > target_yaw_rate_upper_limit)
+            //   target_yaw_rate = target_yaw_rate_upper_limit;
+            // else if (target_yaw_rate < target_yaw_rate_lower_limit_)
+            //   target_yaw_rate = target_yaw_rate_lower_limit_;
 
-            // //Apply saturation limits to z_vel- Commented until setting PID gains
-            // if (target_vel_y > target_vel_y_upper_limit)
-            //   target_vel_y = target_vel_y_upper_limit;
-            // else if (target_vel_y < target_vel_y_lower_limit_)
-            //   target_vel_y = target_vel_y_lower_limit_;
 
-            target_vel_msg.axes[1] = target_vel_y;
-            target_vel_msg.axes[2] = target_vel_z;
+            target_vel_msg.axes[3] = target_yaw_rate;
             target_vel_msg.header.stamp = ros::Time::now();
             local_vel_pub_.publish(target_vel_msg);
             rt_.sleep(); 
@@ -557,14 +444,14 @@ class Point2Fire
 
     int main(int argc, char** argv) 
     {
-        ros::init(argc, argv, "drone_fire_extinguisher_outside");
+        ros::init(argc, argv, "drone_fire_extinguisher_inside");
 
-        ROS_INFO("Starting drone fire extinguisher for outside");
+        ROS_INFO("Starting drone fire extinguisher for inside");
 
         ros::NodeHandle nh;
         ros::NodeHandle pnh("~");
 
-        Point2Fire point2fire(nh,pnh,"drone_fire_extinguisher_outside");
+        Point2Fire point2fire(nh,pnh,"drone_fire_extinguisher_inside");
         
         ros::Rate r(ros::Duration(0.05));
         while (ros::ok()) {
