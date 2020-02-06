@@ -170,8 +170,8 @@ class Point2Fire
             pnh.param<double>("search_vel_z", search_vel_z, 0.4);
 
             //Thresholds for considering a centered fire
-            pnh.param<float>("threshold_max_u_fire", threshold_max_u_fire_, 0.1);
-            pnh.param<float>("threshold_max_v_fire", threshold_max_v_fire_, 0.5);
+            pnh.param<float>("threshold_max_u_fire", threshold_max_u_fire_, 0.6);
+            pnh.param<float>("threshold_max_v_fire", threshold_max_v_fire_, 0.6);
             pnh.param<float>("threshold_min_u_fire", threshold_min_u_fire_, -threshold_max_u_fire_); 
             pnh.param<float>("threshold_min_v_fire", threshold_min_v_fire_, -threshold_max_v_fire_);
 

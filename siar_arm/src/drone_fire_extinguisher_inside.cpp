@@ -160,7 +160,7 @@ class Point2Fire
             pnh.param<double>("search_yaw_rate", search_yaw_rate, 0.4); //set these
 
             //Thresholds for considering a centered fire
-            pnh.param<float>("threshold_max_u_fire", threshold_max_u_fire_, 0.05);
+            pnh.param<float>("threshold_max_u_fire", threshold_max_u_fire_, 0.6);
             pnh.param<float>("threshold_min_u_fire", threshold_min_u_fire_, -threshold_max_u_fire_); 
            
 
