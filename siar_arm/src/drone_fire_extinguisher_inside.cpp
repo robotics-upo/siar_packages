@@ -107,6 +107,7 @@ class Point2Fire
         std_msgs::Bool throw_water_msg;
         bool throw_water_flag;
         float throw_water_time;
+        ros::Duration throw_water_duration{ros::Duration(5.0)};
 
 
         Point2Fire(ros::NodeHandle nh, ros::NodeHandle pnh, std::string name);
@@ -170,7 +171,8 @@ class Point2Fire
             
             //Set extinguisher parameters
             pnh.param<bool>("throw_water_flag", throw_water_flag, false);
-            pnh.param<float>("throw_water_time", throw_water_time, 5.0);
+            pnh.param<float>("throw_water_time", throw_water_time, 7.0);
+            throw_water_duration = ros::Duration(throw_water_time);
 
             //Initialize output vel message
             target_vel_msg.header.stamp = ros::Time::now();
@@ -187,10 +189,8 @@ class Point2Fire
 		
 		void Point2Fire::initializeSubscribers(ros::NodeHandle &nh)
         {
-		    // fire_detec_sub_ = nh.subscribe("/" + robot_name_ + "/firedetections2D", 2,  &Point2Fire::FireDetectCallback, this);
-            fire_detec_sub_ = nh.subscribe("/firefly1/firedetections2D", 2,  &Point2Fire::FireDetectCallback, this);
-		    // fire_cam_info_sub_ = nh.subscribe("/" + robot_name_ + "/thermal_camera/camera_info", 1,  &Point2Fire::CamInfoCallback, this);
-            fire_cam_info_sub_ = nh.subscribe("/firefly1/thermal_camera/camera_info", 1,  &Point2Fire::CamInfoCallback, this);
+            fire_detec_sub_ = nh.subscribe("firedetections2D", 2,  &Point2Fire::FireDetectCallback, this);
+            fire_cam_info_sub_ = nh.subscribe("thermal_camera/camera_info", 1,  &Point2Fire::CamInfoCallback, this);
 		    ROS_INFO("Subscribers Initialized for class Point2Fire");
 	    }
 		
@@ -433,7 +433,8 @@ class Point2Fire
         void Point2Fire::throw_water(){
             
             // ros::Rate rtcw_(ros::Duration(throw_water_time));// mirar como hacer para que funcione
-            ros::Rate rtcw_(ros::Duration(5.0));
+            ros::Rate rtcw_(throw_water_duration);
+            ROS_INFO("Throwing water for %f seconds", throw_water_time);
             throw_water_pub_.publish(throw_water_msg);
             rtcw_.sleep();
             throw_water_flag = false;
