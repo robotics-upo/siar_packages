@@ -43,7 +43,8 @@ public:
    std::string desc;
 };
 
-class SiarArmROS:public SiarArm {
+class SiarArmROS:public SiarArm 
+{
   public:
   Server s_;
   double pan_rate_, tilt_rate_, loop_rate_;
@@ -54,6 +55,7 @@ class SiarArmROS:public SiarArm {
   ros::Subscriber arm_pan_sub_, arm_tilt_sub_, siar_status_sub_;
   ros::Subscriber set_pan_sub_, set_tilt_sub_;
   ros::Publisher arm_cmd_pub_, arm_clear_status_pub_, arm_torque_pub_, arm_marker_pub_; // Sends arm commands to SIAR Driver node
+  ros::Publisher arm_ang_rad_pan_pub_, arm_ang_rad_tilt_pub_;
   int pan_joint_, tilt_joint_;
   bool move_pan_, move_tilt_;
   int seq_cmd_;
@@ -63,6 +65,10 @@ class SiarArmROS:public SiarArm {
   int max_joint_dist_;
   double timeout_, period_;
   bool enable_server_, enable_marker_;
+  double threshold_mov_arm {0.01};
+  float arm_ang_rad_tilt {0.0};
+  float arm_ang_rad_pan {0.0};
+
 
   int cmd_time_pan_tilt;
   
@@ -80,7 +86,8 @@ class SiarArmROS:public SiarArm {
   siar_arm::armServosMoveActionFeedback::_feedback_type curr_feed_;
   
   
-  SiarArmROS(ros::NodeHandle &nh, ros::NodeHandle &pnh):SiarArm(),s_(nh, "move_arm", false),seq_cmd_(0){
+  SiarArmROS(ros::NodeHandle &nh, ros::NodeHandle &pnh):SiarArm(),s_(nh, "move_arm", false),seq_cmd_(0)
+  {
     timeout_ = -1.0;
     cmd_time_pan_tilt = 200;
 
@@ -130,10 +137,6 @@ class SiarArmROS:public SiarArm {
       enable_marker_ = true;
     }
     
-    
-    
-    
-    
   }
 
   virtual void start() {
@@ -150,9 +153,13 @@ class SiarArmROS:public SiarArm {
       arm_tilt_sub_ = nh.subscribe<std_msgs::Float32>("arm_tilt", 1, &SiarArmROS::armTiltReceived, this);
       set_pan_sub_ = nh.subscribe<std_msgs::Float32>("set_pan", 1, &SiarArmROS::setPanReceived, this);
       set_tilt_sub_ = nh.subscribe<std_msgs::Float32>("set_tilt", 1, &SiarArmROS::setTiltReceived, this);
+
       arm_cmd_pub_ = nh.advertise<siar_driver::SiarArmCommand>("arm_cmd", 1);
       arm_clear_status_pub_ = nh.advertise<std_msgs::Bool>("arm_clear_status", 1);
       arm_torque_pub_ = nh.advertise<std_msgs::UInt8>("arm_torque", 1);
+      arm_ang_rad_pan_pub_ = nh.advertise<std_msgs::Float32>("arm_ang_rad_pan", 1);
+      arm_ang_rad_tilt_pub_ = nh.advertise<std_msgs::Float32>("arm_ang_rad_tilt", 1);
+
       clearStatusAndActivateMotors();
     }
 
@@ -252,7 +259,7 @@ class SiarArmROS:public SiarArm {
   }
   
   void armPanReceived(const std_msgs::Float32ConstPtr &data) {
-    if (fabs(data->data) > 0.3)
+    if (fabs(data->data) > threshold_mov_arm)
       move_pan_ = true; 
     
     else 
@@ -264,7 +271,7 @@ class SiarArmROS:public SiarArm {
   }
   
   void armTiltReceived(const std_msgs::Float32ConstPtr &data) {
-     if (fabs(data->data) > 0.3)
+     if (fabs(data->data) > threshold_mov_arm)
       move_tilt_ = true; 
     else 
       move_tilt_ = false;
@@ -407,10 +414,34 @@ class SiarArmROS:public SiarArm {
     siar_driver::SiarArmCommand cmd;
     cmd.header = getHeader(seq_cmd_++);
     cmd.joint_values = curr_cmd_;
-    cmd.command_time = 100;
+    cmd.command_time = 10;
     
     std::cout << "movePanTilt-->Moving: " << pan_angle << " and " << tilt_angle << " Objective: " << commandToString(cmd) << std::endl;
     arm_cmd_pub_.publish(cmd);
+
+    publishRadStateArm();
+
+  }
+
+    virtual void manageServerArduino() {
+
+      movePanTiltArduino(pan_rate_/loop_rate_, tilt_rate_/loop_rate_);
+    
+    }
+
+    void movePanTiltArduino(double pan_angle, double tilt_angle) {
+      ROS_INFO("I am movePanTiltArduino");
+    curr_cmd_[pan_joint_] += pan_angle;
+    curr_cmd_[tilt_joint_] += tilt_angle;
+    correctJointLimits(curr_cmd_);
+    siar_driver::SiarArmCommand cmd;
+    cmd.header = getHeader(seq_cmd_++);
+    cmd.joint_values = curr_cmd_;
+    cmd.command_time = 10;
+    
+    std::cout << "movePanTilt-->Moving: " << pan_angle << " and " << tilt_angle << " Objective: " << commandToString(cmd) << std::endl;
+    arm_cmd_pub_.publish(cmd);
+
   }
   
   std_msgs::Header getHeader(int seq = 0) {
@@ -427,29 +458,46 @@ class SiarArmROS:public SiarArm {
     timeout_ = cmd.command_time / 50.0;
     cmd.header = getHeader(seq_cmd_++);
     arm_cmd_pub_.publish(cmd);
+    publishRadStateArm();
+
   }
   
+  void publishRadStateArm()
+  {
+    angle_type angles;
+    raw_type motors;
+    std_msgs::Float32 arm_ang_rad_tilt_msg , arm_ang_rad_pan_msg;
+	  motor2rad(curr_siar_status_.herculex_position, angles);
+    arm_ang_rad_tilt_msg.data = angles[3];
+    arm_ang_rad_pan_msg.data = angles[4];
+    arm_ang_rad_pan_pub_.publish(arm_ang_rad_pan_msg);
+    arm_ang_rad_tilt_pub_.publish(arm_ang_rad_tilt_msg);
+
+    // ROS_INFO("pan= %f  ,  tilt= %f",arm_ang_rad_tilt_msg.data,arm_ang_rad_pan_msg.data);
+
+  }
+
   bool clearStatusAndActivateMotors() const {
     bool ret_val = true;
 
     std_msgs::UInt8 msg2;
     msg2.data = 0; // 1 for turning off the motors
     arm_torque_pub_.publish(msg2);
-    usleep(50000);
+    // usleep(50000);
 
     std_msgs::Bool msg;
     msg.data = 1;
     arm_clear_status_pub_.publish(msg);
-    usleep(50000);
+    // usleep(50000);
 
     ROS_INFO("Clearing status of the herculex and turning on the torque");
     msg2.data = 1; // 1 for turning on the motors
     arm_torque_pub_.publish(msg2);
-    usleep(50000);
+    // usleep(50000);
     
     msg.data = 1;
     arm_clear_status_pub_.publish(msg);
-    usleep(50000);
+    // usleep(50000);
     msg2.data = 2; // 2 for turning on the motors
     arm_torque_pub_.publish(msg2); 
     
@@ -473,20 +521,26 @@ class SiarArmROS:public SiarArm {
     geometry_msgs::Point p;
     angle_type angles;
     motor2rad(curr_siar_status_.herculex_position, angles);
-    
+    tf::StampedTransform stf;
+    tf::Quaternion q;
+
     // First and second rotations
     // Emit the first transform: siar_arm_1_2
-    tf::Quaternion q;
-    q.setRPY(0, angles[1], angles[0]);
-    tf::StampedTransform stf;
-    stf.stamp_ = ros::Time::now();
-    stf.frame_id_ = frame_id;
-    stf.child_frame_id_ = "siar/arm_rotation_1_2";
-    stf.setRotation(q);
-    tfb.sendTransform(stf);
+
+    // New in MBZIRC: First two joints no longer exist
+
+    
+    // q.setRPY(0, angles[1], angles[0]); Old arm, SIAR
+    // q.setRPY(0.0, 0.0, angles[2]);
+    
+    // stf.stamp_ = ros::Time::now();
+    // stf.frame_id_ = frame_id;
+    // stf.child_frame_id_ = "siar/arm_rotation_1_2";
+    // stf.setRotation(q);
+    // tfb.sendTransform(stf);
     
     // Add First Link	
-    marker.header.frame_id = stf.child_frame_id_;
+    marker.header.frame_id = frame_id;
     marker.header.stamp = ros::Time::now();
     marker.ns = "siar/arm";
     marker.id = id++;
@@ -510,19 +564,18 @@ class SiarArmROS:public SiarArm {
     model.markers.push_back(marker);
     
     
-    
-    stf.frame_id_ = stf.child_frame_id_;
+    stf.frame_id_ = frame_id;
     stf.child_frame_id_ = "siar/arm_link_1";
     tf::Vector3 v(length[1], 0, 0);
     stf.setIdentity();
     stf.setOrigin(v);
     tfb.sendTransform(stf);
     
-    // Rotation 3
+    // Rotation 3. Not necessary in MBZIRC
     stf.frame_id_ = stf.child_frame_id_;
     stf.child_frame_id_ = "siar/arm_rotation_3";
     stf.setIdentity();
-    q.setRPY(0, angles[2], 0);
+    q.setRPY(0, 0, angles[2]);
     stf.setRotation(q);
     tfb.sendTransform(stf);
     

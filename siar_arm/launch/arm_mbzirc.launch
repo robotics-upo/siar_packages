@@ -18,7 +18,7 @@
         <param name="max_pan_rate" value="100"/>
         <param name="max_tilt_rate" value="100"/>
         <param name="tilt_joint" value="3"/>
-        <param name="pan_joint" value="4"/>
+        <param name="pan_joint" value="2"/>
         <param name="enable_server" value="$(arg enable_server)"/>
         <param name="enable_marker" value="$(arg enable_marker)"/>
       </node>

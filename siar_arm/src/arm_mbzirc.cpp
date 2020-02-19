@@ -16,7 +16,10 @@ int main(int argc, char** argv) {
   
   SiarArmROSMBZirc arm_ros(nh, pnh);
   arm_ros.start();
+  arm_ros.publishRadStateArm();
+  arm_ros.manageServerArduino();
   
+
   ros::Rate r(ros::Duration(10));
   
   geometry_msgs::Twist cmd_vel;

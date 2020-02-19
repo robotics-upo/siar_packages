@@ -264,7 +264,7 @@ void interpretJoy(const sensor_msgs::Joy::ConstPtr& joy) {
 
     // Water related stuff
     static bool water = false;
-    if (joy->buttons[water_button] == 0) {
+    if (joy->buttons[water_button] == 1) {
         water = !water;
         std_msgs::Bool msg;
         msg.data = water?1:0;
@@ -392,7 +392,7 @@ int main(int argc, char** argv)
   arm_tilt_pub = n.advertise<std_msgs::Float32>("arm_tilt", 1);
   arm_torque_pub = n.advertise<std_msgs::UInt8>("arm_torque", 1); // Publishers for low level arm control
   arm_clear_pub = n.advertise<std_msgs::Bool>("arm_clear_status", 1);
-  water_pub = n. advertise<std_msgs::Bool>("pump_state", 1);
+  water_pub = n. advertise<std_msgs::Bool>("state_pump", 1);
   move_arm_client = new MoveArmClient("move_arm");
 
   // Width, costmap, light

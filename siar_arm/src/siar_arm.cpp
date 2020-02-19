@@ -28,6 +28,8 @@ bool SiarArm::inverseKinematics(double x, double y, double z, angle_type &result
 
 	// donde L1 = 35.06; L2 = 186; L3 =140.05
 
+	// TODO: MBZirc new version of inverse Kinematics with the new arm configuration
+
 	// a1,2,3 son los ángulos de la primera, segunda y tercera articulación.
 	result[0] = atan2(z, x);
 	result[2] = acos(z*z+ x*x + pow(y-length[0],2.0) - length[2]*length[2] - length[3]*length[3]);

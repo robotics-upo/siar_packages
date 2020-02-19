@@ -404,6 +404,8 @@ width_to_lin_pos(NULL), x_elec_to_lin_pos(NULL), reverse_right(false)
   x_inter = new functions::LinearInterpolator(lin_mot_vec_file, elec_x_file);
   width_to_lin_pos = new functions::LinearInterpolator(width_file, lin_mot_vec_file); // TODO: not invertible!!
   x_elec_to_lin_pos = new functions::LinearInterpolator(elec_x_file, lin_mot_vec_file);
+
+  setLights(false,false, true);
   
   // Stop robot
   setVelocity(0.0f, 0.0f);
@@ -529,69 +531,92 @@ inline bool SiarManagerWidthAdjustment::update()
   
   // New: actualize and publish different status TODO: How to handle errors here? Currently ignoring them
   bat_cont++;
+
   if (bat_cont >= bat_skip)
   {
-//     ROS_INFO("Actualizing battery and arm");
+    //ROS_INFO("Actualizing battery and arm");
     arm_cont++;
     // Actualize battery and power supply data
-    if (!actualizeBatteryStatus()) {
-//       ROS_ERROR("Could not retrieve the battery status");
+    if (!actualizeBatteryStatus()) 
+    {
+    //ROS_ERROR("Could not retrieve the battery status");
     }
-    if (!getPowerSupply()) {
-//       ROS_ERROR("Could not retrieve the power supply status");
+    
+    if (!getPowerSupply()) 
+    {
+      //ROS_ERROR("Could not retrieve the power supply status");
     }
     bat_cont = 0;
   }
     
   // Update arm status
   arm_cont++;
-  if (arm_cont >=arm_skip) {
-//     ROS_INFO("Actualizing arm");
-    if (!getHerculexPosition()) {
-//       ROS_ERROR("Could not retrieve the herculex position");
+
+  if (arm_cont >=arm_skip) 
+  {
+    //     ROS_INFO("Actualizing arm");
+    if (!getHerculexPosition()) 
+    {
+      //       ROS_ERROR("Could not retrieve the herculex position");
     }
   
-//     if (!getHerculexStatus()) {
-//       ROS_ERROR("Could not retrieve the herculex status");
-//     }
-    if (!getHerculexTemperature()) {
-//       ROS_ERROR("Could not retrieve the herculex temperature");
+    //if (!getHerculexStatus()) 
+    //{
+    //       ROS_ERROR("Could not retrieve the herculex status");
+    //}
+    if (!getHerculexTemperature()) 
+    {
+      //       ROS_ERROR("Could not retrieve the herculex temperature");
     }
-    if (!getHerculexTorque()) {
-//       ROS_ERROR("Could not retrieve the herculex torque");
+    if (!getHerculexTorque()) 
+    {
+      //       ROS_ERROR("Could not retrieve the herculex torque");
     }
+    
     arm_cont = 0;
     
-    // Update aux pins
-//     if (!getAuxPinValues()) {
-//       ROS_ERROR("Could not retrieve the aux pins values");
-//     }
+    //Update aux pins
+    //if (!getAuxPinValues()) {
+    //ROS_ERROR("Could not retrieve the aux pins values");
+    //}
     
     // Linear motors
-    if (getLinearMotorPosition(state.lin_motor_pos)) {
+    if (getLinearMotorPosition(state.lin_motor_pos)) 
+    {
       state.electronics_x = getXElectronics();
       state.width = getWidth();
-    } else {
-//       ROS_ERROR("Could not retrieve the motor position");
+    } 
+    else 
+    {
+    //ROS_ERROR("Could not retrieve the motor position");
     }
-    if (!getLinearMotorPotentiometer(state.lin_motor_pot)) {
-//       ROS_ERROR("Could not retrieve the motor potentiometer");
+    
+    if (!getLinearMotorPotentiometer(state.lin_motor_pot)) 
+    {
+    // ROS_ERROR("Could not retrieve the motor potentiometer");
     }
     
     // 
     bool active;
-    if (!getHardStopStatus(active)) {
-//       ROS_ERROR("Could not retrieve the hard stop status");
-    } else {
+
+    if (!getHardStopStatus(active)) 
+    {
+      //       ROS_ERROR("Could not retrieve the hard stop status");
+    } 
+    else 
+    {
       state.hard_stop = active?1:0;
     }
-//     if (!getHardStopTime(state.hard_stop_time)) {
-//       ROS_ERROR("Could not retrieve the hard stop time");
-//     }
+
+    //if (!getHardStopTime(state.hard_stop_time)) 
+    //{
+    //  ROS_ERROR("Could not retrieve the hard stop time");
+    //}
   }
   
   // Check arm integrity
-  if (!ArmFirewall::checkTemperatureAndStatus(state.herculex_temperature, state.herculex_status)) {
+  if (!ArmFirewall::checkTemperatureAndStatus(state.herculex_temperature, state.herculex_status)) 
+  {
     // Change to panic mode and brake the joints
     if (!state.arm_panic) {
       ROS_ERROR("Siar manager::update --> Arm failed temperature and status check --> panic");
@@ -600,7 +625,9 @@ inline bool SiarManagerWidthAdjustment::update()
   }
   
   // Publish state
+  ROS_INFO("Entro setHerculexPosition");
   state_pub.publish(state);
+  ROS_INFO("Salgo setHerculexPosition");
   
   return ret_val;
 }
@@ -1190,6 +1217,7 @@ bool SiarManagerWidthAdjustment::setLights(bool front_light, bool rear_light, bo
   state.front_light = front_light?1:0;
   state.rear_light = rear_light?1:0;
   state.middle_light = middle_light?1:0;
+
   
   ret_val = battery_serial.write(command, 2);
   battery_serial.flush();
