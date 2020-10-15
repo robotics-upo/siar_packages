@@ -3,6 +3,6 @@
 	<node pkg="siar_model" type="siar_model_viz" name="siar_model_viz" output="screen">
 		<param name="frame_id" value="/base_link"/>
 		<param name="hz" value="10.0"/>
-		<remap from= "/siar_status" to= "s"/>
+		<remap from= "/siar_model_viz/siar_status" to= "/siar_status"/>
 	</node>
 </launch>
