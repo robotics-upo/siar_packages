@@ -25,6 +25,8 @@ Recommended steps:
  > git clone https://github.com/robotics-upo/arduimu_v3.git
  
  > git clone https://github.com/robotics-upo/functions.git
+
+ > git clone https://github.com/robotics-upo/libelium_waspmote_gas_node.git
  
  > git clone https://github.com/robotics-upo/siar_packages.git
  
